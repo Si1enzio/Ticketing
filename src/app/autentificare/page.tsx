@@ -25,8 +25,8 @@ export default async function AuthPage({
               Intra. Solicita. Acceseaza.
             </h1>
             <p className="text-base leading-8 text-white/72">
-              Contul tau este baza pentru cabinetul personal, biletele gratuite emise,
-              PDF, partajare si istoricul de acces la stadion.
+              Contul tau este baza pentru cabinetul personal, biletele emise sau
+              procurate, PDF, partajare si istoricul de acces la stadion.
             </p>
           </div>
           <div className="grid gap-3 text-sm text-white/72">

@@ -18,6 +18,11 @@ const confirmSchema = z.object({
   source: z.string().default("public_reservation"),
 });
 
+const paymentSchema = z.object({
+  matchId: z.string().uuid(),
+  holdToken: z.string().uuid(),
+});
+
 export async function holdSeatsAction(input: z.input<typeof holdSchema>) {
   const parsed = holdSchema.safeParse(input);
 
@@ -63,6 +68,7 @@ export async function holdSeatsAction(input: z.input<typeof holdSchema>) {
     message: data?.message ?? "Locurile au fost blocate temporar pentru emitere.",
     holdToken: data?.hold_token ?? null,
     expiresAt: data?.expires_at ?? null,
+    ticketingMode: data?.ticketing_mode ?? "free",
   };
 }
 
@@ -112,6 +118,55 @@ export async function confirmSeatHoldAction(input: z.input<typeof confirmSchema>
   return {
     ok: true,
     message: data?.message ?? "Biletele au fost emise cu succes.",
+    reservationId: data?.reservation_id ?? null,
+  };
+}
+
+export async function completeDemoCheckoutAction(input: z.input<typeof paymentSchema>) {
+  const parsed = paymentSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "Date invalide pentru plata.",
+    };
+  }
+
+  if (!isSupabaseConfigured()) {
+    return {
+      ok: false,
+      message:
+        "Supabase nu este configurat. Seteaza mediul si ruleaza migratiile inainte de test.",
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return {
+      ok: false,
+      message: "Nu am putut crea conexiunea Supabase.",
+    };
+  }
+
+  const { data, error } = await supabase.rpc("complete_demo_payment", {
+    p_match_id: parsed.data.matchId,
+    p_hold_token: parsed.data.holdToken,
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      message: error.message,
+    };
+  }
+
+  revalidatePath("/cabinet");
+  revalidatePath(`/confirmare/${data?.reservation_id ?? ""}`);
+
+  return {
+    ok: true,
+    message: data?.message ?? "Plata demo a fost confirmata.",
     reservationId: data?.reservation_id ?? null,
   };
 }

@@ -22,6 +22,7 @@ export const ticketStatusSchema = z.enum([
   "canceled",
   "blocked",
 ]);
+export const ticketingModeSchema = z.enum(["free", "paid"]);
 export const seatAvailabilitySchema = z.enum([
   "available",
   "selected",
@@ -78,6 +79,9 @@ export const publicMatchSchema = z.object({
   scannedCount: z.coerce.number().int().nonnegative().default(0),
   availableEstimate: z.coerce.number().int().nonnegative().default(0),
   scannerEnabled: z.boolean().default(false),
+  ticketingMode: ticketingModeSchema.default("free"),
+  ticketPriceCents: z.coerce.number().int().nonnegative().default(0),
+  currency: z.string().default("MDL"),
 });
 
 export type PublicMatch = z.infer<typeof publicMatchSchema>;
@@ -155,6 +159,7 @@ export type TicketCard = z.infer<typeof ticketCardSchema>;
 
 export const adminMatchOverviewSchema = z.object({
   id: z.string(),
+  stadiumId: z.string(),
   slug: z.string(),
   title: z.string(),
   competitionName: z.string(),
@@ -164,10 +169,15 @@ export const adminMatchOverviewSchema = z.object({
   status: matchStatusSchema,
   scannerEnabled: z.boolean(),
   maxTicketsPerUser: z.coerce.number().int().nonnegative(),
+  reservationOpensAt: z.string().nullable().default(null),
+  reservationClosesAt: z.string().nullable().default(null),
   issuedCount: z.coerce.number().int().nonnegative(),
   scannedCount: z.coerce.number().int().nonnegative(),
   noShowCount: z.coerce.number().int().nonnegative(),
   duplicateScanAttempts: z.coerce.number().int().nonnegative(),
+  ticketingMode: ticketingModeSchema.default("free"),
+  ticketPriceCents: z.coerce.number().int().nonnegative().default(0),
+  currency: z.string().default("MDL"),
 });
 
 export type AdminMatchOverview = z.infer<typeof adminMatchOverviewSchema>;
@@ -222,6 +232,33 @@ export const stadiumBuilderSchema = z.object({
 });
 
 export type StadiumBuilder = z.infer<typeof stadiumBuilderSchema>;
+
+export const checkoutItemSchema = z.object({
+  seatId: z.string(),
+  sectorName: z.string(),
+  rowLabel: z.string(),
+  seatNumber: z.coerce.number().int().nonnegative(),
+  gateName: z.string().nullable().default(null),
+});
+
+export type CheckoutItem = z.infer<typeof checkoutItemSchema>;
+
+export const checkoutSummarySchema = z.object({
+  holdToken: z.string().uuid(),
+  matchId: z.string().uuid(),
+  matchSlug: z.string(),
+  matchTitle: z.string(),
+  startsAt: z.string(),
+  stadiumName: z.string(),
+  ticketingMode: ticketingModeSchema,
+  ticketPriceCents: z.coerce.number().int().nonnegative(),
+  currency: z.string().default("MDL"),
+  totalAmountCents: z.coerce.number().int().nonnegative(),
+  expiresAt: z.string(),
+  items: z.array(checkoutItemSchema),
+});
+
+export type CheckoutSummary = z.infer<typeof checkoutSummarySchema>;
 
 export const scannerMatchSchema = z.object({
   id: z.string(),

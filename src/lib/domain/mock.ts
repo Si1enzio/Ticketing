@@ -92,6 +92,9 @@ export const mockMatches: PublicMatch[] = [
     scannedCount: 0,
     availableEstimate: 376,
     scannerEnabled: true,
+    ticketingMode: "free",
+    ticketPriceCents: 0,
+    currency: "MDL",
   },
   {
     id: "7e1f2262-a5f6-44b0-a06d-222222222222",
@@ -114,6 +117,9 @@ export const mockMatches: PublicMatch[] = [
     scannedCount: 0,
     availableEstimate: 468,
     scannerEnabled: false,
+    ticketingMode: "paid",
+    ticketPriceCents: 15000,
+    currency: "MDL",
   },
 ];
 
@@ -166,6 +172,7 @@ export const mockTickets: TicketCard[] = [
 
 export const mockAdminMatches: AdminMatchOverview[] = mockMatches.map((match) => ({
   id: match.id,
+  stadiumId: "demo-stadium",
   slug: match.slug,
   title: match.title,
   competitionName: match.competitionName,
@@ -175,10 +182,15 @@ export const mockAdminMatches: AdminMatchOverview[] = mockMatches.map((match) =>
   status: match.status,
   scannerEnabled: match.scannerEnabled,
   maxTicketsPerUser: match.maxTicketsPerUser,
+  reservationOpensAt: match.reservationOpensAt,
+  reservationClosesAt: match.reservationClosesAt,
   issuedCount: match.issuedCount,
   scannedCount: match.scannedCount,
   noShowCount: Math.max(match.issuedCount - match.scannedCount, 0),
   duplicateScanAttempts: match.id === mockMatches[0].id ? 2 : 0,
+  ticketingMode: match.ticketingMode,
+  ticketPriceCents: match.ticketPriceCents,
+  currency: match.currency,
 }));
 
 export const mockAdminUsers: AdminUserOverview[] = [

@@ -1,6 +1,12 @@
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
-import { CalendarClock, MapPin, ShieldCheck, TimerReset } from "lucide-react";
+import {
+  CalendarClock,
+  CreditCard,
+  MapPin,
+  ShieldCheck,
+  TimerReset,
+} from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -8,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getPublicMatchBySlug, getSeatMapForMatch } from "@/lib/supabase/queries";
+import { formatCurrencyFromCents } from "@/lib/utils";
 
 export default async function MatchDetailPage({
   params,
@@ -31,23 +38,32 @@ export default async function MatchDetailPage({
     ).length,
   }));
 
+  const isPaid = match.ticketingMode === "paid";
+
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card className="overflow-hidden border-white/10 bg-[#08140f] text-white">
-          <div className="h-2 bg-gradient-to-r from-[#11552d] via-[#d5a021] to-[#11552d]" />
-          <CardContent className="space-y-6 p-8">
-            <Badge className="rounded-full bg-[#123826] text-[#f8d376] hover:bg-[#123826]">
-              {match.competitionName}
-            </Badge>
-            <div>
-              <h1 className="font-heading text-5xl uppercase leading-none tracking-[0.12em]">
+        <Card className="surface-dark overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(239,68,68,0.28),transparent_30%),linear-gradient(180deg,#171717_0%,#101010_100%)] text-white">
+          <div className="h-1.5 bg-[linear-gradient(90deg,#ffffff_0%,#fca5a5_36%,#ef4444_100%)]" />
+          <CardContent className="space-y-7 p-8">
+            <div className="flex flex-wrap items-center gap-3">
+              <Badge className="rounded-full border border-white/12 bg-white/8 px-4 py-2 text-xs uppercase tracking-[0.3em] text-[#fecaca] hover:bg-white/8">
+                {match.competitionName}
+              </Badge>
+              <Badge className="rounded-full border border-[#fecaca]/20 bg-[#dc2626]/12 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white hover:bg-[#dc2626]/12">
+                {isPaid ? "Meci cu plata" : "Meci gratuit"}
+              </Badge>
+            </div>
+
+            <div className="space-y-4">
+              <h1 className="font-heading text-5xl uppercase leading-none tracking-[0.1em]">
                 {match.title}
               </h1>
-              <p className="mt-4 max-w-3xl text-base leading-8 text-white/72">
+              <p className="max-w-3xl text-base leading-8 text-white/74">
                 {match.description}
               </p>
             </div>
+
             <div className="grid gap-3 sm:grid-cols-2">
               <InfoRow
                 icon={CalendarClock}
@@ -68,7 +84,7 @@ export default async function MatchDetailPage({
               />
               <InfoRow
                 icon={TimerReset}
-                label="Rezervare deschisa"
+                label="Ticketing activ"
                 value={
                   match.reservationClosesAt
                     ? `Pana la ${format(new Date(match.reservationClosesAt), "d MMMM • HH:mm", {
@@ -81,24 +97,48 @@ export default async function MatchDetailPage({
           </CardContent>
         </Card>
 
-        <Card className="border-[#d5a021]/15 bg-white/95">
+        <Card className="surface-panel overflow-hidden rounded-[34px] border border-white/70 bg-white/95">
+          <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
           <CardContent className="space-y-5 p-6">
             <div>
-              <p className="text-sm uppercase tracking-[0.24em] text-[#7c5b0b]">
-                Ticketing live
+              <p className="text-sm uppercase tracking-[0.24em] text-[#b91c1c]">
+                Snapshot ticketing
               </p>
-              <h2 className="mt-2 font-heading text-4xl uppercase tracking-[0.12em] text-[#08140f]">
-                Snapshot
+              <h2 className="mt-2 font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
+                Acces rapid
               </h2>
             </div>
-            <div className="grid gap-3 text-sm text-slate-600">
+
+            <div className="grid gap-3 text-sm text-neutral-700">
               <StatChip label="Bilete emise" value={match.issuedCount} />
               <StatChip label="Bilete scanate" value={match.scannedCount} />
               <StatChip label="Locuri estimate disponibile" value={match.availableEstimate} />
             </div>
-            <Button asChild className="w-full rounded-full bg-[#11552d] hover:bg-[#0e4524]">
+
+            <div className="rounded-[26px] border border-black/6 bg-neutral-50 p-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-neutral-500">
+                Mod ticketing
+              </p>
+              <p className="mt-2 text-sm leading-6 text-neutral-700">
+                {isPaid
+                  ? `Procurare cu plata la ${formatCurrencyFromCents(match.ticketPriceCents, match.currency)} / loc.`
+                  : "Emitere gratuita pe baza de autentificare si drept de acces."}
+              </p>
+            </div>
+
+            <Button
+              asChild
+              className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+            >
               <Link href={`/meciuri/${match.slug}/rezerva`}>
-                Vezi harta si continua spre rezervare
+                {isPaid ? (
+                  <>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Vezi harta si procura bilete
+                  </>
+                ) : (
+                  "Vezi harta si continua spre emitere"
+                )}
               </Link>
             </Button>
           </CardContent>
@@ -107,30 +147,33 @@ export default async function MatchDetailPage({
 
       <div className="space-y-4">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#7c5b0b]">
+          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#b91c1c]">
             Disponibilitate pe sectoare
           </p>
-          <h2 className="mt-2 font-heading text-4xl uppercase tracking-[0.12em] text-[#08140f]">
+          <h2 className="mt-2 font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
             Structura stadionului
           </h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {sectorSummaries.map((sector) => (
-            <Card key={sector.sectorId} className="border-[#e7dfbf] bg-white/95">
+            <Card
+              key={sector.sectorId}
+              className="surface-panel overflow-hidden rounded-[28px] border border-white/70 bg-white/95"
+            >
               <CardContent className="space-y-4 p-5">
                 <div className="flex items-center gap-3">
                   <div
-                    className="h-4 w-4 rounded-full"
+                    className="h-4 w-4 rounded-full ring-2 ring-white"
                     style={{ backgroundColor: sector.color }}
                   />
                   <div>
-                    <p className="font-semibold text-[#08140f]">{sector.name}</p>
-                    <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
+                    <p className="font-semibold text-[#111111]">{sector.name}</p>
+                    <p className="text-xs uppercase tracking-[0.24em] text-neutral-500">
                       {sector.code}
                     </p>
                   </div>
                 </div>
-                <div className="grid gap-2 text-sm text-slate-600">
+                <div className="grid gap-2 text-sm text-neutral-600">
                   <span>{sector.available} disponibile</span>
                   <span>{sector.reserved} rezervate / hold</span>
                   <span>{sector.blocked} blocate sau indisponibile</span>
@@ -154,9 +197,9 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+    <div className="rounded-[26px] border border-white/10 bg-white/5 p-4">
       <div className="flex items-center gap-3">
-        <Icon className="h-5 w-5 text-[#f8d376]" />
+        <Icon className="h-5 w-5 text-[#fca5a5]" />
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-white/50">{label}</p>
           <p className="mt-1 text-sm text-white/78">{value}</p>
@@ -168,9 +211,9 @@ function InfoRow({
 
 function StatChip({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl bg-[#f8f5e9] px-4 py-3">
-      <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-[#08140f]">{value}</p>
+    <div className="rounded-[24px] border border-black/6 bg-neutral-50 px-4 py-3">
+      <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">{label}</p>
+      <p className="mt-2 text-3xl font-semibold text-[#111111]">{value}</p>
     </div>
   );
 }

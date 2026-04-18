@@ -269,7 +269,10 @@ insert into public.match_settings (
   closes_at,
   hold_minutes,
   visibility,
-  sector_override_mode
+  sector_override_mode,
+  ticketing_mode,
+  ticket_price_cents,
+  currency
 )
 select
   match_row.id,
@@ -278,14 +281,17 @@ select
   settings.closes_at::timestamptz,
   settings.hold_minutes,
   settings.visibility,
-  settings.sector_override_mode
+  settings.sector_override_mode,
+  settings.ticketing_mode,
+  settings.ticket_price_cents,
+  settings.currency
 from public.matches match_row
 join (
   values
-    ('milsami-orhei-fc-zimbru-chisinau', 4, '2026-04-20T08:00:00+03:00', '2026-05-02T13:00:00+03:00', 10, 'public', 'inherit'),
-    ('milsami-orhei-sheriff-tiraspol', 4, '2026-05-05T08:00:00+03:00', '2026-05-18T14:30:00+03:00', 12, 'public', 'match_specific'),
-    ('milsami-orhei-fc-balti', 4, '2026-03-01T08:00:00+02:00', '2026-03-22T14:00:00+02:00', 10, 'public', 'inherit')
-) as settings(slug, max_tickets_per_user, opens_at, closes_at, hold_minutes, visibility, sector_override_mode)
+    ('milsami-orhei-fc-zimbru-chisinau', 4, '2026-04-20T08:00:00+03:00', '2026-05-02T13:00:00+03:00', 10, 'public', 'inherit', 'free', 0, 'MDL'),
+    ('milsami-orhei-sheriff-tiraspol', 4, '2026-05-05T08:00:00+03:00', '2026-05-18T14:30:00+03:00', 12, 'public', 'match_specific', 'paid', 15000, 'MDL'),
+    ('milsami-orhei-fc-balti', 4, '2026-03-01T08:00:00+02:00', '2026-03-22T14:00:00+02:00', 10, 'public', 'inherit', 'free', 0, 'MDL')
+) as settings(slug, max_tickets_per_user, opens_at, closes_at, hold_minutes, visibility, sector_override_mode, ticketing_mode, ticket_price_cents, currency)
   on settings.slug = match_row.slug
 on conflict (match_id) do update
 set
@@ -294,7 +300,10 @@ set
   closes_at = excluded.closes_at,
   hold_minutes = excluded.hold_minutes,
   visibility = excluded.visibility,
-  sector_override_mode = excluded.sector_override_mode;
+  sector_override_mode = excluded.sector_override_mode,
+  ticketing_mode = excluded.ticketing_mode,
+  ticket_price_cents = excluded.ticket_price_cents,
+  currency = excluded.currency;
 
 insert into public.match_sector_overrides (
   match_id,

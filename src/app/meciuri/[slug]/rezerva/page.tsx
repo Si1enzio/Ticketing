@@ -41,14 +41,15 @@ export default async function ReserveSeatPage({
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-12 sm:px-6 lg:px-8">
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#b91c1c]">
-          Emitere bilete gratuite
+          {match.ticketingMode === "paid" ? "Procurare bilete" : "Emitere bilete gratuite"}
         </p>
         <h1 className="mt-2 font-heading text-5xl uppercase tracking-[0.08em] text-[#111111]">
           {match.title}
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-neutral-600">
-          In acest MVP nu exista plata online. Fluxul este de solicitare si emitere a
-          biletelor gratuite, cu drept controlat de admin pentru utilizatorii obisnuiti.
+          {match.ticketingMode === "paid"
+            ? "Acest meci foloseste checkout demo pentru procurare. Fluxul blocheaza locurile, confirma plata si emite instant biletele cu QR."
+            : "Acest meci foloseste emitere gratuita, cu drept controlat de admin pentru utilizatorii obisnuiti."}
         </p>
       </div>
 
@@ -69,6 +70,9 @@ export default async function ReserveSeatPage({
         sectors={sectors}
         viewer={viewer}
         remainingLimit={remainingLimit}
+        ticketingMode={match.ticketingMode}
+        ticketPriceCents={match.ticketPriceCents}
+        currency={match.currency}
       />
     </section>
   );

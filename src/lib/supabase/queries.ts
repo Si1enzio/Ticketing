@@ -9,12 +9,14 @@ import {
   ticketCardSchema,
   type AdminMatchOverview,
   type AdminUserOverview,
+  type CheckoutSummary,
   type PublicMatch,
   type ScannerMatch,
   type SeatMapSector,
   type StadiumBuilder,
   type TicketCard,
   type ViewerContext,
+  checkoutSummarySchema,
 } from "@/lib/domain/types";
 import {
   mockAdminMatches,
@@ -152,6 +154,9 @@ export async function getPublicMatches(): Promise<PublicMatch[]> {
         scannedCount: item.scanned_count,
         availableEstimate: item.available_estimate,
         scannerEnabled: item.scanner_enabled,
+        ticketingMode: item.ticketing_mode,
+        ticketPriceCents: item.ticket_price_cents,
+        currency: item.currency,
       }),
     );
   } catch (error) {
@@ -457,6 +462,7 @@ export async function getAdminMatchOverview(): Promise<AdminMatchOverview[]> {
     return rows.map((item) =>
       adminMatchOverviewSchema.parse({
         id: item.id,
+        stadiumId: item.stadium_id,
         slug: item.slug,
         title: item.title,
         competitionName: item.competition_name,
@@ -466,10 +472,15 @@ export async function getAdminMatchOverview(): Promise<AdminMatchOverview[]> {
         status: item.status,
         scannerEnabled: item.scanner_enabled,
         maxTicketsPerUser: item.max_tickets_per_user,
+        reservationOpensAt: item.reservation_opens_at,
+        reservationClosesAt: item.reservation_closes_at,
         issuedCount: item.issued_count,
         scannedCount: item.scanned_count,
         noShowCount: item.no_show_count,
         duplicateScanAttempts: item.duplicate_scan_attempts,
+        ticketingMode: item.ticketing_mode,
+        ticketPriceCents: item.ticket_price_cents,
+        currency: item.currency,
       }),
     );
   } catch (error) {
@@ -675,5 +686,178 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
   } catch (error) {
     console.error("Nu am putut încărca builder-ul stadionului.", error);
     return [];
+  }
+}
+
+export async function getCheckoutSummary(
+  matchId: string,
+  holdToken: string,
+  viewer: ViewerContext,
+): Promise<CheckoutSummary | null> {
+  if (!viewer.userId || !isSupabaseConfigured()) {
+    return null;
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    if (!supabase) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from("seat_holds")
+      .select(
+        `
+          hold_token,
+          expires_at,
+          match_id,
+          matches!inner (
+            id,
+            slug,
+            title,
+            starts_at,
+            stadiums!inner (name),
+            match_settings!left (
+              ticketing_mode,
+              ticket_price_cents,
+              currency
+            )
+          ),
+          seats!inner (
+            id,
+            row_label,
+            seat_number,
+            stadium_sectors!inner (name),
+            gates (name)
+          )
+        `,
+      )
+      .eq("match_id", matchId)
+      .eq("user_id", viewer.userId)
+      .eq("hold_token", holdToken)
+      .eq("status", "active")
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    const rows = (data ?? []) as Array<{
+      hold_token: string;
+      expires_at: string;
+      matches:
+        | {
+            id: string;
+            slug: string;
+            title: string;
+            starts_at: string;
+            stadiums?: { name?: string | null } | Array<{ name?: string | null }> | null;
+            match_settings?:
+              | {
+                  ticketing_mode?: string | null;
+                  ticket_price_cents?: number | null;
+                  currency?: string | null;
+                }
+              | Array<{
+                  ticketing_mode?: string | null;
+                  ticket_price_cents?: number | null;
+                  currency?: string | null;
+                }>
+              | null;
+          }
+        | Array<{
+            id: string;
+            slug: string;
+            title: string;
+            starts_at: string;
+            stadiums?: { name?: string | null } | Array<{ name?: string | null }> | null;
+            match_settings?:
+              | {
+                  ticketing_mode?: string | null;
+                  ticket_price_cents?: number | null;
+                  currency?: string | null;
+                }
+              | Array<{
+                  ticketing_mode?: string | null;
+                  ticket_price_cents?: number | null;
+                  currency?: string | null;
+                }>
+              | null;
+          }>;
+      seats:
+        | {
+            id: string;
+            row_label: string;
+            seat_number: number;
+            stadium_sectors?:
+              | { name?: string | null }
+              | Array<{ name?: string | null }>
+              | null;
+            gates?: { name?: string | null } | Array<{ name?: string | null }> | null;
+          }
+        | Array<{
+            id: string;
+            row_label: string;
+            seat_number: number;
+            stadium_sectors?:
+              | { name?: string | null }
+              | Array<{ name?: string | null }>
+              | null;
+            gates?: { name?: string | null } | Array<{ name?: string | null }> | null;
+          }>;
+    }>;
+
+    if (!rows.length) {
+      return null;
+    }
+
+    const matchRecord = Array.isArray(rows[0]?.matches)
+      ? rows[0].matches[0]
+      : rows[0]?.matches;
+    const settingsRecord = Array.isArray(matchRecord?.match_settings)
+      ? matchRecord.match_settings[0]
+      : matchRecord?.match_settings;
+    const stadiumRecord = Array.isArray(matchRecord?.stadiums)
+      ? matchRecord.stadiums[0]
+      : matchRecord?.stadiums;
+
+    const ticketPriceCents = Number(settingsRecord?.ticket_price_cents ?? 0);
+    const items = rows.map((row) => {
+      const seatRecord = Array.isArray(row.seats) ? row.seats[0] : row.seats;
+      const sectorRecord = Array.isArray(seatRecord?.stadium_sectors)
+        ? seatRecord.stadium_sectors[0]
+        : seatRecord?.stadium_sectors;
+      const gateRecord = Array.isArray(seatRecord?.gates)
+        ? seatRecord.gates[0]
+        : seatRecord?.gates;
+
+      return {
+        seatId: seatRecord.id,
+        sectorName: sectorRecord?.name ?? "Sector",
+        rowLabel: seatRecord.row_label,
+        seatNumber: seatRecord.seat_number,
+        gateName: gateRecord?.name ?? null,
+      };
+    });
+
+    return checkoutSummarySchema.parse({
+      holdToken,
+      matchId: matchRecord.id,
+      matchSlug: matchRecord.slug,
+      matchTitle: matchRecord.title,
+      startsAt: matchRecord.starts_at,
+      stadiumName: stadiumRecord?.name ?? "Stadion",
+      ticketingMode: settingsRecord?.ticketing_mode ?? "free",
+      ticketPriceCents,
+      currency: settingsRecord?.currency ?? "MDL",
+      totalAmountCents: ticketPriceCents * items.length,
+      expiresAt: rows[0].expires_at,
+      items,
+    });
+  } catch (error) {
+    console.error("Nu am putut încărca sumarul pentru checkout.", error);
+    return null;
   }
 }

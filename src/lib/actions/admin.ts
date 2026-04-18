@@ -14,6 +14,10 @@ const stadiumSchema = z.object({
   city: z.string().min(2),
 });
 
+const stadiumUpdateSchema = stadiumSchema.extend({
+  stadiumId: z.string(),
+});
+
 const sectorSchema = z.object({
   stadiumId: z.string(),
   name: z.string().min(2),
@@ -21,6 +25,10 @@ const sectorSchema = z.object({
   color: z.string().min(4),
   rowsCount: z.coerce.number().int().min(1),
   seatsPerRow: z.coerce.number().int().min(1),
+});
+
+const sectorUpdateSchema = sectorSchema.extend({
+  sectorId: z.string(),
 });
 
 const matchSchema = z.object({
@@ -35,6 +43,13 @@ const matchSchema = z.object({
   reservationOpensAt: z.string().optional(),
   reservationClosesAt: z.string().optional(),
   scannerEnabled: z.boolean().default(false),
+  ticketingMode: z.enum(["free", "paid"]).default("free"),
+  ticketPriceCents: z.coerce.number().int().min(0).default(0),
+  currency: z.string().min(3).max(3).default("MDL"),
+});
+
+const matchUpdateSchema = matchSchema.extend({
+  matchId: z.string(),
 });
 
 const userBlockSchema = z.object({
@@ -177,6 +192,103 @@ export async function createSectorAction(formData: FormData) {
   revalidatePath("/admin/stadion");
 }
 
+export async function updateStadiumAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = stadiumUpdateSchema.safeParse({
+    stadiumId: formData.get("stadiumId"),
+    name: formData.get("name"),
+    slug: formData.get("slug"),
+    city: formData.get("city"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  await supabase
+    .from("stadiums")
+    .update({
+      name: parsed.data.name,
+      slug: parsed.data.slug,
+      city: parsed.data.city,
+    })
+    .eq("id", parsed.data.stadiumId);
+
+  await logAudit(viewer.userId, "update_stadium", "stadiums", parsed.data.stadiumId, parsed.data);
+
+  revalidatePath("/admin/stadion");
+}
+
+export async function updateSectorAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = sectorUpdateSchema.safeParse({
+    sectorId: formData.get("sectorId"),
+    stadiumId: formData.get("stadiumId"),
+    name: formData.get("name"),
+    code: formData.get("code"),
+    color: formData.get("color"),
+    rowsCount: formData.get("rowsCount"),
+    seatsPerRow: formData.get("seatsPerRow"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  const { data: seats } = await supabase
+    .from("seats")
+    .select("row_label, seat_number")
+    .eq("sector_id", parsed.data.sectorId);
+
+  const seatRows = (seats ?? []) as Array<{ row_label: string; seat_number: number }>;
+  const maxExistingRow = seatRows.reduce((max, seat) => {
+    const rowNumber = Number(seat.row_label);
+    return Number.isNaN(rowNumber) ? max : Math.max(max, rowNumber);
+  }, 0);
+  const maxExistingSeat = seatRows.reduce(
+    (max, seat) => Math.max(max, Number(seat.seat_number)),
+    0,
+  );
+
+  if (
+    parsed.data.rowsCount < maxExistingRow ||
+    parsed.data.seatsPerRow < maxExistingSeat
+  ) {
+    throw new Error(
+      "Reducerea numarului de randuri sau locuri necesita o operatiune controlata. Poti doar extinde layout-ul din editorul actual.",
+    );
+  }
+
+  await supabase
+    .from("stadium_sectors")
+    .update({
+      stadium_id: parsed.data.stadiumId,
+      name: parsed.data.name,
+      code: parsed.data.code,
+      color: parsed.data.color,
+      rows_count: parsed.data.rowsCount,
+      seats_per_row: parsed.data.seatsPerRow,
+    })
+    .eq("id", parsed.data.sectorId);
+
+  await supabase.rpc("generate_sector_seats", {
+    p_sector_id: parsed.data.sectorId,
+    p_rows_count: parsed.data.rowsCount,
+    p_seats_per_row: parsed.data.seatsPerRow,
+    p_replace_existing: false,
+  });
+
+  await logAudit(viewer.userId, "update_sector", "stadium_sectors", parsed.data.sectorId, parsed.data);
+
+  revalidatePath("/admin/stadion");
+}
+
 export async function toggleSeatFlagAction(input: z.input<typeof seatToggleSchema>) {
   const viewer = await ensureAdmin();
   const parsed = seatToggleSchema.safeParse(input);
@@ -214,6 +326,9 @@ export async function createMatchAction(formData: FormData) {
     reservationOpensAt: formData.get("reservationOpensAt") || undefined,
     reservationClosesAt: formData.get("reservationClosesAt") || undefined,
     scannerEnabled: formData.get("scannerEnabled") === "on",
+    ticketingMode: formData.get("ticketingMode") || "free",
+    ticketPriceCents: formData.get("ticketPriceCents") || 0,
+    currency: formData.get("currency") || "MDL",
   });
 
   if (!parsed.success || !isSupabaseConfigured()) {
@@ -246,9 +361,72 @@ export async function createMatchAction(formData: FormData) {
       max_tickets_per_user: parsed.data.maxTicketsPerUser,
       opens_at: parsed.data.reservationOpensAt ?? null,
       closes_at: parsed.data.reservationClosesAt ?? null,
+      ticketing_mode: parsed.data.ticketingMode,
+      ticket_price_cents:
+        parsed.data.ticketingMode === "paid" ? parsed.data.ticketPriceCents : 0,
+      currency: parsed.data.currency,
     });
     await logAudit(viewer.userId, "create_match", "matches", data.id, parsed.data);
   }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/meciuri");
+}
+
+export async function updateMatchAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = matchUpdateSchema.safeParse({
+    matchId: formData.get("matchId"),
+    stadiumId: formData.get("stadiumId"),
+    title: formData.get("title"),
+    slug: formData.get("slug"),
+    competitionName: formData.get("competitionName"),
+    opponentName: formData.get("opponentName"),
+    startsAt: formData.get("startsAt"),
+    status: formData.get("status"),
+    maxTicketsPerUser: formData.get("maxTicketsPerUser"),
+    reservationOpensAt: formData.get("reservationOpensAt") || undefined,
+    reservationClosesAt: formData.get("reservationClosesAt") || undefined,
+    scannerEnabled: formData.get("scannerEnabled") === "on",
+    ticketingMode: formData.get("ticketingMode") || "free",
+    ticketPriceCents: formData.get("ticketPriceCents") || 0,
+    currency: formData.get("currency") || "MDL",
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  await supabase
+    .from("matches")
+    .update({
+      stadium_id: parsed.data.stadiumId,
+      title: parsed.data.title,
+      slug: parsed.data.slug,
+      competition_name: parsed.data.competitionName,
+      opponent_name: parsed.data.opponentName,
+      starts_at: parsed.data.startsAt,
+      status: parsed.data.status,
+      scanner_enabled: parsed.data.scannerEnabled,
+      updated_by: viewer.userId,
+    })
+    .eq("id", parsed.data.matchId);
+
+  await supabase.from("match_settings").upsert({
+    match_id: parsed.data.matchId,
+    max_tickets_per_user: parsed.data.maxTicketsPerUser,
+    opens_at: parsed.data.reservationOpensAt ?? null,
+    closes_at: parsed.data.reservationClosesAt ?? null,
+    ticketing_mode: parsed.data.ticketingMode,
+    ticket_price_cents:
+      parsed.data.ticketingMode === "paid" ? parsed.data.ticketPriceCents : 0,
+    currency: parsed.data.currency,
+  });
+
+  await logAudit(viewer.userId, "update_match", "matches", parsed.data.matchId, parsed.data);
 
   revalidatePath("/admin");
   revalidatePath("/admin/meciuri");
