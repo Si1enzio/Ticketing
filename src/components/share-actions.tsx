@@ -27,7 +27,7 @@ export function ShareActions({
         url: ticketUrl,
       });
     } catch {
-      toast.error("Partajarea nativă a fost anulată.");
+      toast.error("Partajarea nativa a fost anulata.");
     }
   }
 
@@ -36,19 +36,19 @@ export function ShareActions({
       <Button
         type="button"
         onClick={handleNativeShare}
-        className="rounded-full bg-[#11552d] hover:bg-[#0e4524]"
+        className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
       >
         <Share2 className="mr-2 h-4 w-4" />
-        Partajează
+        Partajeaza pagina
       </Button>
       <Button
         type="button"
         variant="outline"
         onClick={() => window.open(pdfUrl, "_blank", "noopener,noreferrer")}
-        className="rounded-full"
+        className="rounded-full border-[#111111] bg-white text-[#111111] hover:bg-neutral-100"
       >
         <Printer className="mr-2 h-4 w-4" />
-        PDF / tipărire
+        PDF si print
       </Button>
       <Button
         type="button"
@@ -60,7 +60,7 @@ export function ShareActions({
             "noopener,noreferrer",
           )
         }
-        className="rounded-full"
+        className="rounded-full border-black/8 bg-neutral-50 text-[#111111] hover:bg-neutral-100"
       >
         <Send className="mr-2 h-4 w-4" />
         WhatsApp
@@ -75,7 +75,7 @@ export function ShareActions({
             "noopener,noreferrer",
           )
         }
-        className="rounded-full"
+        className="rounded-full border-black/8 bg-neutral-50 text-[#111111] hover:bg-neutral-100"
       >
         <Send className="mr-2 h-4 w-4" />
         Telegram
@@ -90,7 +90,7 @@ export function ShareActions({
             "noopener,noreferrer",
           )
         }
-        className="rounded-full sm:col-span-2"
+        className="rounded-full border-black/8 bg-neutral-50 text-[#111111] hover:bg-neutral-100 sm:col-span-2"
       >
         <Mail className="mr-2 h-4 w-4" />
         Trimite prin email
@@ -98,4 +98,3 @@ export function ShareActions({
     </div>
   );
 }
-
