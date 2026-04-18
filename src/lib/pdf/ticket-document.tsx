@@ -176,23 +176,6 @@ const styles = StyleSheet.create({
     fontWeight: 600,
     color: "#111111",
   },
-  noteWrap: {
-    borderWidth: 1,
-    borderColor: "#fee2e2",
-    borderStyle: "solid",
-    borderRadius: 10,
-    backgroundColor: "#fff1f2",
-    paddingTop: 7,
-    paddingRight: 8,
-    paddingBottom: 7,
-    paddingLeft: 8,
-    marginTop: 4,
-  },
-  note: {
-    color: "#7f1d1d",
-    fontSize: 8,
-    lineHeight: 1.35,
-  },
 });
 
 export function TicketDocument({
@@ -237,13 +220,6 @@ export function TicketDocument({
                   />
                   <Field label="Adversar" value={ticket.opponentName} />
                   <Field fullWidth label="Stadion" value={ticket.stadiumName} />
-                </View>
-
-                <View style={styles.noteWrap}>
-                  <Text style={styles.note}>
-                    Bilet nominal cu QR unic. Dupa o scanare valida, accesul nu mai poate fi
-                    repetat.
-                  </Text>
                 </View>
               </View>
 
