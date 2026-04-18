@@ -29,9 +29,9 @@ const styles = StyleSheet.create({
   topPanel: {
     backgroundColor: "#111111",
     color: "#ffffff",
-    paddingTop: 10,
+    paddingTop: 9,
     paddingRight: 12,
-    paddingBottom: 10,
+    paddingBottom: 9,
     paddingLeft: 12,
   },
   eyebrow: {
@@ -42,13 +42,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
-    fontSize: 16,
+    fontSize: 15,
     textTransform: "uppercase",
     lineHeight: 1.15,
-    marginBottom: 3,
+    marginBottom: 2,
   },
   subtitle: {
-    fontSize: 8.5,
+    fontSize: 8,
     color: "#e5e7eb",
   },
   body: {
@@ -70,14 +70,21 @@ const styles = StyleSheet.create({
   qrColumn: {
     width: 116,
     alignItems: "center",
-    paddingTop: 2,
+    paddingTop: 4,
+    paddingBottom: 4,
+    paddingHorizontal: 8,
+    backgroundColor: "#fff7f7",
+    borderWidth: 1,
+    borderColor: "#fee2e2",
+    borderStyle: "solid",
+    borderRadius: 12,
   },
   qrBadge: {
     fontSize: 7.5,
     textTransform: "uppercase",
     color: "#7f1d1d",
     letterSpacing: 1.1,
-    marginBottom: 5,
+    marginBottom: 6,
   },
   qrImage: {
     width: 86,
@@ -90,6 +97,19 @@ const styles = StyleSheet.create({
     padding: 4,
     marginBottom: 5,
   },
+  qrInfoBand: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    borderStyle: "solid",
+    borderRadius: 10,
+    backgroundColor: "#ffffff",
+    paddingTop: 6,
+    paddingRight: 6,
+    paddingBottom: 6,
+    paddingLeft: 6,
+    alignItems: "center",
+  },
   qrCaption: {
     fontSize: 6.8,
     color: "#6b7280",
@@ -98,8 +118,16 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   qrCodeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 600,
+    textAlign: "center",
+    color: "#111111",
+  },
+  qrHelper: {
+    marginTop: 5,
+    fontSize: 6.8,
+    lineHeight: 1.25,
+    color: "#7f1d1d",
     textAlign: "center",
   },
   grid: {
@@ -124,6 +152,10 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
     minHeight: 42,
   },
+  cardPriority: {
+    borderColor: "#fecaca",
+    backgroundColor: "#fff7f7",
+  },
   label: {
     color: "#6b7280",
     textTransform: "uppercase",
@@ -134,6 +166,11 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 9,
     lineHeight: 1.25,
+  },
+  valuePriority: {
+    fontSize: 9.4,
+    fontWeight: 600,
+    color: "#111111",
   },
   noteWrap: {
     borderWidth: 1,
@@ -151,6 +188,20 @@ const styles = StyleSheet.create({
     color: "#7f1d1d",
     fontSize: 8,
     lineHeight: 1.35,
+  },
+  tearGuide: {
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#d4d4d8",
+    borderTopStyle: "dashed",
+    paddingTop: 4,
+    alignItems: "center",
+  },
+  tearText: {
+    fontSize: 6.8,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    color: "#71717a",
   },
 });
 
@@ -210,9 +261,18 @@ export function TicketDocument({
               <View style={styles.qrColumn}>
                 <Text style={styles.qrBadge}>QR unic de acces</Text>
                 <Image src={qrDataUrl} style={styles.qrImage} />
-                <Text style={styles.qrCaption}>Cod bilet</Text>
-                <Text style={styles.qrCodeText}>{ticket.ticketCode}</Text>
+                <View style={styles.qrInfoBand}>
+                  <Text style={styles.qrCaption}>Cod bilet</Text>
+                  <Text style={styles.qrCodeText}>{ticket.ticketCode}</Text>
+                </View>
+                <Text style={styles.qrHelper}>
+                  Prezentati acest cod la acces. Valabil pentru o singura intrare.
+                </Text>
               </View>
+            </View>
+
+            <View style={styles.tearGuide}>
+              <Text style={styles.tearText}>Zona libera pentru print / decupare</Text>
             </View>
           </View>
         </View>
@@ -222,11 +282,16 @@ export function TicketDocument({
 }
 
 function Field({ label, value }: { label: string; value: string }) {
+  const isPriority =
+    label === "Sector" || label === "Rand / loc" || label === "Poarta" || label === "Cod bilet";
+
   return (
     <View style={styles.field}>
-      <View style={styles.card}>
+      <View style={isPriority ? [styles.card, styles.cardPriority] : styles.card}>
         <Text style={styles.label}>{label}</Text>
-        <Text style={styles.value}>{value}</Text>
+        <Text style={isPriority ? [styles.value, styles.valuePriority] : styles.value}>
+          {value}
+        </Text>
       </View>
     </View>
   );
