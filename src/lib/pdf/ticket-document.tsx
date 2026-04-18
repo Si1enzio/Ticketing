@@ -1,4 +1,5 @@
-import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+/* eslint-disable jsx-a11y/alt-text */
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 import type { TicketCard } from "@/lib/domain/types";
 
@@ -43,6 +44,39 @@ const styles = StyleSheet.create({
   },
   body: {
     padding: 20,
+  },
+  qrSection: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  qrBadge: {
+    fontSize: 9,
+    textTransform: "uppercase",
+    color: "#7f1d1d",
+    letterSpacing: 1.2,
+    marginBottom: 8,
+  },
+  qrImage: {
+    width: 160,
+    height: 160,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderStyle: "solid",
+    backgroundColor: "#ffffff",
+    padding: 10,
+    marginBottom: 10,
+  },
+  qrCaption: {
+    fontSize: 9,
+    color: "#6b7280",
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  qrCodeText: {
+    fontSize: 16,
+    color: "#111111",
   },
   grid: {
     flexDirection: "row",
@@ -89,7 +123,13 @@ const styles = StyleSheet.create({
   },
 });
 
-export function TicketDocument({ ticket }: { ticket: TicketCard }) {
+export function TicketDocument({
+  ticket,
+  qrDataUrl,
+}: {
+  ticket: TicketCard;
+  qrDataUrl: string;
+}) {
   return (
     <Document
       title={`Bilet ${ticket.ticketCode}`}
@@ -106,6 +146,13 @@ export function TicketDocument({ ticket }: { ticket: TicketCard }) {
           </View>
 
           <View style={styles.body}>
+            <View style={styles.qrSection}>
+              <Text style={styles.qrBadge}>QR unic de acces</Text>
+              <Image src={qrDataUrl} style={styles.qrImage} />
+              <Text style={styles.qrCaption}>Cod bilet</Text>
+              <Text style={styles.qrCodeText}>{ticket.ticketCode}</Text>
+            </View>
+
             <View style={styles.grid}>
               <Field label="Adversar" value={ticket.opponentName} />
               <Field label="Cod bilet" value={ticket.ticketCode} />

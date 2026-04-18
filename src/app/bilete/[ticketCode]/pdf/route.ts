@@ -1,6 +1,7 @@
 import { renderToBuffer } from "@react-pdf/renderer";
 
 import { TicketDocument } from "@/lib/pdf/ticket-document";
+import { generateTicketQrDataUrl } from "@/lib/security/tickets";
 import { getTicketByCode, getViewerContext } from "@/lib/supabase/queries";
 
 export async function GET(
@@ -15,7 +16,14 @@ export async function GET(
     return new Response("Bilet inexistent.", { status: 404 });
   }
 
-  const buffer = await renderToBuffer(TicketDocument({ ticket }));
+  const qrDataUrl = await generateTicketQrDataUrl({
+    code: ticket.ticketCode,
+    matchId: ticket.matchId,
+    version: ticket.qrTokenVersion,
+    kind: "ticket",
+  });
+
+  const buffer = await renderToBuffer(TicketDocument({ ticket, qrDataUrl }));
 
   return new Response(new Uint8Array(buffer), {
     headers: {

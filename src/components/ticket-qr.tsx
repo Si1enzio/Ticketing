@@ -1,27 +1,18 @@
 import Image from "next/image";
-import QRCode from "qrcode";
 
 import type { TicketCard } from "@/lib/domain/types";
-import { signTicketToken } from "@/lib/security/tickets";
+import { generateTicketQrDataUrl } from "@/lib/security/tickets";
 
 export async function TicketQr({
   ticket,
 }: {
   ticket: TicketCard;
 }) {
-  const qrToken = await signTicketToken({
+  const src = await generateTicketQrDataUrl({
     code: ticket.ticketCode,
     matchId: ticket.matchId,
     version: ticket.qrTokenVersion,
     kind: "ticket",
-  });
-
-  const src = await QRCode.toDataURL(qrToken, {
-    margin: 1,
-    color: {
-      dark: "#111111",
-      light: "#ffffff",
-    },
   });
 
   return (

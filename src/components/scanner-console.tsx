@@ -156,9 +156,10 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
               onError={(error) => {
                 toast.error(String(error));
               }}
+              formats={["qr_code"]}
               paused={isSubmitting || !selectedMatchId}
               allowMultiple={false}
-              scanDelay={900}
+              scanDelay={400}
               constraints={{
                 facingMode: "environment",
               }}
