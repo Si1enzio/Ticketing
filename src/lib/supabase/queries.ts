@@ -14,6 +14,7 @@ import {
   type ScannerMatch,
   type SeatMapSector,
   type StadiumBuilder,
+  type StadiumSponsor,
   type TicketCard,
   type ViewerContext,
   checkoutSummarySchema,
@@ -277,6 +278,7 @@ export async function getViewerTickets(viewer: ViewerContext): Promise<TicketCar
         ticketId: item.ticket_id,
         reservationId: item.reservation_id,
         matchId: item.match_id,
+        stadiumId: item.stadium_id,
         matchSlug: item.match_slug,
         ticketCode: item.ticket_code,
         status: item.ticket_status,
@@ -339,6 +341,7 @@ export async function getTicketByCode(ticketCode: string, viewer: ViewerContext)
       ticketId: data.ticket_id,
       reservationId: data.reservation_id,
       matchId: data.match_id,
+      stadiumId: data.stadium_id,
       matchSlug: data.match_slug,
       ticketCode: data.ticket_code,
       status: data.ticket_status,
@@ -403,6 +406,7 @@ export async function getTicketsByReservationId(
         ticketId: item.ticket_id,
         reservationId: item.reservation_id,
         matchId: item.match_id,
+        stadiumId: item.stadium_id,
         matchSlug: item.match_slug,
         ticketCode: item.ticket_code,
         status: item.ticket_status,
@@ -581,6 +585,24 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
             sectors: ["sector-e1"],
           },
         ],
+        sponsors: [
+          {
+            id: "demo-sponsor-1",
+            stadiumId: "demo-stadium",
+            name: "Sponsor principal",
+            logoUrl: "https://dummyimage.com/220x80/ffffff/dc2626.png&text=SPONSOR+1",
+            websiteUrl: null,
+            sortOrder: 0,
+          },
+          {
+            id: "demo-sponsor-2",
+            stadiumId: "demo-stadium",
+            name: "Partener oficial",
+            logoUrl: "https://dummyimage.com/220x80/ffffff/111111.png&text=PARTENER",
+            websiteUrl: null,
+            sortOrder: 1,
+          },
+        ],
         sectors: mockSeatMap.map((sector) => ({
           id: sector.sectorId,
           stadiumId: "demo-stadium",
@@ -626,6 +648,7 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
     const [
       { data: stadiums, error: stadiumError },
       { data: stands, error: standError },
+      { data: sponsors, error: sponsorError },
       { data: sectors, error: sectorError },
       { data: seats, error: seatError },
     ] =
@@ -635,6 +658,11 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
           .from("stadium_stands")
           .select("id, stadium_id, name, code, color")
           .order("sort_order"),
+        supabase
+          .from("stadium_sponsors")
+          .select("id, stadium_id, name, logo_url, website_url, sort_order")
+          .order("sort_order")
+          .order("name"),
         supabase
           .from("stadium_sectors")
           .select("id, stadium_id, stand_id, name, code, color, rows_count, seats_per_row")
@@ -646,12 +674,13 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
           .order("seat_number"),
       ]);
 
-    if (stadiumError || standError || sectorError || seatError) {
-      throw stadiumError ?? standError ?? sectorError ?? seatError;
+    if (stadiumError || standError || sponsorError || sectorError || seatError) {
+      throw stadiumError ?? standError ?? sponsorError ?? sectorError ?? seatError;
     }
 
     const stadiumRows = (stadiums ?? []) as Record<string, unknown>[];
     const standRows = (stands ?? []) as Record<string, unknown>[];
+    const sponsorRows = (sponsors ?? []) as Record<string, unknown>[];
     const sectorRows = (sectors ?? []) as Record<string, unknown>[];
     const seatRows = (seats ?? []) as Record<string, unknown>[];
 
@@ -676,6 +705,19 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
           acc[stadiumId] = [];
         }
         acc[stadiumId].push(stand);
+        return acc;
+      },
+      {},
+    );
+
+    const sponsorsByStadium = sponsorRows.reduce<Record<string, Record<string, unknown>[]>>(
+      (acc, sponsor) => {
+        const stadiumId = String(sponsor.stadium_id);
+
+        if (!acc[stadiumId]) {
+          acc[stadiumId] = [];
+        }
+        acc[stadiumId].push(sponsor);
         return acc;
       },
       {},
@@ -712,6 +754,14 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
             .filter((sector) => String(sector.stand_id ?? "") === String(stand.id))
             .map((sector) => String(sector.id)),
         })),
+        sponsors: (sponsorsByStadium[stadiumId] ?? []).map((sponsor) => ({
+          id: String(sponsor.id),
+          stadiumId,
+          name: String(sponsor.name),
+          logoUrl: String(sponsor.logo_url),
+          websiteUrl: sponsor.website_url ? String(sponsor.website_url) : null,
+          sortOrder: Number(sponsor.sort_order ?? 0),
+        })),
         sectors: (sectorsByStadium[stadiumId] ?? []).map(
           (sector: Record<string, unknown>) => {
             const sectorId = String(sector.id);
@@ -743,6 +793,46 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
     });
   } catch (error) {
     console.error("Nu am putut încărca builder-ul stadionului.", error);
+    return [];
+  }
+}
+
+export async function getStadiumSponsors(stadiumId: string): Promise<StadiumSponsor[]> {
+  if (!isSupabaseConfigured()) {
+    const mockStadium = (await getStadiumBuilderData()).find((item) => item.id === stadiumId);
+    return mockStadium?.sponsors ?? [];
+  }
+
+  try {
+    const supabase = createSupabasePublicServerClient();
+
+    if (!supabase) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from("stadium_sponsors")
+      .select("id, stadium_id, name, logo_url, website_url, sort_order")
+      .eq("stadium_id", stadiumId)
+      .order("sort_order")
+      .order("name");
+
+    if (error) {
+      throw error;
+    }
+
+    const rows = (data ?? []) as Record<string, unknown>[];
+
+    return rows.map((item) => ({
+      id: String(item.id),
+      stadiumId: String(item.stadium_id),
+      name: String(item.name),
+      logoUrl: String(item.logo_url),
+      websiteUrl: item.website_url ? String(item.website_url) : null,
+      sortOrder: Number(item.sort_order ?? 0),
+    }));
+  } catch (error) {
+    console.error("Nu am putut încărca sponsorii stadionului.", error);
     return [];
   }
 }

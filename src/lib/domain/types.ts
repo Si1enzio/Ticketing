@@ -134,6 +134,7 @@ export const ticketCardSchema = z.object({
   ticketId: z.string(),
   reservationId: z.string(),
   matchId: z.string(),
+  stadiumId: z.string(),
   matchSlug: z.string(),
   ticketCode: z.string(),
   status: ticketStatusSchema,
@@ -211,6 +212,17 @@ export const stadiumStandSchema = z.object({
 
 export type StadiumStand = z.infer<typeof stadiumStandSchema>;
 
+export const stadiumSponsorSchema = z.object({
+  id: z.string(),
+  stadiumId: z.string(),
+  name: z.string(),
+  logoUrl: z.string(),
+  websiteUrl: z.string().nullable().default(null),
+  sortOrder: z.coerce.number().int().default(0),
+});
+
+export type StadiumSponsor = z.infer<typeof stadiumSponsorSchema>;
+
 export const stadiumSeatSchema = z.object({
   id: z.string(),
   rowLabel: z.string(),
@@ -243,6 +255,7 @@ export const stadiumBuilderSchema = z.object({
   slug: z.string(),
   city: z.string(),
   stands: z.array(stadiumStandSchema).default([]),
+  sponsors: z.array(stadiumSponsorSchema).default([]),
   sectors: z.array(stadiumSectorSchema),
 });
 

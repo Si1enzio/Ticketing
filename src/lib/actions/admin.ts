@@ -29,6 +29,18 @@ const standUpdateSchema = standSchema.extend({
   standId: z.string(),
 });
 
+const sponsorSchema = z.object({
+  stadiumId: z.string(),
+  name: z.string().min(2),
+  logoUrl: z.string().url(),
+  websiteUrl: z.union([z.string().url(), z.literal(""), z.undefined()]).optional(),
+  sortOrder: z.coerce.number().int().min(0).default(0),
+});
+
+const sponsorUpdateSchema = sponsorSchema.extend({
+  sponsorId: z.string(),
+});
+
 const sectorSchema = z.object({
   stadiumId: z.string(),
   standId: z.string().optional(),
@@ -426,6 +438,76 @@ export async function createStandAction(formData: FormData) {
   if (data?.id) {
     await logAudit(viewer.userId, "create_stand", "stadium_stands", data.id, parsed.data);
   }
+
+  revalidatePath("/admin/stadion");
+}
+
+export async function createSponsorAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = sponsorSchema.safeParse({
+    stadiumId: formData.get("stadiumId"),
+    name: formData.get("name"),
+    logoUrl: formData.get("logoUrl"),
+    websiteUrl: formData.get("websiteUrl") || undefined,
+    sortOrder: formData.get("sortOrder") || 0,
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  const { data } = await supabase
+    .from("stadium_sponsors")
+    .insert({
+      stadium_id: parsed.data.stadiumId,
+      name: parsed.data.name,
+      logo_url: parsed.data.logoUrl,
+      website_url: parsed.data.websiteUrl || null,
+      sort_order: parsed.data.sortOrder,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (data?.id) {
+    await logAudit(viewer.userId, "create_stadium_sponsor", "stadium_sponsors", data.id, parsed.data);
+  }
+
+  revalidatePath("/admin/stadion");
+}
+
+export async function updateSponsorAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = sponsorUpdateSchema.safeParse({
+    sponsorId: formData.get("sponsorId"),
+    stadiumId: formData.get("stadiumId"),
+    name: formData.get("name"),
+    logoUrl: formData.get("logoUrl"),
+    websiteUrl: formData.get("websiteUrl") || undefined,
+    sortOrder: formData.get("sortOrder") || 0,
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  await supabase
+    .from("stadium_sponsors")
+    .update({
+      stadium_id: parsed.data.stadiumId,
+      name: parsed.data.name,
+      logo_url: parsed.data.logoUrl,
+      website_url: parsed.data.websiteUrl || null,
+      sort_order: parsed.data.sortOrder,
+    })
+    .eq("id", parsed.data.sponsorId);
+
+  await logAudit(viewer.userId, "update_stadium_sponsor", "stadium_sponsors", parsed.data.sponsorId, parsed.data);
 
   revalidatePath("/admin/stadion");
 }

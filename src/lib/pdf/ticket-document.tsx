@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/alt-text */
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
-import type { TicketCard } from "@/lib/domain/types";
+import type { StadiumSponsor, TicketCard } from "@/lib/domain/types";
 
 const styles = StyleSheet.create({
   page: {
@@ -51,6 +51,37 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: "#e5e7eb",
     marginTop: 5,
+  },
+  sponsorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 5,
+    marginTop: 7,
+  },
+  sponsorLabel: {
+    fontSize: 6.6,
+    color: "#fecaca",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  sponsorBadge: {
+    height: 18,
+    minWidth: 44,
+    maxWidth: 62,
+    borderRadius: 9,
+    backgroundColor: "#ffffff",
+    paddingTop: 3,
+    paddingRight: 5,
+    paddingBottom: 3,
+    paddingLeft: 5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sponsorLogo: {
+    width: 48,
+    height: 12,
+    objectFit: "contain",
   },
   body: {
     paddingTop: 10,
@@ -181,9 +212,11 @@ const styles = StyleSheet.create({
 export function TicketDocument({
   ticket,
   qrDataUrl,
+  sponsors = [],
 }: {
   ticket: TicketCard;
   qrDataUrl: string;
+  sponsors?: StadiumSponsor[];
 }) {
   return (
     <Document
@@ -198,6 +231,16 @@ export function TicketDocument({
             <Text style={styles.eyebrow}>Stadionul Municipal Orhei</Text>
             <Text style={styles.title}>{ticket.matchTitle}</Text>
             <Text style={styles.subtitle}>{ticket.competitionName}</Text>
+            {sponsors.length ? (
+              <View style={styles.sponsorRow}>
+                <Text style={styles.sponsorLabel}>Sponsori club gazda</Text>
+                {sponsors.slice(0, 4).map((sponsor) => (
+                  <View key={sponsor.id} style={styles.sponsorBadge}>
+                    <Image src={sponsor.logoUrl} style={styles.sponsorLogo} />
+                  </View>
+                ))}
+              </View>
+            ) : null}
           </View>
 
           <View style={styles.body}>
@@ -205,10 +248,8 @@ export function TicketDocument({
               <View style={styles.detailsColumn}>
                 <View style={styles.grid}>
                   <Field label="Sector" value={ticket.sectorName} />
-                  <Field
-                    label="Rand / loc"
-                    value={`${ticket.rowLabel} / ${ticket.seatNumber}`}
-                  />
+                  <Field label="Rand" value={ticket.rowLabel} />
+                  <Field label="Loc" value={String(ticket.seatNumber)} />
                   <Field label="Poarta" value={ticket.gateName ?? "Fara poarta alocata"} />
                   <Field
                     label="Titular"
@@ -218,7 +259,6 @@ export function TicketDocument({
                     label="Data si ora"
                     value={new Date(ticket.startsAt).toLocaleString("ro-RO")}
                   />
-                  <Field label="Adversar" value={ticket.opponentName} />
                   <Field fullWidth label="Stadion" value={ticket.stadiumName} />
                 </View>
               </View>
@@ -252,7 +292,7 @@ function Field({
   fullWidth?: boolean;
 }) {
   const isPriority =
-    label === "Sector" || label === "Rand / loc" || label === "Poarta";
+    label === "Sector" || label === "Rand" || label === "Loc" || label === "Poarta";
 
   return (
     <View style={fullWidth ? [styles.field, styles.fieldFull] : styles.field}>

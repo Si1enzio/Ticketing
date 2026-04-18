@@ -1,9 +1,12 @@
+/* eslint-disable @next/next/no-img-element */
 import { connection } from "next/server";
 
 import {
+  createSponsorAction,
   createSectorAction,
   createStadiumAction,
   createStandAction,
+  updateSponsorAction,
   updateSectorAction,
   updateStadiumAction,
   updateStandAction,
@@ -176,6 +179,123 @@ export default async function AdminStadiumPage() {
                     </Button>
                   </div>
                 </form>
+              </div>
+
+              <div className="grid gap-5 rounded-[28px] border border-black/6 bg-neutral-50 p-5">
+                <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+                  <div>
+                    <p className="font-semibold text-[#111111]">Sponsorii clubului gazda</p>
+                    <p className="mt-1 text-sm text-neutral-500">
+                      Logo-urile adaugate aici pot fi afisate pe biletul PDF. Foloseste
+                      linkuri publice catre imagini sau URL-uri dintr-un bucket public.
+                    </p>
+                  </div>
+
+                  <form action={createSponsorAction} className="grid gap-4 md:grid-cols-4">
+                    <input type="hidden" name="stadiumId" value={stadium.id} />
+                    <Field
+                      name={`sponsor-name-new-${stadium.id}`}
+                      htmlName="name"
+                      label="Nume sponsor"
+                    />
+                    <Field
+                      name={`sponsor-logo-new-${stadium.id}`}
+                      htmlName="logoUrl"
+                      label="Logo URL"
+                      type="url"
+                    />
+                    <Field
+                      name={`sponsor-site-new-${stadium.id}`}
+                      htmlName="websiteUrl"
+                      label="Website"
+                      type="url"
+                      required={false}
+                    />
+                    <div className="grid gap-2">
+                      <Field
+                        name={`sponsor-order-new-${stadium.id}`}
+                        htmlName="sortOrder"
+                        label="Ordine"
+                        type="number"
+                        defaultValue="0"
+                      />
+                    </div>
+                    <div className="md:col-span-4">
+                      <Button
+                        type="submit"
+                        className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+                      >
+                        Adauga sponsor
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+
+                {stadium.sponsors.length ? (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {stadium.sponsors.map((sponsor) => (
+                      <form
+                        key={sponsor.id}
+                        action={updateSponsorAction}
+                        className="grid gap-4 rounded-[24px] border border-black/6 bg-white p-4"
+                      >
+                        <input type="hidden" name="sponsorId" value={sponsor.id} />
+                        <input type="hidden" name="stadiumId" value={stadium.id} />
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={sponsor.logoUrl}
+                            alt={sponsor.name}
+                            className="h-12 w-20 rounded-xl border border-black/8 bg-white object-contain p-2"
+                          />
+                          <div>
+                            <p className="font-semibold text-[#111111]">{sponsor.name}</p>
+                            <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
+                              Ordine {sponsor.sortOrder}
+                            </p>
+                          </div>
+                        </div>
+                        <Field
+                          name={`sponsor-name-${sponsor.id}`}
+                          htmlName="name"
+                          label="Nume sponsor"
+                          defaultValue={sponsor.name}
+                        />
+                        <Field
+                          name={`sponsor-logo-${sponsor.id}`}
+                          htmlName="logoUrl"
+                          label="Logo URL"
+                          type="url"
+                          defaultValue={sponsor.logoUrl}
+                        />
+                        <Field
+                          name={`sponsor-site-${sponsor.id}`}
+                          htmlName="websiteUrl"
+                          label="Website"
+                          type="url"
+                          defaultValue={sponsor.websiteUrl ?? ""}
+                          required={false}
+                        />
+                        <Field
+                          name={`sponsor-order-${sponsor.id}`}
+                          htmlName="sortOrder"
+                          label="Ordine"
+                          type="number"
+                          defaultValue={String(sponsor.sortOrder)}
+                        />
+                        <Button
+                          type="submit"
+                          className="rounded-full border border-[#111111] bg-[#111111] text-white hover:bg-black"
+                        >
+                          Salveaza sponsorul
+                        </Button>
+                      </form>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-neutral-500">
+                    Nu exista inca sponsori configurati pentru acest stadion.
+                  </p>
+                )}
               </div>
 
               <div className="grid gap-6">
@@ -391,12 +511,14 @@ function Field({
   label,
   type = "text",
   defaultValue,
+  required = true,
 }: {
   name: string;
   htmlName?: string;
   label: string;
   type?: string;
   defaultValue?: string;
+  required?: boolean;
 }) {
   return (
     <div className="grid gap-2">
@@ -406,7 +528,7 @@ function Field({
         name={htmlName ?? name}
         type={type}
         defaultValue={defaultValue}
-        required
+        required={required}
         className="rounded-2xl bg-white"
       />
     </div>

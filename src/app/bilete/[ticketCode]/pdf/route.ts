@@ -2,7 +2,11 @@ import { renderToBuffer } from "@react-pdf/renderer";
 
 import { TicketDocument } from "@/lib/pdf/ticket-document";
 import { generateTicketQrDataUrl } from "@/lib/security/tickets";
-import { getTicketByCode, getViewerContext } from "@/lib/supabase/queries";
+import {
+  getStadiumSponsors,
+  getTicketByCode,
+  getViewerContext,
+} from "@/lib/supabase/queries";
 
 export async function GET(
   request: Request,
@@ -22,10 +26,11 @@ export async function GET(
     version: ticket.qrTokenVersion,
     kind: "ticket",
   });
+  const sponsors = await getStadiumSponsors(ticket.stadiumId);
 
   const url = new URL(request.url);
   const shouldDownload = url.searchParams.get("download") === "1";
-  const buffer = await renderToBuffer(TicketDocument({ ticket, qrDataUrl }));
+  const buffer = await renderToBuffer(TicketDocument({ ticket, qrDataUrl, sponsors }));
 
   return new Response(new Uint8Array(buffer), {
     headers: {

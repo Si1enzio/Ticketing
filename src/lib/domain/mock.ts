@@ -146,6 +146,7 @@ export const mockTickets: TicketCard[] = [
     ticketId: "5f650b5b-0cb5-4bc7-91b3-333333333333",
     reservationId: "e58dc39c-091e-41f4-bccb-444444444444",
     matchId: mockMatches[0].id,
+    stadiumId: "demo-stadium",
     matchSlug: mockMatches[0].slug,
     ticketCode: "ORH-MIL-7Q4Z81",
     status: "active",
