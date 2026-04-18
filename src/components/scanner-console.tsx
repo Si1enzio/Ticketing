@@ -241,9 +241,9 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
       </Card>
 
       {overlayResult ? (
-        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 py-6 backdrop-blur-[2px]">
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 py-8 sm:px-6 sm:py-10 backdrop-blur-[2px]">
           <div
-            className={`pointer-events-auto relative flex w-[min(70vw,30rem)] min-w-[18rem] max-w-[30rem] max-h-[70vh] flex-col justify-center overflow-y-auto rounded-[32px] border-4 p-6 text-center shadow-[0_36px_120px_-48px_rgba(0,0,0,0.5)] sm:p-8 ${resultStyles[overlayResult.result].className} max-sm:w-[min(86vw,24rem)]`}
+            className={`pointer-events-auto relative flex w-[min(70vw,30rem)] min-w-[18rem] max-w-[30rem] max-h-[calc(100vh-4rem)] flex-col overflow-y-auto rounded-[32px] border-4 px-5 py-7 text-center shadow-[0_36px_120px_-48px_rgba(0,0,0,0.5)] sm:max-h-[calc(100vh-5rem)] sm:px-7 sm:py-9 ${resultStyles[overlayResult.result].className} max-sm:w-[min(86vw,24rem)]`}
           >
             <button
               type="button"
@@ -254,7 +254,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
               <span className="sr-only">Inchide rezultatul</span>
             </button>
 
-            <div className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center">
+            <div className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-start py-2">
               {(() => {
                 const Icon = resultStyles[overlayResult.result].icon;
                 return <Icon className="h-14 w-14 sm:h-20 sm:w-20" />;
@@ -262,11 +262,11 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
               <p className="mt-4 text-xs font-semibold uppercase tracking-[0.34em] text-white/85 sm:text-sm">
                 {resultStyles[overlayResult.result].title}
               </p>
-              <p className="mt-3 text-2xl font-semibold leading-tight sm:text-4xl">
+              <p className="mt-4 text-2xl font-semibold leading-tight sm:text-4xl">
                 {overlayResult.message}
               </p>
 
-              <div className="mt-6 grid w-full gap-3 text-left text-sm sm:grid-cols-2 sm:text-base">
+              <div className="mt-7 grid w-full gap-3 pb-2 text-left text-sm sm:grid-cols-2 sm:text-base">
                 {overlayResult.ticketCode ? (
                   <ResultLine label="Cod bilet" value={overlayResult.ticketCode} />
                 ) : null}
@@ -290,7 +290,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
               <Button
                 type="button"
                 onClick={() => setOverlayResult(null)}
-                className="mt-6 rounded-full border border-white/20 bg-white px-8 text-base font-semibold text-[#111111] hover:bg-white/90"
+                className="mt-7 mb-1 rounded-full border border-white/20 bg-white px-8 text-base font-semibold text-[#111111] hover:bg-white/90"
               >
                 Continua scanarea
               </Button>
