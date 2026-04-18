@@ -18,8 +18,20 @@ const stadiumUpdateSchema = stadiumSchema.extend({
   stadiumId: z.string(),
 });
 
+const standSchema = z.object({
+  stadiumId: z.string(),
+  name: z.string().min(2),
+  code: z.string().min(1),
+  color: z.string().min(4),
+});
+
+const standUpdateSchema = standSchema.extend({
+  standId: z.string(),
+});
+
 const sectorSchema = z.object({
   stadiumId: z.string(),
+  standId: z.string().optional(),
   name: z.string().min(2),
   code: z.string().min(1),
   color: z.string().min(4),
@@ -76,6 +88,13 @@ const seatToggleSchema = z.object({
   seatId: z.string(),
   flag: z.enum(["is_disabled", "is_obstructed", "is_internal_only"]),
   value: z.boolean(),
+});
+
+const subscriptionAssignSchema = z.object({
+  userId: z.string(),
+  productId: z.string(),
+  startsAt: z.string().min(5),
+  note: z.string().optional(),
 });
 
 const ticketActionSchema = z.object({
@@ -152,6 +171,7 @@ export async function createSectorAction(formData: FormData) {
   const viewer = await ensureAdmin();
   const parsed = sectorSchema.safeParse({
     stadiumId: formData.get("stadiumId"),
+    standId: (formData.get("standId") || undefined) ?? undefined,
     name: formData.get("name"),
     code: formData.get("code"),
     color: formData.get("color"),
@@ -170,6 +190,7 @@ export async function createSectorAction(formData: FormData) {
     .from("stadium_sectors")
     .insert({
       stadium_id: parsed.data.stadiumId,
+      stand_id: parsed.data.standId || null,
       name: parsed.data.name,
       code: parsed.data.code,
       color: parsed.data.color,
@@ -227,6 +248,7 @@ export async function updateSectorAction(formData: FormData) {
   const parsed = sectorUpdateSchema.safeParse({
     sectorId: formData.get("sectorId"),
     stadiumId: formData.get("stadiumId"),
+    standId: (formData.get("standId") || undefined) ?? undefined,
     name: formData.get("name"),
     code: formData.get("code"),
     color: formData.get("color"),
@@ -269,6 +291,7 @@ export async function updateSectorAction(formData: FormData) {
     .from("stadium_sectors")
     .update({
       stadium_id: parsed.data.stadiumId,
+      stand_id: parsed.data.standId || null,
       name: parsed.data.name,
       code: parsed.data.code,
       color: parsed.data.color,
@@ -371,6 +394,72 @@ export async function createMatchAction(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/admin/meciuri");
+}
+
+export async function createStandAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = standSchema.safeParse({
+    stadiumId: formData.get("stadiumId"),
+    name: formData.get("name"),
+    code: formData.get("code"),
+    color: formData.get("color"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  const { data } = await supabase
+    .from("stadium_stands")
+    .insert({
+      stadium_id: parsed.data.stadiumId,
+      name: parsed.data.name,
+      code: parsed.data.code,
+      color: parsed.data.color,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (data?.id) {
+    await logAudit(viewer.userId, "create_stand", "stadium_stands", data.id, parsed.data);
+  }
+
+  revalidatePath("/admin/stadion");
+}
+
+export async function updateStandAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = standUpdateSchema.safeParse({
+    standId: formData.get("standId"),
+    stadiumId: formData.get("stadiumId"),
+    name: formData.get("name"),
+    code: formData.get("code"),
+    color: formData.get("color"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  await supabase
+    .from("stadium_stands")
+    .update({
+      stadium_id: parsed.data.stadiumId,
+      name: parsed.data.name,
+      code: parsed.data.code,
+      color: parsed.data.color,
+    })
+    .eq("id", parsed.data.standId);
+
+  await logAudit(viewer.userId, "update_stand", "stadium_stands", parsed.data.standId, parsed.data);
+
+  revalidatePath("/admin/stadion");
 }
 
 export async function updateMatchAction(formData: FormData) {
@@ -582,4 +671,65 @@ export async function reissueTicketAction(formData: FormData) {
   });
 
   revalidatePath("/admin");
+}
+
+export async function assignUserSubscriptionAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = subscriptionAssignSchema.safeParse({
+    userId: formData.get("userId"),
+    productId: formData.get("productId"),
+    startsAt: formData.get("startsAt"),
+    note: formData.get("note") || undefined,
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  const { data: product } = await supabase
+    .from("subscription_products")
+    .select("id, duration_months, price_cents, currency")
+    .eq("id", parsed.data.productId)
+    .maybeSingle();
+
+  if (!product) {
+    throw new Error("Produsul de abonament nu exista.");
+  }
+
+  const startsAt = new Date(parsed.data.startsAt);
+  const endsAt = new Date(startsAt);
+  endsAt.setMonth(endsAt.getMonth() + Number(product.duration_months ?? 0));
+
+  const { data } = await supabase
+    .from("user_subscriptions")
+    .insert({
+      user_id: parsed.data.userId,
+      product_id: parsed.data.productId,
+      status: "active",
+      starts_at: startsAt.toISOString(),
+      ends_at: endsAt.toISOString(),
+      price_paid_cents: Number(product.price_cents ?? 0),
+      currency: String(product.currency ?? "MDL"),
+      source: "admin_assignment",
+      note: parsed.data.note ?? null,
+      created_by: viewer.userId,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (data?.id) {
+    await logAudit(
+      viewer.userId,
+      "assign_subscription",
+      "user_subscriptions",
+      data.id,
+      parsed.data,
+    );
+  }
+
+  revalidatePath(`/admin/utilizatori/${parsed.data.userId}`);
+  revalidatePath("/cabinet");
 }

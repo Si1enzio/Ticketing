@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { hasAnyRole } from "@/lib/auth/roles";
 import { getAdminMatchOverview, getAdminUsersOverview, getViewerContext } from "@/lib/supabase/queries";
+import { getAdminUserStats, getMatchReport } from "@/lib/supabase/reports";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -13,6 +14,8 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind") ?? "tickets";
+  const matchId = url.searchParams.get("matchId");
+  const userId = url.searchParams.get("userId");
   const supabase = await createSupabaseServerClient();
 
   let rows: Record<string, string | number | null>[] = [];
@@ -51,32 +54,95 @@ export async function GET(request: Request) {
       email: ticket.purchaser_email,
     }));
   } else if (kind === "scans" && supabase) {
-    const { data } = await supabase
-      .from("ticket_scans")
-      .select("scanned_at, result, device_label, ticket_id, match_id")
+    let query = supabase
+      .from("scan_log_overview")
+      .select("*")
       .order("scanned_at", { ascending: false })
       .limit(500);
 
+    if (matchId) {
+      query = query.eq("match_id", matchId);
+    }
+
+    if (userId) {
+      query = query.eq("holder_user_id", userId);
+    }
+
+    const { data } = await query;
+
     rows = (data ?? []).map((scan) => ({
-      ticket_id: scan.ticket_id,
-      match_id: scan.match_id,
+      meci: scan.match_title,
+      ticket_code: scan.ticket_code,
       scanned_at: scan.scanned_at,
       rezultat: scan.result,
       dispozitiv: scan.device_label,
+      poarta: scan.gate_name,
+      steward: scan.steward_name ?? scan.steward_email,
+      utilizator: scan.holder_name ?? scan.holder_email,
+      sector: scan.sector_name,
+      rand: scan.row_label,
+      loc: scan.seat_number,
+      sursa: scan.ticket_source,
+      fingerprint: scan.token_fingerprint,
     }));
+  } else if (kind === "user-stats" && userId) {
+    const stats = await getAdminUserStats(userId);
+    rows = stats
+      ? [
+          {
+            user_id: stats.userId,
+            nume: stats.fullName,
+            email: stats.email,
+            roluri: stats.roles.join(", "),
+            acces_bilete: stats.canReserve ? "da" : "nu",
+            rezervate_total: stats.totalReserved,
+            intrari_validate: stats.totalScanned,
+            no_show_ratio: stats.noShowRatio,
+            abuse_score: stats.abuseScore,
+            bilete_platite: stats.paidTickets,
+            bilete_gratuite: stats.nonPaidTickets,
+            abonamente_active: stats.activeSubscriptions,
+            total_platit_centi: stats.totalPaidCents,
+            ultimul_acces: stats.lastEntryAt,
+          },
+        ]
+      : [];
   } else {
-    const matches = await getAdminMatchOverview();
-    rows = matches.map((match) => ({
-      match_id: match.id,
-      meci: match.title,
-      competitie: match.competitionName,
-      start: match.startsAt,
-      status: match.status,
-      emise: match.issuedCount,
-      scanate: match.scannedCount,
-      no_show: match.noShowCount,
-      scanari_duplicate: match.duplicateScanAttempts,
-    }));
+    if (matchId) {
+      const match = await getMatchReport(matchId);
+      rows = match
+        ? [
+            {
+              match_id: match.matchId,
+              meci: match.title,
+              competitie: match.competitionName,
+              start: match.startsAt,
+              status: match.status,
+              emise: match.issuedCount,
+              procurate: match.purchasedCount,
+              intrari: match.enteredCount,
+              blocate: match.blockedCount,
+              repetate: match.repeatedCount,
+              scanari_valide: match.validScanCount,
+              scanari_invalide: match.invalidScanCount,
+              anulate: match.canceledCount,
+            },
+          ]
+        : [];
+    } else {
+      const matches = await getAdminMatchOverview();
+      rows = matches.map((match) => ({
+        match_id: match.id,
+        meci: match.title,
+        competitie: match.competitionName,
+        start: match.startsAt,
+        status: match.status,
+        emise: match.issuedCount,
+        scanate: match.scannedCount,
+        no_show: match.noShowCount,
+        scanari_duplicate: match.duplicateScanAttempts,
+      }));
+    }
   }
 
   const csv = toCsv(rows);

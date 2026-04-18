@@ -563,9 +563,33 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
         name: "Stadionul Municipal „Orhei”",
         slug: "stadionul-municipal-orhei",
         city: "Orhei",
+        stands: [
+          {
+            id: "demo-stand-west",
+            stadiumId: "demo-stadium",
+            name: "Tribuna Vest",
+            code: "TV",
+            color: "#dc2626",
+            sectors: ["sector-v1", "sector-v2"],
+          },
+          {
+            id: "demo-stand-east",
+            stadiumId: "demo-stadium",
+            name: "Tribuna Est",
+            code: "TE",
+            color: "#111111",
+            sectors: ["sector-e1"],
+          },
+        ],
         sectors: mockSeatMap.map((sector) => ({
           id: sector.sectorId,
           stadiumId: "demo-stadium",
+          standId:
+            sector.code.startsWith("V")
+              ? "demo-stand-west"
+              : sector.code.startsWith("E")
+                ? "demo-stand-east"
+                : null,
           name: sector.name,
           code: sector.code,
           color: sector.color,
@@ -599,12 +623,21 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
       return [];
     }
 
-    const [{ data: stadiums, error: stadiumError }, { data: sectors, error: sectorError }, { data: seats, error: seatError }] =
+    const [
+      { data: stadiums, error: stadiumError },
+      { data: stands, error: standError },
+      { data: sectors, error: sectorError },
+      { data: seats, error: seatError },
+    ] =
       await Promise.all([
         supabase.from("stadiums").select("id, name, slug, city").order("name"),
         supabase
+          .from("stadium_stands")
+          .select("id, stadium_id, name, code, color")
+          .order("sort_order"),
+        supabase
           .from("stadium_sectors")
-          .select("id, stadium_id, name, code, color, rows_count, seats_per_row")
+          .select("id, stadium_id, stand_id, name, code, color, rows_count, seats_per_row")
           .order("sort_order"),
         supabase
           .from("seats")
@@ -613,11 +646,12 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
           .order("seat_number"),
       ]);
 
-    if (stadiumError || sectorError || seatError) {
-      throw stadiumError ?? sectorError ?? seatError;
+    if (stadiumError || standError || sectorError || seatError) {
+      throw stadiumError ?? standError ?? sectorError ?? seatError;
     }
 
     const stadiumRows = (stadiums ?? []) as Record<string, unknown>[];
+    const standRows = (stands ?? []) as Record<string, unknown>[];
     const sectorRows = (sectors ?? []) as Record<string, unknown>[];
     const seatRows = (seats ?? []) as Record<string, unknown>[];
 
@@ -629,6 +663,19 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
           acc[sectorId] = [];
         }
         acc[sectorId].push(seat);
+        return acc;
+      },
+      {},
+    );
+
+    const standsByStadium = standRows.reduce<Record<string, Record<string, unknown>[]>>(
+      (acc, stand) => {
+        const stadiumId = String(stand.stadium_id);
+
+        if (!acc[stadiumId]) {
+          acc[stadiumId] = [];
+        }
+        acc[stadiumId].push(stand);
         return acc;
       },
       {},
@@ -655,6 +702,16 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
         name: String(stadium.name),
         slug: String(stadium.slug),
         city: String(stadium.city),
+        stands: (standsByStadium[stadiumId] ?? []).map((stand) => ({
+          id: String(stand.id),
+          stadiumId,
+          name: String(stand.name),
+          code: String(stand.code),
+          color: String(stand.color),
+          sectors: (sectorsByStadium[stadiumId] ?? [])
+            .filter((sector) => String(sector.stand_id ?? "") === String(stand.id))
+            .map((sector) => String(sector.id)),
+        })),
         sectors: (sectorsByStadium[stadiumId] ?? []).map(
           (sector: Record<string, unknown>) => {
             const sectorId = String(sector.id);
@@ -662,6 +719,7 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
             return {
               id: sectorId,
               stadiumId: String(sector.stadium_id),
+              standId: sector.stand_id ? String(sector.stand_id) : null,
               name: String(sector.name),
               code: String(sector.code),
               color: String(sector.color),

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getViewerContext, getViewerTickets } from "@/lib/supabase/queries";
+import { getUserSubscriptions } from "@/lib/supabase/reports";
 
 export default async function CabinetPage() {
   await connection();
@@ -16,9 +17,13 @@ export default async function CabinetPage() {
     redirect("/autentificare?next=/cabinet");
   }
 
-  const tickets = await getViewerTickets(viewer);
+  const [tickets, subscriptions] = await Promise.all([
+    getViewerTickets(viewer),
+    viewer.userId ? getUserSubscriptions(viewer.userId) : Promise.resolve([]),
+  ]);
   const upcoming = tickets.filter((ticket) => new Date(ticket.startsAt) >= new Date());
   const archived = tickets.filter((ticket) => new Date(ticket.startsAt) < new Date());
+  const activeSubscriptions = subscriptions.filter((item) => item.status === "active");
 
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">
@@ -51,6 +56,36 @@ export default async function CabinetPage() {
         <SummaryCard icon={Ticket} label="Bilete active" value={upcoming.length} />
         <SummaryCard icon={CalendarClock} label="Meciuri viitoare" value={upcoming.length} />
         <SummaryCard icon={Download} label="Istoric bilete" value={archived.length} />
+        <SummaryCard icon={UserRoundCheck} label="Abonamente active" value={activeSubscriptions.length} />
+      </div>
+
+      <div className="space-y-4">
+        <SectionTitle
+          title="Abonamente"
+          subtitle="Daca ai primit un abonament anual sau semi-anual, il vezi aici."
+        />
+        {activeSubscriptions.length ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {activeSubscriptions.map((subscription) => (
+              <Card key={subscription.id} className="surface-panel rounded-[28px] border border-white/70 bg-white/92">
+                <CardContent className="space-y-2 p-5">
+                  <p className="font-semibold text-[#111111]">{subscription.product.name}</p>
+                  <p className="text-sm text-neutral-600">
+                    Valabil pana la {new Date(subscription.endsAt).toLocaleDateString("ro-RO")}
+                  </p>
+                  <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
+                    {subscription.product.durationMonths} luni · {(subscription.pricePaidCents / 100).toFixed(2)} {subscription.currency}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="Nu ai abonamente active"
+            description="Abonamentele alocate de administratie apar aici imediat."
+          />
+        )}
       </div>
 
       <div className="space-y-4">

@@ -23,12 +23,14 @@ export async function GET(
     kind: "ticket",
   });
 
+  const url = new URL(request.url);
+  const shouldDownload = url.searchParams.get("download") === "1";
   const buffer = await renderToBuffer(TicketDocument({ ticket, qrDataUrl }));
 
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${ticket.ticketCode}.pdf"`,
+      "Content-Disposition": `${shouldDownload ? "attachment" : "inline"}; filename="${ticket.ticketCode}.pdf"`,
     },
   });
 }

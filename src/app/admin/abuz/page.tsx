@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 
@@ -35,6 +36,13 @@ export default async function AdminAbusePage() {
               <div>
                 <p className="font-semibold text-[#08140f]">{user.fullName ?? user.email}</p>
                 <p className="text-sm text-slate-500">{user.email}</p>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="mt-3 rounded-full border-[#111111] bg-white text-[#111111] hover:bg-neutral-100"
+                >
+                  <Link href={`/admin/utilizatori/${user.userId}` as Route}>Vezi profilul complet</Link>
+                </Button>
               </div>
               <Metric title="Score" value={user.abuseScore} />
               <Metric title="Rezervate" value={user.totalReserved} />

@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, Ban, ScanLine, Ticket, UsersRound } from "lucide-react";
 import { connection } from "next/server";
@@ -107,7 +108,7 @@ export default async function AdminDashboardPage() {
               {matches.map((match) => (
                 <div
                   key={match.id}
-                  className="grid gap-4 rounded-[26px] border border-black/6 bg-neutral-50 p-4 lg:grid-cols-[1.4fr_repeat(4,0.7fr)] lg:items-center"
+                  className="grid gap-4 rounded-[26px] border border-black/6 bg-neutral-50 p-4 lg:grid-cols-[1.4fr_repeat(4,0.7fr)_0.8fr] lg:items-center"
                 >
                   <div>
                     <p className="font-semibold text-[#111111]">{match.title}</p>
@@ -117,6 +118,13 @@ export default async function AdminDashboardPage() {
                   <NumberCell label="Scanate" value={match.scannedCount} />
                   <NumberCell label="No-show" value={match.noShowCount} />
                   <NumberCell label="Duplicate" value={match.duplicateScanAttempts} />
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="rounded-full border-[#111111] bg-white text-[#111111] hover:bg-neutral-100"
+                  >
+                    <Link href={`/admin/meciuri/${match.id}` as Route}>Raport</Link>
+                  </Button>
                 </div>
               ))}
             </div>

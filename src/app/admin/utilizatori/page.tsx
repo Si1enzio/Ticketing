@@ -1,3 +1,5 @@
+import type { Route } from "next";
+import Link from "next/link";
 import { connection } from "next/server";
 
 import {
@@ -5,6 +7,7 @@ import {
   createUserBlockAction,
   setReservationAccessAction,
 } from "@/lib/actions/admin";
+import { restrictionReasonOptions, restrictionTypeOptions, roleOptions } from "@/lib/admin/options";
 import { getAdminUsersOverview } from "@/lib/supabase/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,7 +25,7 @@ export default async function AdminUsersPage() {
           Moderare conturi
         </p>
         <h1 className="mt-2 font-heading text-5xl uppercase tracking-[0.08em] text-[#111111]">
-          Utilizatori si roluri
+          Utilizatori, roluri si restrictii
         </h1>
       </div>
 
@@ -39,17 +42,22 @@ export default async function AdminUsersPage() {
                   <p className="font-semibold text-[#111111]">
                     {user.fullName ?? "Utilizator fara nume"}
                   </p>
-                  <p className="text-sm text-neutral-500">
-                    {user.email ?? "Fara email"}
-                  </p>
+                  <p className="text-sm text-neutral-500">{user.email ?? "Fara email"}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs text-neutral-600">
                   <span>Roluri: {user.roles.join(", ")}</span>
-                  <span>
-                    Acces bilete: {user.canReserve ? "activ" : "oprit"}
-                  </span>
+                  <span>Acces bilete: {user.canReserve ? "activ" : "oprit"}</span>
                   <span>Score abuz: {user.abuseScore}</span>
                   <span>No-show: {Math.round(user.noShowRatio * 100)}%</span>
+                </div>
+                <div>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="rounded-full border-[#111111] bg-white text-[#111111] hover:bg-neutral-100"
+                  >
+                    <Link href={`/admin/utilizatori/${user.userId}` as Route}>Statistica utilizator</Link>
+                  </Button>
                 </div>
               </div>
 
@@ -88,11 +96,11 @@ export default async function AdminUsersPage() {
                   className="grid gap-3 rounded-[26px] border border-black/6 bg-neutral-50 p-4"
                 >
                   <input type="hidden" name="userId" value={user.userId} />
-                  <Label htmlFor={`role-${user.userId}`}>Atribuie rol</Label>
-                  <Input
-                    id={`role-${user.userId}`}
+                  <SelectField
                     name="role"
+                    label="Atribuie rol"
                     defaultValue={user.roles[0] ?? "user"}
+                    options={roleOptions}
                   />
                   <Button
                     type="submit"
@@ -108,16 +116,36 @@ export default async function AdminUsersPage() {
                 className="grid gap-3 rounded-[26px] border border-black/6 bg-neutral-50 p-4"
               >
                 <input type="hidden" name="userId" value={user.userId} />
-                <Label htmlFor={`type-${user.userId}`}>Tip restrictie</Label>
-                <Input id={`type-${user.userId}`} name="type" defaultValue="warning" />
-                <Label htmlFor={`reason-${user.userId}`}>Motiv</Label>
-                <Input
-                  id={`reason-${user.userId}`}
-                  name="reason"
-                  placeholder="No-show repetat / rezervari suspecte"
+                <SelectField
+                  name="type"
+                  label="Tip restrictie"
+                  defaultValue="warning"
+                  options={restrictionTypeOptions.map((item) => ({
+                    value: item.value,
+                    label: item.label,
+                  }))}
                 />
-                <Label htmlFor={`ends-${user.userId}`}>Valabil pana la</Label>
-                <Input id={`ends-${user.userId}`} name="endsAt" type="datetime-local" />
+                <SelectField
+                  name="reason"
+                  label="Motiv"
+                  defaultValue={restrictionReasonOptions[0].value}
+                  options={restrictionReasonOptions.map((item) => ({
+                    value: item.value,
+                    label: item.label,
+                  }))}
+                />
+                <div className="grid gap-2">
+                  <Label htmlFor={`note-${user.userId}`}>Nota interna</Label>
+                  <Input
+                    id={`note-${user.userId}`}
+                    name="note"
+                    placeholder="Detalii suplimentare pentru echipa"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor={`ends-${user.userId}`}>Valabil pana la</Label>
+                  <Input id={`ends-${user.userId}`} name="endsAt" type="datetime-local" />
+                </div>
                 <Button
                   type="submit"
                   variant="outline"
@@ -130,6 +158,36 @@ export default async function AdminUsersPage() {
           </Card>
         ))}
       </div>
+    </div>
+  );
+}
+
+function SelectField({
+  name,
+  label,
+  defaultValue,
+  options,
+}: {
+  name: string;
+  label: string;
+  defaultValue?: string;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={name}>{label}</Label>
+      <select
+        id={name}
+        name={name}
+        defaultValue={defaultValue}
+        className="h-10 rounded-2xl border border-black/8 bg-white px-3 text-sm text-[#111111] outline-none focus:border-[#dc2626]"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

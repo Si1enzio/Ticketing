@@ -1,3 +1,5 @@
+import type { Route } from "next";
+import Link from "next/link";
 import { connection } from "next/server";
 
 import { createMatchAction, updateMatchAction } from "@/lib/actions/admin";
@@ -84,7 +86,7 @@ export default async function AdminMatchesPage() {
           >
             <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
             <CardContent className="grid gap-5 p-5">
-              <div className="grid gap-3 lg:grid-cols-[1.2fr_repeat(5,0.6fr)] lg:items-center">
+              <div className="grid gap-3 lg:grid-cols-[1.15fr_repeat(5,0.56fr)_0.7fr] lg:items-center">
                 <div>
                   <p className="font-semibold text-[#111111]">{match.title}</p>
                   <p className="text-sm text-neutral-500">{match.competitionName}</p>
@@ -101,6 +103,15 @@ export default async function AdminMatchesPage() {
                 />
                 <NumberCell label="Emise" value={String(match.issuedCount)} />
                 <NumberCell label="Scanate" value={String(match.scannedCount)} />
+                <div className="lg:justify-self-end">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="rounded-full border-[#111111] bg-white text-[#111111] hover:bg-neutral-100"
+                  >
+                    <Link href={`/admin/meciuri/${match.id}` as Route}>Raport meci</Link>
+                  </Button>
+                </div>
               </div>
 
               <form action={updateMatchAction} className="grid gap-4 lg:grid-cols-4">

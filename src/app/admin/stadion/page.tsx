@@ -3,8 +3,10 @@ import { connection } from "next/server";
 import {
   createSectorAction,
   createStadiumAction,
+  createStandAction,
   updateSectorAction,
   updateStadiumAction,
+  updateStandAction,
 } from "@/lib/actions/admin";
 import { getStadiumBuilderData } from "@/lib/supabase/queries";
 import { SeatFlagEditor } from "@/components/seat-flag-editor";
@@ -25,11 +27,11 @@ export default async function AdminStadiumPage() {
           Stadium builder
         </p>
         <h1 className="mt-2 font-heading text-5xl uppercase tracking-[0.08em] text-[#111111]">
-          Sectoare, randuri si locuri
+          Tribune, sectoare, randuri si locuri
         </h1>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-3">
         <Card className="surface-panel overflow-hidden rounded-[30px] border border-white/70 bg-white/94">
           <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
           <CardContent className="space-y-4 p-6">
@@ -54,9 +56,9 @@ export default async function AdminStadiumPage() {
           <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
           <CardContent className="space-y-4 p-6">
             <h2 className="font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
-              Creeaza sector
+              Creeaza tribuna
             </h2>
-            <form action={createSectorAction} className="grid gap-4 md:grid-cols-2">
+            <form action={createStandAction} className="grid gap-4">
               <SelectField
                 name="stadiumId"
                 label="Stadion"
@@ -66,128 +68,319 @@ export default async function AdminStadiumPage() {
                 }))}
                 defaultValue={defaultStadium?.id}
               />
+              <Field name="name" label="Nume tribuna" />
+              <Field name="code" label="Cod" />
+              <Field name="color" label="Culoare" defaultValue="#111111" />
+              <Button
+                type="submit"
+                className="rounded-full border border-[#111111] bg-[#111111] text-white hover:bg-black"
+              >
+                Adauga tribuna
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card className="surface-panel overflow-hidden rounded-[30px] border border-white/70 bg-white/94">
+          <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
+          <CardContent className="space-y-4 p-6">
+            <h2 className="font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
+              Creeaza sector
+            </h2>
+            <form action={createSectorAction} className="grid gap-4">
+              <SelectField
+                name="stadiumId"
+                label="Stadion"
+                options={stadiums.map((stadium) => ({
+                  value: stadium.id,
+                  label: stadium.name,
+                }))}
+                defaultValue={defaultStadium?.id}
+              />
+              <SelectField
+                name="standId"
+                label="Tribuna"
+                allowEmpty
+                emptyLabel="Fara tribuna"
+                options={stadiums.flatMap((stadium) =>
+                  stadium.stands.map((stand) => ({
+                    value: stand.id,
+                    label: `${stadium.name} · ${stand.name} (${stand.code})`,
+                  })),
+                )}
+              />
               <Field name="name" label="Nume sector" />
               <Field name="code" label="Cod" />
               <Field name="color" label="Culoare" defaultValue="#dc2626" />
               <Field name="rowsCount" label="Numar randuri" type="number" defaultValue="6" />
               <Field name="seatsPerRow" label="Locuri / rand" type="number" defaultValue="12" />
-              <div className="md:col-span-2">
-                <Button
-                  type="submit"
-                  className="w-full rounded-full border border-[#111111] bg-[#111111] text-white hover:bg-black"
-                >
-                  Creeaza sector si genereaza locurile
-                </Button>
-              </div>
+              <Button
+                type="submit"
+                className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+              >
+                Creeaza sector si genereaza locuri
+              </Button>
             </form>
           </CardContent>
         </Card>
       </div>
 
-      {stadiums.map((stadium) => (
-        <Card
-          key={stadium.id}
-          className="surface-panel overflow-hidden rounded-[30px] border border-white/70 bg-white/94"
-        >
-          <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
-          <CardContent className="space-y-6 p-6">
-            <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-              <div>
-                <h2 className="font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
-                  {stadium.name}
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-neutral-600">
-                  Editezi datele stadionului, apoi gestionezi sectoarele si toate locurile
-                  disponibile din structura existenta.
-                </p>
+      {stadiums.map((stadium) => {
+        const unassignedSectors = stadium.sectors.filter((sector) => !sector.standId);
+
+        return (
+          <Card
+            key={stadium.id}
+            className="surface-panel overflow-hidden rounded-[30px] border border-white/70 bg-white/94"
+          >
+            <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
+            <CardContent className="space-y-6 p-6">
+              <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+                <div>
+                  <h2 className="font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
+                    {stadium.name}
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-neutral-600">
+                    Acum poti structura stadionul pe tribune, iar in interiorul lor pe
+                    sectoare. Fiecare sector isi pastreaza randurile si editorul complet de
+                    locuri.
+                  </p>
+                </div>
+
+                <form action={updateStadiumAction} className="grid gap-4 md:grid-cols-3">
+                  <input type="hidden" name="stadiumId" value={stadium.id} />
+                  <Field
+                    name={`stadium-name-${stadium.id}`}
+                    htmlName="name"
+                    label="Nume stadion"
+                    defaultValue={stadium.name}
+                  />
+                  <Field
+                    name={`stadium-slug-${stadium.id}`}
+                    htmlName="slug"
+                    label="Slug"
+                    defaultValue={stadium.slug}
+                  />
+                  <Field
+                    name={`stadium-city-${stadium.id}`}
+                    htmlName="city"
+                    label="Oras"
+                    defaultValue={stadium.city}
+                  />
+                  <div className="md:col-span-3">
+                    <Button
+                      type="submit"
+                      className="rounded-full border border-[#111111] bg-[#111111] text-white hover:bg-black"
+                    >
+                      Salveaza stadionul existent
+                    </Button>
+                  </div>
+                </form>
               </div>
 
-              <form action={updateStadiumAction} className="grid gap-4 md:grid-cols-3">
-                <input type="hidden" name="stadiumId" value={stadium.id} />
-                <Field name={`stadium-name-${stadium.id}`} htmlName="name" label="Nume stadion" defaultValue={stadium.name} />
-                <Field name={`stadium-slug-${stadium.id}`} htmlName="slug" label="Slug" defaultValue={stadium.slug} />
-                <Field name={`stadium-city-${stadium.id}`} htmlName="city" label="Oras" defaultValue={stadium.city} />
-                <div className="md:col-span-3">
-                  <Button
-                    type="submit"
-                    className="rounded-full border border-[#111111] bg-[#111111] text-white hover:bg-black"
-                  >
-                    Salveaza stadionul existent
-                  </Button>
-                </div>
-              </form>
-            </div>
+              <div className="grid gap-6">
+                {stadium.stands.map((stand) => {
+                  const standSectors = stadium.sectors.filter(
+                    (sector) => sector.standId === stand.id,
+                  );
 
-            <div className="grid gap-6">
-              {stadium.sectors.map((sector) => (
-                <div
-                  key={sector.id}
-                  className="grid gap-5 rounded-[28px] border border-black/6 bg-neutral-50 p-5"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-4 w-4 rounded-full" style={{ backgroundColor: sector.color }} />
+                  return (
+                    <div
+                      key={stand.id}
+                      className="grid gap-5 rounded-[28px] border border-black/6 bg-neutral-50 p-5"
+                    >
+                      <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="h-4 w-4 rounded-full"
+                              style={{ backgroundColor: stand.color }}
+                            />
+                            <div>
+                              <p className="font-semibold text-[#111111]">{stand.name}</p>
+                              <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
+                                {stand.code} · {standSectors.length} sectoare
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <form action={updateStandAction} className="grid gap-4 md:grid-cols-4">
+                          <input type="hidden" name="standId" value={stand.id} />
+                          <input type="hidden" name="stadiumId" value={stadium.id} />
+                          <Field
+                            name={`stand-name-${stand.id}`}
+                            htmlName="name"
+                            label="Nume tribuna"
+                            defaultValue={stand.name}
+                          />
+                          <Field
+                            name={`stand-code-${stand.id}`}
+                            htmlName="code"
+                            label="Cod"
+                            defaultValue={stand.code}
+                          />
+                          <Field
+                            name={`stand-color-${stand.id}`}
+                            htmlName="color"
+                            label="Culoare"
+                            defaultValue={stand.color}
+                          />
+                          <div className="flex items-end">
+                            <Button
+                              type="submit"
+                              className="w-full rounded-full border border-[#111111] bg-[#111111] text-white hover:bg-black"
+                            >
+                              Salveaza tribuna
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+
+                      <div className="grid gap-5">
+                        {standSectors.map((sector) => (
+                          <SectorEditor
+                            key={sector.id}
+                            sector={sector}
+                            stadiumId={stadium.id}
+                            standOptions={stadium.stands.map((item) => ({
+                              value: item.id,
+                              label: `${item.name} (${item.code})`,
+                            }))}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {unassignedSectors.length ? (
+                  <div className="grid gap-5 rounded-[28px] border border-dashed border-black/10 bg-white/75 p-5">
                     <div>
-                      <p className="font-semibold text-[#111111]">{sector.name}</p>
-                      <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
-                        {sector.code} - {sector.rowsCount} randuri - {sector.seatsPerRow} locuri/rand
+                      <p className="font-semibold text-[#111111]">Sectoare fara tribuna</p>
+                      <p className="mt-1 text-sm text-neutral-500">
+                        Le poti lasa independente sau le poti muta intr-o tribuna existenta.
                       </p>
                     </div>
-                  </div>
 
-                  <form action={updateSectorAction} className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-                    <input type="hidden" name="sectorId" value={sector.id} />
-                    <input type="hidden" name="stadiumId" value={stadium.id} />
-                    <Field
-                      name={`sector-name-${sector.id}`}
-                      htmlName="name"
-                      label="Nume sector"
-                      defaultValue={sector.name}
-                    />
-                    <Field
-                      name={`sector-code-${sector.id}`}
-                      htmlName="code"
-                      label="Cod"
-                      defaultValue={sector.code}
-                    />
-                    <Field
-                      name={`sector-color-${sector.id}`}
-                      htmlName="color"
-                      label="Culoare"
-                      defaultValue={sector.color}
-                    />
-                    <Field
-                      name={`sector-rows-${sector.id}`}
-                      htmlName="rowsCount"
-                      label="Numar randuri"
-                      type="number"
-                      defaultValue={String(sector.rowsCount)}
-                    />
-                    <Field
-                      name={`sector-seats-${sector.id}`}
-                      htmlName="seatsPerRow"
-                      label="Locuri / rand"
-                      type="number"
-                      defaultValue={String(sector.seatsPerRow)}
-                    />
-                    <div className="flex items-end">
-                      <Button
-                        type="submit"
-                        className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
-                      >
-                        Salveaza sectorul
-                      </Button>
+                    <div className="grid gap-5">
+                      {unassignedSectors.map((sector) => (
+                        <SectorEditor
+                          key={sector.id}
+                          sector={sector}
+                          stadiumId={stadium.id}
+                          standOptions={stadium.stands.map((item) => ({
+                            value: item.id,
+                            label: `${item.name} (${item.code})`,
+                          }))}
+                        />
+                      ))}
                     </div>
-                  </form>
-
-                  <div className="rounded-[24px] border border-dashed border-black/10 bg-white/70 p-4">
-                    <SeatFlagEditor seats={sector.seats} sectorName={sector.name} />
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+function SectorEditor({
+  sector,
+  stadiumId,
+  standOptions,
+}: {
+  sector: {
+    id: string;
+    standId: string | null;
+    name: string;
+    code: string;
+    color: string;
+    rowsCount: number;
+    seatsPerRow: number;
+    seats: Array<{
+      id: string;
+      rowLabel: string;
+      seatNumber: number;
+      seatLabel: string;
+      isDisabled: boolean;
+      isObstructed: boolean;
+      isInternalOnly: boolean;
+    }>;
+  };
+  stadiumId: string;
+  standOptions: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <div className="grid gap-5 rounded-[24px] border border-black/6 bg-white/90 p-5">
+      <div className="flex items-center gap-3">
+        <div className="h-4 w-4 rounded-full" style={{ backgroundColor: sector.color }} />
+        <div>
+          <p className="font-semibold text-[#111111]">{sector.name}</p>
+          <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
+            {sector.code} · {sector.rowsCount} randuri · {sector.seatsPerRow} locuri/rand
+          </p>
+        </div>
+      </div>
+
+      <form action={updateSectorAction} className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+        <input type="hidden" name="sectorId" value={sector.id} />
+        <input type="hidden" name="stadiumId" value={stadiumId} />
+        <SelectField
+          name="standId"
+          label="Tribuna"
+          allowEmpty
+          emptyLabel="Fara tribuna"
+          options={standOptions}
+          defaultValue={sector.standId ?? ""}
+        />
+        <Field
+          name={`sector-name-${sector.id}`}
+          htmlName="name"
+          label="Nume sector"
+          defaultValue={sector.name}
+        />
+        <Field
+          name={`sector-code-${sector.id}`}
+          htmlName="code"
+          label="Cod"
+          defaultValue={sector.code}
+        />
+        <Field
+          name={`sector-color-${sector.id}`}
+          htmlName="color"
+          label="Culoare"
+          defaultValue={sector.color}
+        />
+        <Field
+          name={`sector-rows-${sector.id}`}
+          htmlName="rowsCount"
+          label="Numar randuri"
+          type="number"
+          defaultValue={String(sector.rowsCount)}
+        />
+        <Field
+          name={`sector-seats-${sector.id}`}
+          htmlName="seatsPerRow"
+          label="Locuri / rand"
+          type="number"
+          defaultValue={String(sector.seatsPerRow)}
+        />
+        <div className="flex items-end">
+          <Button
+            type="submit"
+            className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+          >
+            Salveaza sectorul
+          </Button>
+        </div>
+      </form>
+
+      <div className="rounded-[24px] border border-dashed border-black/10 bg-neutral-50 p-4">
+        <SeatFlagEditor seats={sector.seats} sectorName={sector.name} />
+      </div>
     </div>
   );
 }
@@ -225,11 +418,15 @@ function SelectField({
   label,
   options,
   defaultValue,
+  allowEmpty = false,
+  emptyLabel = "Selecteaza",
 }: {
   name: string;
   label: string;
   options: Array<{ value: string; label: string }>;
   defaultValue?: string;
+  allowEmpty?: boolean;
+  emptyLabel?: string;
 }) {
   return (
     <div className="grid gap-2">
@@ -240,6 +437,7 @@ function SelectField({
         defaultValue={defaultValue}
         className="h-10 rounded-2xl border border-black/8 bg-white px-3 text-sm text-[#111111] outline-none focus:border-[#dc2626]"
       >
+        {allowEmpty ? <option value="">{emptyLabel}</option> : null}
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}

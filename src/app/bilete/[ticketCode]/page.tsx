@@ -6,6 +6,7 @@ import { ro } from "date-fns/locale";
 import { BadgeCheck, DownloadCloud, ShieldCheck, Sparkles } from "lucide-react";
 
 import { cancelTicketAction, reissueTicketAction } from "@/lib/actions/admin";
+import { PrintTicketButton } from "@/components/print-ticket-button";
 import { ShareActions } from "@/components/share-actions";
 import { TicketQr } from "@/components/ticket-qr";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ export default async function TicketPage({
 
   const ticketUrl = `${env.siteUrl}/bilete/${ticket.ticketCode}`;
   const pdfUrl = `${env.siteUrl}/bilete/${ticket.ticketCode}/pdf`;
+  const pdfDownloadUrl = `${pdfUrl}?download=1`;
 
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">
@@ -76,14 +78,17 @@ export default async function TicketPage({
                     {ticket.matchTitle}
                   </h1>
                 </div>
-                <Link
-                  href={pdfUrl}
-                  target="_blank"
-                  className="inline-flex items-center rounded-full border border-[#dc2626]/18 bg-[#fff1f2] px-4 py-2 text-sm font-medium text-[#b91c1c] transition hover:bg-[#fee2e2]"
-                >
-                  <DownloadCloud className="mr-2 h-4 w-4" />
-                  PDF
-                </Link>
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    href={pdfDownloadUrl}
+                    target="_blank"
+                    className="inline-flex items-center rounded-full border border-[#dc2626]/18 bg-[#fff1f2] px-4 py-2 text-sm font-medium text-[#b91c1c] transition hover:bg-[#fee2e2]"
+                  >
+                    <DownloadCloud className="mr-2 h-4 w-4" />
+                    Descarca PDF
+                  </Link>
+                  <PrintTicketButton pdfUrl={pdfUrl} />
+                </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
