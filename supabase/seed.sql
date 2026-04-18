@@ -840,20 +840,9 @@ where flagged.email = 'supporter.flagged@orhei.local'
     where id = '66666666-6666-4666-8666-666666666661'::uuid
   );
 
-do $$
-declare
-  flagged_user_id uuid;
-begin
-  select id
-  into flagged_user_id
-  from auth.users
-  where email = 'supporter.flagged@orhei.local'
-  limit 1;
-
-  if flagged_user_id is not null then
-    perform public.sync_abuse_flags_for_user(flagged_user_id);
-  end if;
-end;
-$$;
+select public.sync_abuse_flags_for_user(id)
+from auth.users
+where email = 'supporter.flagged@orhei.local'
+limit 1;
 
 commit;
