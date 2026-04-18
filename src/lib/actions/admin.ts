@@ -1,0 +1,368 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+
+import { hasAnyRole } from "@/lib/auth/roles";
+import { isSupabaseConfigured } from "@/lib/env";
+import { getViewerContext } from "@/lib/supabase/queries";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+const stadiumSchema = z.object({
+  name: z.string().min(3),
+  slug: z.string().min(3),
+  city: z.string().min(2),
+});
+
+const sectorSchema = z.object({
+  stadiumId: z.string(),
+  name: z.string().min(2),
+  code: z.string().min(1),
+  color: z.string().min(4),
+  rowsCount: z.coerce.number().int().min(1),
+  seatsPerRow: z.coerce.number().int().min(1),
+});
+
+const matchSchema = z.object({
+  stadiumId: z.string(),
+  title: z.string().min(4),
+  slug: z.string().min(4),
+  competitionName: z.string().min(2),
+  opponentName: z.string().min(2),
+  startsAt: z.string().min(5),
+  status: z.string().default("draft"),
+  maxTicketsPerUser: z.coerce.number().int().min(1),
+  reservationOpensAt: z.string().optional(),
+  reservationClosesAt: z.string().optional(),
+  scannerEnabled: z.boolean().default(false),
+});
+
+const userBlockSchema = z.object({
+  userId: z.string(),
+  type: z.enum(["warning", "block", "temp_ban"]),
+  reason: z.string().min(3),
+  note: z.string().optional(),
+  endsAt: z.string().optional(),
+});
+
+const roleSchema = z.object({
+  userId: z.string(),
+  role: z.enum(["steward", "admin", "superadmin", "user"]),
+});
+
+const seatToggleSchema = z.object({
+  seatId: z.string(),
+  flag: z.enum(["is_disabled", "is_obstructed", "is_internal_only"]),
+  value: z.boolean(),
+});
+
+const ticketActionSchema = z.object({
+  ticketId: z.string(),
+  reason: z.string().optional(),
+});
+
+async function ensureAdmin(): Promise<
+  Awaited<ReturnType<typeof getViewerContext>> & { userId: string }
+> {
+  const viewer = await getViewerContext();
+
+  if (!viewer.userId || !hasAnyRole(viewer.roles, ["admin", "superadmin"])) {
+    throw new Error("Acces interzis pentru această acțiune.");
+  }
+
+  return {
+    ...viewer,
+    userId: viewer.userId,
+  };
+}
+
+async function logAudit(actorUserId: string, action: string, entityType: string, entityId: string, details: Record<string, unknown>) {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return;
+  }
+
+  await supabase.from("audit_logs").insert({
+    actor_user_id: actorUserId,
+    action,
+    entity_type: entityType,
+    entity_id: entityId,
+    details,
+  });
+}
+
+export async function createStadiumAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = stadiumSchema.safeParse({
+    name: formData.get("name"),
+    slug: formData.get("slug"),
+    city: formData.get("city"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  const { data } = await supabase
+    .from("stadiums")
+    .insert({
+      name: parsed.data.name,
+      slug: parsed.data.slug,
+      city: parsed.data.city,
+      club_name: "FC Milsami Orhei",
+      created_by: viewer.userId,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (data?.id) {
+    await logAudit(viewer.userId, "create_stadium", "stadiums", data.id, parsed.data);
+  }
+
+  revalidatePath("/admin/stadion");
+}
+
+export async function createSectorAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = sectorSchema.safeParse({
+    stadiumId: formData.get("stadiumId"),
+    name: formData.get("name"),
+    code: formData.get("code"),
+    color: formData.get("color"),
+    rowsCount: formData.get("rowsCount"),
+    seatsPerRow: formData.get("seatsPerRow"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  const { data } = await supabase
+    .from("stadium_sectors")
+    .insert({
+      stadium_id: parsed.data.stadiumId,
+      name: parsed.data.name,
+      code: parsed.data.code,
+      color: parsed.data.color,
+      rows_count: parsed.data.rowsCount,
+      seats_per_row: parsed.data.seatsPerRow,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (data?.id) {
+    await supabase.rpc("generate_sector_seats", {
+      p_sector_id: data.id,
+      p_rows_count: parsed.data.rowsCount,
+      p_seats_per_row: parsed.data.seatsPerRow,
+      p_replace_existing: true,
+    });
+    await logAudit(viewer.userId, "create_sector", "stadium_sectors", data.id, parsed.data);
+  }
+
+  revalidatePath("/admin/stadion");
+}
+
+export async function toggleSeatFlagAction(input: z.input<typeof seatToggleSchema>) {
+  const viewer = await ensureAdmin();
+  const parsed = seatToggleSchema.safeParse(input);
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  await supabase
+    .from("seats")
+    .update({
+      [parsed.data.flag]: parsed.data.value,
+    })
+    .eq("id", parsed.data.seatId);
+
+  await logAudit(viewer.userId, "toggle_seat_flag", "seats", parsed.data.seatId, parsed.data);
+
+  revalidatePath("/admin/stadion");
+}
+
+export async function createMatchAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = matchSchema.safeParse({
+    stadiumId: formData.get("stadiumId"),
+    title: formData.get("title"),
+    slug: formData.get("slug"),
+    competitionName: formData.get("competitionName"),
+    opponentName: formData.get("opponentName"),
+    startsAt: formData.get("startsAt"),
+    status: formData.get("status"),
+    maxTicketsPerUser: formData.get("maxTicketsPerUser"),
+    reservationOpensAt: formData.get("reservationOpensAt") || undefined,
+    reservationClosesAt: formData.get("reservationClosesAt") || undefined,
+    scannerEnabled: formData.get("scannerEnabled") === "on",
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  const { data } = await supabase
+    .from("matches")
+    .insert({
+      stadium_id: parsed.data.stadiumId,
+      title: parsed.data.title,
+      slug: parsed.data.slug,
+      competition_name: parsed.data.competitionName,
+      opponent_name: parsed.data.opponentName,
+      starts_at: parsed.data.startsAt,
+      status: parsed.data.status,
+      scanner_enabled: parsed.data.scannerEnabled,
+      created_by: viewer.userId,
+      updated_by: viewer.userId,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (data?.id) {
+    await supabase.from("match_settings").upsert({
+      match_id: data.id,
+      max_tickets_per_user: parsed.data.maxTicketsPerUser,
+      opens_at: parsed.data.reservationOpensAt ?? null,
+      closes_at: parsed.data.reservationClosesAt ?? null,
+    });
+    await logAudit(viewer.userId, "create_match", "matches", data.id, parsed.data);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/meciuri");
+}
+
+export async function createUserBlockAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = userBlockSchema.safeParse({
+    userId: formData.get("userId"),
+    type: formData.get("type"),
+    reason: formData.get("reason"),
+    note: formData.get("note") || undefined,
+    endsAt: formData.get("endsAt") || undefined,
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  const { data } = await supabase
+    .from("user_blocks")
+    .insert({
+      user_id: parsed.data.userId,
+      type: parsed.data.type,
+      reason: parsed.data.reason,
+      note: parsed.data.note ?? null,
+      ends_at: parsed.data.endsAt ?? null,
+      is_active: true,
+      created_by: viewer.userId,
+    })
+    .select("id")
+    .maybeSingle();
+
+  await supabase.from("admin_notes").insert({
+    user_id: parsed.data.userId,
+    author_user_id: viewer.userId,
+    note_type: "moderation",
+    content: parsed.data.note ?? parsed.data.reason,
+  });
+
+  if (data?.id) {
+    await logAudit(viewer.userId, "create_user_block", "user_blocks", data.id, parsed.data);
+  }
+
+  revalidatePath("/admin/utilizatori");
+  revalidatePath("/admin/abuz");
+}
+
+export async function assignRoleAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = roleSchema.safeParse({
+    userId: formData.get("userId"),
+    role: formData.get("role"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  if (!viewer.roles.includes("superadmin")) {
+    throw new Error("Doar superadmin poate gestiona rolurile.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  await supabase
+    .from("user_roles")
+    .upsert({
+      user_id: parsed.data.userId,
+      role: parsed.data.role,
+    });
+
+  await logAudit(viewer.userId, "assign_role", "user_roles", parsed.data.userId, parsed.data);
+
+  revalidatePath("/admin/utilizatori");
+}
+
+export async function cancelTicketAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = ticketActionSchema.safeParse({
+    ticketId: formData.get("ticketId"),
+    reason: formData.get("reason") || undefined,
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  await supabase.rpc("cancel_ticket_admin", {
+    p_ticket_id: parsed.data.ticketId,
+    p_reason: parsed.data.reason ?? "Anulat de admin",
+    p_actor_id: viewer.userId,
+  });
+
+  revalidatePath("/admin");
+}
+
+export async function reissueTicketAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = ticketActionSchema.safeParse({
+    ticketId: formData.get("ticketId"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  await supabase.rpc("reissue_ticket_qr", {
+    p_ticket_id: parsed.data.ticketId,
+    p_actor_id: viewer.userId,
+  });
+
+  revalidatePath("/admin");
+}
