@@ -19,8 +19,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: "#ffffff",
     overflow: "hidden",
-    minHeight: 238,
-    maxHeight: 250,
+    minHeight: 262,
+    maxHeight: 272,
   },
   band: {
     height: 6,
@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     paddingTop: 9,
     paddingRight: 12,
-    paddingBottom: 9,
+    paddingBottom: 11,
     paddingLeft: 12,
   },
   eyebrow: {
@@ -45,11 +45,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textTransform: "uppercase",
     lineHeight: 1.15,
-    marginBottom: 2,
+    marginBottom: 0,
   },
   subtitle: {
     fontSize: 8,
     color: "#e5e7eb",
+    marginTop: 5,
   },
   body: {
     paddingTop: 10,
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
     width: 122,
     alignItems: "center",
     paddingTop: 4,
-    paddingBottom: 4,
+    paddingBottom: 6,
     paddingHorizontal: 8,
     backgroundColor: "#fff7f7",
     borderWidth: 1,
@@ -125,8 +126,8 @@ const styles = StyleSheet.create({
   },
   qrHelper: {
     marginTop: 5,
-    fontSize: 6.8,
-    lineHeight: 1.25,
+    fontSize: 6.3,
+    lineHeight: 1.18,
     color: "#7f1d1d",
     textAlign: "center",
   },
@@ -185,26 +186,12 @@ const styles = StyleSheet.create({
     paddingRight: 8,
     paddingBottom: 7,
     paddingLeft: 8,
-    marginTop: 2,
+    marginTop: 4,
   },
   note: {
     color: "#7f1d1d",
     fontSize: 8,
     lineHeight: 1.35,
-  },
-  tearGuide: {
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#d4d4d8",
-    borderTopStyle: "dashed",
-    paddingTop: 4,
-    alignItems: "center",
-  },
-  tearText: {
-    fontSize: 6.8,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    color: "#71717a",
   },
 });
 
@@ -271,10 +258,6 @@ export function TicketDocument({
                   Prezentati acest cod la acces. Valabil pentru o singura intrare.
                 </Text>
               </View>
-            </View>
-
-            <View style={styles.tearGuide}>
-              <Text style={styles.tearText}>Zona libera pentru print / decupare</Text>
             </View>
           </View>
         </View>
