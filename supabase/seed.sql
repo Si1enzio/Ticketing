@@ -101,11 +101,13 @@ set
   sort_order = excluded.sort_order,
   metadata = excluded.metadata;
 
+-- Nu folosim replace_existing = true aici, deoarece seed-ul trebuie sa poata fi
+-- rerulat si dupa ce exista rezervari / bilete care refera deja locurile generate.
 select public.generate_sector_seats(
   sector.id,
   sector.rows_count,
   sector.seats_per_row,
-  true
+  false
 )
 from public.stadium_sectors sector
 join public.stadiums stadium on stadium.id = sector.stadium_id
