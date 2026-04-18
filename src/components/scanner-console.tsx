@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { Camera, ShieldAlert, ShieldCheck, TicketX, X } from "lucide-react";
-import { toast } from "sonner";
 
 import type { ScannerMatch, ScanResponse } from "@/lib/domain/types";
 import { Button } from "@/components/ui/button";
@@ -106,13 +105,6 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
     const payload = (await response.json()) as ScanResponse;
     setLastResult(payload);
     setIsSubmitting(false);
-
-    if (payload.result === "valid") {
-      toast.success(payload.message);
-      return;
-    }
-
-    toast.error(payload.message);
   }
 
   return (
@@ -168,7 +160,15 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
                 }
               }}
               onError={(error) => {
-                toast.error(String(error));
+                setLastResult({
+                  result: "invalid_token",
+                  message: String(error),
+                  ticketCode: null,
+                  matchTitle: selectedMatch?.title ?? null,
+                  seatLabel: null,
+                  sectorLabel: null,
+                  scannedAt: new Date().toISOString(),
+                });
               }}
               formats={["qr_code"]}
               paused={isSubmitting || !selectedMatchId || Boolean(lastResult)}
@@ -236,7 +236,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
       {lastResult ? (
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 py-6 backdrop-blur-[2px]">
           <div
-            className={`pointer-events-auto relative flex h-[78vh] w-[88vw] max-h-[46rem] max-w-2xl flex-col justify-center rounded-[32px] border-4 p-8 text-center shadow-[0_36px_120px_-48px_rgba(0,0,0,0.5)] sm:p-10 ${resultStyles[lastResult.result].className}`}
+            className={`pointer-events-auto relative flex w-[min(70vw,30rem)] min-w-[18rem] max-w-[30rem] max-h-[70vh] flex-col justify-center overflow-y-auto rounded-[32px] border-4 p-6 text-center shadow-[0_36px_120px_-48px_rgba(0,0,0,0.5)] sm:p-8 ${resultStyles[lastResult.result].className} max-sm:w-[min(86vw,24rem)]`}
           >
             <button
               type="button"
@@ -247,19 +247,19 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
               <span className="sr-only">Inchide rezultatul</span>
             </button>
 
-            <div className="mx-auto flex max-w-xl flex-1 flex-col items-center justify-center">
+            <div className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center">
               {(() => {
                 const Icon = resultStyles[lastResult.result].icon;
-                return <Icon className="h-20 w-20 sm:h-24 sm:w-24" />;
+                return <Icon className="h-14 w-14 sm:h-20 sm:w-20" />;
               })()}
-              <p className="mt-6 text-sm font-semibold uppercase tracking-[0.34em] text-white/85">
+              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.34em] text-white/85 sm:text-sm">
                 {resultStyles[lastResult.result].title}
               </p>
-              <p className="mt-4 text-3xl font-semibold leading-tight sm:text-5xl">
+              <p className="mt-3 text-2xl font-semibold leading-tight sm:text-4xl">
                 {lastResult.message}
               </p>
 
-              <div className="mt-8 grid w-full gap-3 text-left text-sm sm:grid-cols-2 sm:text-base">
+              <div className="mt-6 grid w-full gap-3 text-left text-sm sm:grid-cols-2 sm:text-base">
                 {lastResult.ticketCode ? (
                   <ResultLine label="Cod bilet" value={lastResult.ticketCode} />
                 ) : null}
@@ -281,7 +281,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
               <Button
                 type="button"
                 onClick={() => setLastResult(null)}
-                className="mt-8 rounded-full border border-white/20 bg-white px-8 text-base font-semibold text-[#111111] hover:bg-white/90"
+                className="mt-6 rounded-full border border-white/20 bg-white px-8 text-base font-semibold text-[#111111] hover:bg-white/90"
               >
                 Continua scanarea
               </Button>
