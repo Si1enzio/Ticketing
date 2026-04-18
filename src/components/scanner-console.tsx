@@ -63,6 +63,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
   const [deviceLabel, setDeviceLabel] = useState("Telefon steward");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastResult, setLastResult] = useState<ScanResponse | null>(null);
+  const [overlayResult, setOverlayResult] = useState<ScanResponse | null>(null);
 
   const selectedMatch = useMemo(
     () => matches.find((match) => match.id === selectedMatchId) ?? null,
@@ -70,18 +71,18 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
   );
 
   useEffect(() => {
-    if (!lastResult) {
+    if (!overlayResult) {
       return;
     }
 
     const timeout = window.setTimeout(() => {
-      setLastResult(null);
+      setOverlayResult(null);
     }, 3000);
 
     return () => {
       window.clearTimeout(timeout);
     };
-  }, [lastResult]);
+  }, [overlayResult]);
 
   async function submitToken(rawValue: string) {
     if (!selectedMatchId || isSubmitting) {
@@ -104,6 +105,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
 
     const payload = (await response.json()) as ScanResponse;
     setLastResult(payload);
+    setOverlayResult(payload);
     setIsSubmitting(false);
   }
 
@@ -160,7 +162,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
                 }
               }}
               onError={(error) => {
-                setLastResult({
+                const payload = {
                   result: "invalid_token",
                   message: String(error),
                   ticketCode: null,
@@ -168,10 +170,12 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
                   seatLabel: null,
                   sectorLabel: null,
                   scannedAt: new Date().toISOString(),
-                });
+                } satisfies ScanResponse;
+                setLastResult(payload);
+                setOverlayResult(payload);
               }}
               formats={["qr_code"]}
-              paused={isSubmitting || !selectedMatchId || Boolean(lastResult)}
+              paused={isSubmitting || !selectedMatchId || Boolean(overlayResult)}
               allowMultiple={false}
               scanDelay={400}
               constraints={{
@@ -183,7 +187,10 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => setLastResult(null)}
+            onClick={() => {
+              setLastResult(null);
+              setOverlayResult(null);
+            }}
             className="w-full rounded-full border-white/12 bg-white/5 text-white hover:bg-white/10"
           >
             <Camera className="mr-2 h-4 w-4" />
@@ -233,14 +240,14 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
         </CardContent>
       </Card>
 
-      {lastResult ? (
+      {overlayResult ? (
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 py-6 backdrop-blur-[2px]">
           <div
-            className={`pointer-events-auto relative flex w-[min(70vw,30rem)] min-w-[18rem] max-w-[30rem] max-h-[70vh] flex-col justify-center overflow-y-auto rounded-[32px] border-4 p-6 text-center shadow-[0_36px_120px_-48px_rgba(0,0,0,0.5)] sm:p-8 ${resultStyles[lastResult.result].className} max-sm:w-[min(86vw,24rem)]`}
+            className={`pointer-events-auto relative flex w-[min(70vw,30rem)] min-w-[18rem] max-w-[30rem] max-h-[70vh] flex-col justify-center overflow-y-auto rounded-[32px] border-4 p-6 text-center shadow-[0_36px_120px_-48px_rgba(0,0,0,0.5)] sm:p-8 ${resultStyles[overlayResult.result].className} max-sm:w-[min(86vw,24rem)]`}
           >
             <button
               type="button"
-              onClick={() => setLastResult(null)}
+              onClick={() => setOverlayResult(null)}
               className="absolute right-4 top-4 rounded-full border border-white/25 bg-white/12 p-2 text-white transition hover:bg-white/20"
             >
               <X className="h-5 w-5" />
@@ -249,38 +256,40 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
 
             <div className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center">
               {(() => {
-                const Icon = resultStyles[lastResult.result].icon;
+                const Icon = resultStyles[overlayResult.result].icon;
                 return <Icon className="h-14 w-14 sm:h-20 sm:w-20" />;
               })()}
               <p className="mt-4 text-xs font-semibold uppercase tracking-[0.34em] text-white/85 sm:text-sm">
-                {resultStyles[lastResult.result].title}
+                {resultStyles[overlayResult.result].title}
               </p>
               <p className="mt-3 text-2xl font-semibold leading-tight sm:text-4xl">
-                {lastResult.message}
+                {overlayResult.message}
               </p>
 
               <div className="mt-6 grid w-full gap-3 text-left text-sm sm:grid-cols-2 sm:text-base">
-                {lastResult.ticketCode ? (
-                  <ResultLine label="Cod bilet" value={lastResult.ticketCode} />
+                {overlayResult.ticketCode ? (
+                  <ResultLine label="Cod bilet" value={overlayResult.ticketCode} />
                 ) : null}
-                {lastResult.matchTitle ? (
-                  <ResultLine label="Meci" value={lastResult.matchTitle} />
+                {overlayResult.matchTitle ? (
+                  <ResultLine label="Meci" value={overlayResult.matchTitle} />
                 ) : null}
-                {lastResult.sectorLabel ? (
-                  <ResultLine label="Sector" value={lastResult.sectorLabel} />
+                {overlayResult.sectorLabel ? (
+                  <ResultLine label="Sector" value={overlayResult.sectorLabel} />
                 ) : null}
-                {lastResult.seatLabel ? <ResultLine label="Loc" value={lastResult.seatLabel} /> : null}
-                {lastResult.scannedAt ? (
+                {overlayResult.seatLabel ? (
+                  <ResultLine label="Loc" value={overlayResult.seatLabel} />
+                ) : null}
+                {overlayResult.scannedAt ? (
                   <ResultLine
                     label="Ora"
-                    value={new Date(lastResult.scannedAt).toLocaleString("ro-RO")}
+                    value={new Date(overlayResult.scannedAt).toLocaleString("ro-RO")}
                   />
                 ) : null}
               </div>
 
               <Button
                 type="button"
-                onClick={() => setLastResult(null)}
+                onClick={() => setOverlayResult(null)}
                 className="mt-6 rounded-full border border-white/20 bg-white px-8 text-base font-semibold text-[#111111] hover:bg-white/90"
               >
                 Continua scanarea

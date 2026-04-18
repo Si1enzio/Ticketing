@@ -292,7 +292,7 @@ export function SiteHeader() {
               </div>
               <Button
                 asChild
-                className="rounded-full border border-[#dc2626] bg-[#dc2626] px-5 text-white hover:bg-[#b91c1c]"
+                className="hidden rounded-full border border-[#dc2626] bg-[#dc2626] px-5 text-white hover:bg-[#b91c1c] sm:inline-flex"
               >
                 <Link href="/cabinet">Biletele mele</Link>
               </Button>
@@ -300,7 +300,7 @@ export function SiteHeader() {
           ) : (
             <Button
               asChild
-              className="rounded-full border border-[#dc2626] bg-[#dc2626] px-5 text-white hover:bg-[#b91c1c]"
+              className="hidden rounded-full border border-[#dc2626] bg-[#dc2626] px-5 text-white hover:bg-[#b91c1c] sm:inline-flex"
             >
               <Link href="/autentificare">Autentificare</Link>
             </Button>
