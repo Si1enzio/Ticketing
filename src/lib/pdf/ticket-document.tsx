@@ -5,7 +5,7 @@ import type { TicketCard } from "@/lib/domain/types";
 
 const styles = StyleSheet.create({
   page: {
-    backgroundColor: "#f4f4f5",
+    backgroundColor: "#ffffff",
     paddingTop: 18,
     paddingHorizontal: 18,
     paddingBottom: 18,
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     flexBasis: 0,
   },
   qrColumn: {
-    width: 116,
+    width: 122,
     alignItems: "center",
     paddingTop: 4,
     paddingBottom: 4,
@@ -87,8 +87,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   qrImage: {
-    width: 86,
-    height: 86,
+    width: 90,
+    height: 90,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#e5e7eb",
@@ -139,6 +139,9 @@ const styles = StyleSheet.create({
     width: "50%",
     paddingHorizontal: 3,
     marginBottom: 6,
+  },
+  fieldFull: {
+    width: "100%",
   },
   card: {
     borderWidth: 1,
@@ -231,13 +234,6 @@ export function TicketDocument({
             <View style={styles.contentRow}>
               <View style={styles.detailsColumn}>
                 <View style={styles.grid}>
-                  <Field label="Adversar" value={ticket.opponentName} />
-                  <Field label="Cod bilet" value={ticket.ticketCode} />
-                  <Field
-                    label="Data si ora"
-                    value={new Date(ticket.startsAt).toLocaleString("ro-RO")}
-                  />
-                  <Field label="Stadion" value={ticket.stadiumName} />
                   <Field label="Sector" value={ticket.sectorName} />
                   <Field
                     label="Rand / loc"
@@ -248,6 +244,12 @@ export function TicketDocument({
                     label="Titular"
                     value={ticket.purchaserName ?? ticket.purchaserEmail ?? "Cont suporter"}
                   />
+                  <Field
+                    label="Data si ora"
+                    value={new Date(ticket.startsAt).toLocaleString("ro-RO")}
+                  />
+                  <Field label="Adversar" value={ticket.opponentName} />
+                  <Field fullWidth label="Stadion" value={ticket.stadiumName} />
                 </View>
 
                 <View style={styles.noteWrap}>
@@ -281,12 +283,20 @@ export function TicketDocument({
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({
+  label,
+  value,
+  fullWidth = false,
+}: {
+  label: string;
+  value: string;
+  fullWidth?: boolean;
+}) {
   const isPriority =
-    label === "Sector" || label === "Rand / loc" || label === "Poarta" || label === "Cod bilet";
+    label === "Sector" || label === "Rand / loc" || label === "Poarta";
 
   return (
-    <View style={styles.field}>
+    <View style={fullWidth ? [styles.field, styles.fieldFull] : styles.field}>
       <View style={isPriority ? [styles.card, styles.cardPriority] : styles.card}>
         <Text style={styles.label}>{label}</Text>
         <Text style={isPriority ? [styles.value, styles.valuePriority] : styles.value}>
