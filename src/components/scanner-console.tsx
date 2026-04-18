@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { Camera, ShieldAlert, ShieldCheck, TicketX, X } from "lucide-react";
 import { toast } from "sonner";
@@ -69,6 +69,20 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
     () => matches.find((match) => match.id === selectedMatchId) ?? null,
     [matches, selectedMatchId],
   );
+
+  useEffect(() => {
+    if (!lastResult) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setLastResult(null);
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [lastResult]);
 
   async function submitToken(rawValue: string) {
     if (!selectedMatchId || isSubmitting) {
