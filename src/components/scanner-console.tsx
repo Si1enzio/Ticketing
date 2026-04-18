@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
-import { Camera, ShieldAlert, ShieldCheck, TicketX } from "lucide-react";
+import { Camera, ShieldAlert, ShieldCheck, TicketX, X } from "lucide-react";
 import { toast } from "sonner";
 
 import type { ScannerMatch, ScanResponse } from "@/lib/domain/types";
@@ -24,37 +24,37 @@ const resultStyles: Record<
 > = {
   valid: {
     title: "Acces valid",
-    className: "border-emerald-200 bg-emerald-50 text-emerald-900",
+    className: "border-emerald-300 bg-emerald-600 text-white",
     icon: ShieldCheck,
   },
   already_used: {
     title: "Bilet deja folosit",
-    className: "border-amber-200 bg-amber-50 text-amber-900",
+    className: "border-red-300 bg-red-600 text-white",
     icon: ShieldAlert,
   },
   wrong_match: {
     title: "Meci gresit",
-    className: "border-amber-200 bg-amber-50 text-amber-900",
+    className: "border-red-300 bg-red-600 text-white",
     icon: TicketX,
   },
   invalid_token: {
     title: "Token invalid",
-    className: "border-red-200 bg-red-50 text-red-900",
+    className: "border-red-300 bg-red-600 text-white",
     icon: TicketX,
   },
   canceled: {
     title: "Bilet anulat",
-    className: "border-red-200 bg-red-50 text-red-900",
+    className: "border-red-300 bg-red-600 text-white",
     icon: TicketX,
   },
   blocked: {
     title: "Bilet blocat",
-    className: "border-red-200 bg-red-50 text-red-900",
+    className: "border-red-300 bg-red-600 text-white",
     icon: TicketX,
   },
   not_found: {
     title: "Bilet inexistent",
-    className: "border-red-200 bg-red-50 text-red-900",
+    className: "border-red-300 bg-red-600 text-white",
     icon: TicketX,
   },
 };
@@ -157,7 +157,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
                 toast.error(String(error));
               }}
               formats={["qr_code"]}
-              paused={isSubmitting || !selectedMatchId}
+              paused={isSubmitting || !selectedMatchId || Boolean(lastResult)}
               allowMultiple={false}
               scanDelay={400}
               constraints={{
@@ -218,6 +218,72 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
           )}
         </CardContent>
       </Card>
+
+      {lastResult ? (
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 py-6 backdrop-blur-[2px]">
+          <div
+            className={`pointer-events-auto relative flex h-[78vh] w-[88vw] max-h-[46rem] max-w-2xl flex-col justify-center rounded-[32px] border-4 p-8 text-center shadow-[0_36px_120px_-48px_rgba(0,0,0,0.5)] sm:p-10 ${resultStyles[lastResult.result].className}`}
+          >
+            <button
+              type="button"
+              onClick={() => setLastResult(null)}
+              className="absolute right-4 top-4 rounded-full border border-white/25 bg-white/12 p-2 text-white transition hover:bg-white/20"
+            >
+              <X className="h-5 w-5" />
+              <span className="sr-only">Inchide rezultatul</span>
+            </button>
+
+            <div className="mx-auto flex max-w-xl flex-1 flex-col items-center justify-center">
+              {(() => {
+                const Icon = resultStyles[lastResult.result].icon;
+                return <Icon className="h-20 w-20 sm:h-24 sm:w-24" />;
+              })()}
+              <p className="mt-6 text-sm font-semibold uppercase tracking-[0.34em] text-white/85">
+                {resultStyles[lastResult.result].title}
+              </p>
+              <p className="mt-4 text-3xl font-semibold leading-tight sm:text-5xl">
+                {lastResult.message}
+              </p>
+
+              <div className="mt-8 grid w-full gap-3 text-left text-sm sm:grid-cols-2 sm:text-base">
+                {lastResult.ticketCode ? (
+                  <ResultLine label="Cod bilet" value={lastResult.ticketCode} />
+                ) : null}
+                {lastResult.matchTitle ? (
+                  <ResultLine label="Meci" value={lastResult.matchTitle} />
+                ) : null}
+                {lastResult.sectorLabel ? (
+                  <ResultLine label="Sector" value={lastResult.sectorLabel} />
+                ) : null}
+                {lastResult.seatLabel ? <ResultLine label="Loc" value={lastResult.seatLabel} /> : null}
+                {lastResult.scannedAt ? (
+                  <ResultLine
+                    label="Ora"
+                    value={new Date(lastResult.scannedAt).toLocaleString("ro-RO")}
+                  />
+                ) : null}
+              </div>
+
+              <Button
+                type="button"
+                onClick={() => setLastResult(null)}
+                className="mt-8 rounded-full border border-white/20 bg-white px-8 text-base font-semibold text-[#111111] hover:bg-white/90"
+              >
+                Continua scanarea
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ResultLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[18px] border border-white/20 bg-white/10 px-4 py-3">
+      <p className="text-[11px] uppercase tracking-[0.24em] text-white/72">{label}</p>
+      <p className="mt-1 text-sm font-semibold leading-6 text-white sm:text-base">{value}</p>
     </div>
   );
 }

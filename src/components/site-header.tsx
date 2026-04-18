@@ -2,9 +2,19 @@
 
 import { useEffect, useEffectEvent, useState } from "react";
 import Link from "next/link";
+import { Menu } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { hasMinimumRole, normalizeRoles, roleLabels } from "@/lib/auth/roles";
 import { mockViewer } from "@/lib/domain/mock";
 import type { ViewerContext } from "@/lib/domain/types";
@@ -151,13 +161,7 @@ export function SiteHeader() {
 
           <nav className="hidden items-center gap-2 lg:flex">
             {navigation.map((item) => {
-              const disabled =
-                (item.href === "/scanner" &&
-                  !viewer.roles.includes("steward") &&
-                  !viewer.roles.includes("admin") &&
-                  !viewer.roles.includes("superadmin")) ||
-                (item.href === "/admin" && !viewer.isAdmin) ||
-                (item.href === "/cabinet" && !viewer.isAuthenticated);
+              const disabled = isNavItemDisabled(item.href, viewer);
 
               return (
                 <Link
@@ -178,6 +182,94 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="rounded-full border-[#111111]/10 bg-white text-[#111111] hover:bg-neutral-100 lg:hidden"
+              >
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Deschide meniul</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="right"
+              className="w-[86vw] max-w-sm border-l border-black/8 bg-white px-0"
+            >
+              <SheetHeader className="border-b border-black/6 px-5 pb-5">
+                <SheetTitle className="text-xl uppercase tracking-[0.18em] text-[#111111]">
+                  Meniu
+                </SheetTitle>
+                <SheetDescription className="text-sm leading-6 text-neutral-500">
+                  Navigatie rapida pentru suporteri, stewardi si administratori.
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="grid gap-3 px-5 py-5">
+                {navigation.map((item) => {
+                  const disabled = isNavItemDisabled(item.href, viewer);
+
+                  return (
+                    <SheetClose asChild key={item.href}>
+                      <Link
+                        href={disabled ? "/" : item.href}
+                        className={cn(
+                          "rounded-[22px] border px-4 py-4 text-base font-medium transition",
+                          disabled
+                            ? "pointer-events-none border-black/6 bg-neutral-100 text-neutral-400"
+                            : "border-black/8 bg-white text-[#111111] hover:border-[#dc2626]/18 hover:bg-[#fff1f2] hover:text-[#b91c1c]",
+                        )}
+                      >
+                        {item.label}
+                      </Link>
+                    </SheetClose>
+                  );
+                })}
+              </div>
+
+              {viewer.isAuthenticated ? (
+                <div className="mt-auto border-t border-black/6 px-5 py-5">
+                  <Badge className="rounded-full border border-[#dc2626]/12 bg-[#dc2626]/8 px-3 py-1 text-[#b91c1c] hover:bg-[#dc2626]/8">
+                    {roleLabels[highestRole]}
+                  </Badge>
+                  <p className="mt-3 text-sm font-semibold text-[#111111]">
+                    {viewer.fullName ?? viewer.email ?? "Cont activ"}
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-neutral-500">
+                    {viewer.isPrivileged
+                      ? "Acces administrativ activ"
+                      : viewer.canReserve
+                        ? "Poate solicita bilete gratuite"
+                        : "Cabinet personal activ"}
+                  </p>
+                  <div className="mt-4">
+                    <SheetClose asChild>
+                      <Button
+                        asChild
+                        className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+                      >
+                        <Link href="/cabinet">Biletele mele</Link>
+                      </Button>
+                    </SheetClose>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-auto border-t border-black/6 px-5 py-5">
+                  <SheetClose asChild>
+                    <Button
+                      asChild
+                      className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+                    >
+                      <Link href="/autentificare">Autentificare</Link>
+                    </Button>
+                  </SheetClose>
+                </div>
+              )}
+            </SheetContent>
+          </Sheet>
+
           {viewer.isAuthenticated ? (
             <>
               <Badge
@@ -216,5 +308,16 @@ export function SiteHeader() {
         </div>
       </div>
     </header>
+  );
+}
+
+function isNavItemDisabled(href: string, viewer: ViewerContext) {
+  return (
+    (href === "/scanner" &&
+      !viewer.roles.includes("steward") &&
+      !viewer.roles.includes("admin") &&
+      !viewer.roles.includes("superadmin")) ||
+    (href === "/admin" && !viewer.isAdmin) ||
+    (href === "/cabinet" && !viewer.isAuthenticated)
   );
 }
