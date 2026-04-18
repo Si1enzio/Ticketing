@@ -266,27 +266,6 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
                 {overlayResult.message}
               </p>
 
-              <div className="mt-7 grid w-full gap-3 pb-2 text-left text-sm sm:grid-cols-2 sm:text-base">
-                {overlayResult.ticketCode ? (
-                  <ResultLine label="Cod bilet" value={overlayResult.ticketCode} />
-                ) : null}
-                {overlayResult.matchTitle ? (
-                  <ResultLine label="Meci" value={overlayResult.matchTitle} />
-                ) : null}
-                {overlayResult.sectorLabel ? (
-                  <ResultLine label="Sector" value={overlayResult.sectorLabel} />
-                ) : null}
-                {overlayResult.seatLabel ? (
-                  <ResultLine label="Loc" value={overlayResult.seatLabel} />
-                ) : null}
-                {overlayResult.scannedAt ? (
-                  <ResultLine
-                    label="Ora"
-                    value={new Date(overlayResult.scannedAt).toLocaleString("ro-RO")}
-                  />
-                ) : null}
-              </div>
-
               <Button
                 type="button"
                 onClick={() => setOverlayResult(null)}
@@ -298,15 +277,6 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
           </div>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function ResultLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[18px] border border-white/20 bg-white/10 px-4 py-3">
-      <p className="text-[11px] uppercase tracking-[0.24em] text-white/72">{label}</p>
-      <p className="mt-1 text-sm font-semibold leading-6 text-white sm:text-base">{value}</p>
     </div>
   );
 }
