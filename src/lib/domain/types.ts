@@ -47,6 +47,7 @@ export const viewerContextSchema = z.object({
   email: z.string().email().nullable(),
   fullName: z.string().nullable(),
   roles: z.array(roleSchema),
+  canReserve: z.boolean().default(false),
   reservationBlockedUntil: z.string().datetime().nullable().optional(),
   reservationBlockReason: z.string().nullable().optional(),
 });
@@ -176,6 +177,7 @@ export const adminUserOverviewSchema = z.object({
   email: z.string().nullable().default(null),
   fullName: z.string().nullable().default(null),
   roles: z.array(z.string()),
+  canReserve: z.boolean().default(false),
   totalReserved: z.coerce.number().int().nonnegative(),
   totalScanned: z.coerce.number().int().nonnegative(),
   noShowRatio: z.coerce.number().default(0),

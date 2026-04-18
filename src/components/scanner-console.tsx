@@ -10,7 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const resultStyles: Record<
   ScanResponse["result"],
@@ -27,7 +33,7 @@ const resultStyles: Record<
     icon: ShieldAlert,
   },
   wrong_match: {
-    title: "Meci greșit",
+    title: "Meci gresit",
     className: "border-amber-200 bg-amber-50 text-amber-900",
     icon: TicketX,
   },
@@ -97,9 +103,10 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
-      <Card className="border-[#d5a021]/20 bg-[#08140f] text-white">
+      <Card className="surface-dark overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.24),transparent_34%),linear-gradient(180deg,#171717_0%,#101010_100%)] text-white">
+        <div className="h-1.5 bg-[linear-gradient(90deg,#ffffff_0%,#fca5a5_36%,#ef4444_100%)]" />
         <CardHeader className="space-y-4">
-          <CardTitle className="font-heading text-4xl uppercase tracking-[0.12em]">
+          <CardTitle className="font-heading text-4xl uppercase tracking-[0.08em]">
             Scanner mobil
           </CardTitle>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -107,7 +114,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
               <Label htmlFor="match">Meci activ</Label>
               <Select value={selectedMatchId} onValueChange={setSelectedMatchId}>
                 <SelectTrigger id="match" className="border-white/10 bg-white/5 text-white">
-                  <SelectValue placeholder="Selectează meciul" />
+                  <SelectValue placeholder="Selecteaza meciul" />
                 </SelectTrigger>
                 <SelectContent>
                   {matches.map((match) => (
@@ -119,7 +126,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="deviceLabel">Dispozitiv / poartă</Label>
+              <Label htmlFor="deviceLabel">Dispozitiv / poarta</Label>
               <Input
                 id="deviceLabel"
                 value={deviceLabel}
@@ -131,7 +138,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
         </CardHeader>
         <CardContent className="space-y-4">
           {selectedMatch ? (
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+            <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm text-white/72">
               <p className="font-semibold text-white">{selectedMatch.title}</p>
               <p>{selectedMatch.opponentName}</p>
               <p className="mt-1">{new Date(selectedMatch.startsAt).toLocaleString("ro-RO")}</p>
@@ -151,7 +158,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
               }}
               paused={isSubmitting || !selectedMatchId}
               allowMultiple={false}
-              scanDelay={1000}
+              scanDelay={900}
               constraints={{
                 facingMode: "environment",
               }}
@@ -162,23 +169,24 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
             type="button"
             variant="outline"
             onClick={() => setLastResult(null)}
-            className="w-full rounded-full border-white/10 bg-white/5 text-white hover:bg-white/10"
+            className="w-full rounded-full border-white/12 bg-white/5 text-white hover:bg-white/10"
           >
             <Camera className="mr-2 h-4 w-4" />
-            Curăță rezultatul
+            Curata rezultatul
           </Button>
         </CardContent>
       </Card>
 
-      <Card className="border-[#e7dfbf] bg-white/95">
+      <Card className="surface-panel overflow-hidden rounded-[30px] border border-white/70 bg-white/94">
+        <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
         <CardHeader>
-          <CardTitle className="font-heading text-4xl uppercase tracking-[0.12em] text-[#08140f]">
+          <CardTitle className="font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
             Rezultat scanare
           </CardTitle>
         </CardHeader>
         <CardContent>
           {lastResult ? (
-            <div className={`rounded-3xl border p-5 ${resultStyles[lastResult.result].className}`}>
+            <div className={`rounded-[26px] border p-5 ${resultStyles[lastResult.result].className}`}>
               <div className="flex items-center gap-3">
                 {(() => {
                   const Icon = resultStyles[lastResult.result].icon;
@@ -196,13 +204,15 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
                 {lastResult.matchTitle ? <p>Meci: {lastResult.matchTitle}</p> : null}
                 {lastResult.sectorLabel ? <p>Sector: {lastResult.sectorLabel}</p> : null}
                 {lastResult.seatLabel ? <p>Loc: {lastResult.seatLabel}</p> : null}
-                {lastResult.scannedAt ? <p>Ora: {new Date(lastResult.scannedAt).toLocaleString("ro-RO")}</p> : null}
+                {lastResult.scannedAt ? (
+                  <p>Ora: {new Date(lastResult.scannedAt).toLocaleString("ro-RO")}</p>
+                ) : null}
               </div>
             </div>
           ) : (
-            <div className="rounded-3xl border border-dashed border-[#d5a021]/30 bg-[#fffdf6] p-8 text-sm leading-7 text-slate-600">
-              Selectează meciul, pornește camera și scanează QR-ul. Rezultatul apare
-              instant și este codificat color pentru utilizare rapidă la intrare.
+            <div className="rounded-[26px] border border-dashed border-black/10 bg-neutral-50 p-8 text-sm leading-7 text-neutral-600">
+              Selecteaza meciul, porneste camera si scaneaza QR-ul. Rezultatul apare
+              instant, cu feedback mare si clar pentru fluxul rapid de la poarta.
             </div>
           )}
         </CardContent>
@@ -210,4 +220,3 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
     </div>
   );
 }
-

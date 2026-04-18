@@ -8,7 +8,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const holdSchema = z.object({
   matchId: z.string().uuid(),
-  seatIds: z.array(z.string()).min(1, "Selectează cel puțin un loc."),
+  seatIds: z.array(z.string()).min(1, "Selecteaza cel putin un loc."),
   gateId: z.string().uuid().nullable().optional(),
 });
 
@@ -32,7 +32,7 @@ export async function holdSeatsAction(input: z.input<typeof holdSchema>) {
     return {
       ok: false,
       message:
-        "Supabase nu este configurat. Setează mediul și rulează migrațiile înainte de test.",
+        "Supabase nu este configurat. Seteaza mediul si ruleaza migratiile inainte de test.",
     };
   }
 
@@ -60,7 +60,7 @@ export async function holdSeatsAction(input: z.input<typeof holdSchema>) {
 
   return {
     ok: true,
-    message: data?.message ?? "Locurile au fost blocate temporar.",
+    message: data?.message ?? "Locurile au fost blocate temporar pentru emitere.",
     holdToken: data?.hold_token ?? null,
     expiresAt: data?.expires_at ?? null,
   };
@@ -80,7 +80,7 @@ export async function confirmSeatHoldAction(input: z.input<typeof confirmSchema>
     return {
       ok: false,
       message:
-        "Supabase nu este configurat. Setează mediul și rulează migrațiile înainte de test.",
+        "Supabase nu este configurat. Seteaza mediul si ruleaza migratiile inainte de test.",
     };
   }
 
@@ -111,8 +111,7 @@ export async function confirmSeatHoldAction(input: z.input<typeof confirmSchema>
 
   return {
     ok: true,
-    message: data?.message ?? "Rezervarea a fost confirmată.",
+    message: data?.message ?? "Biletele au fost emise cu succes.",
     reservationId: data?.reservation_id ?? null,
   };
 }
-

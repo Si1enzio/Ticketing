@@ -50,6 +50,13 @@ const roleSchema = z.object({
   role: z.enum(["steward", "admin", "superadmin", "user"]),
 });
 
+const reservationAccessSchema = z.object({
+  userId: z.string(),
+  canReserve: z
+    .union([z.literal("true"), z.literal("false"), z.boolean()])
+    .transform((value) => value === true || value === "true"),
+});
+
 const seatToggleSchema = z.object({
   seatId: z.string(),
   flag: z.enum(["is_disabled", "is_obstructed", "is_internal_only"]),
@@ -319,6 +326,38 @@ export async function assignRoleAction(formData: FormData) {
     });
 
   await logAudit(viewer.userId, "assign_role", "user_roles", parsed.data.userId, parsed.data);
+
+  revalidatePath("/admin/utilizatori");
+}
+
+export async function setReservationAccessAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = reservationAccessSchema.safeParse({
+    userId: formData.get("userId"),
+    canReserve: formData.get("canReserve"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return;
+
+  await supabase
+    .from("profiles")
+    .update({
+      can_reserve: parsed.data.canReserve,
+    })
+    .eq("id", parsed.data.userId);
+
+  await logAudit(
+    viewer.userId,
+    parsed.data.canReserve ? "grant_reservation_access" : "revoke_reservation_access",
+    "profiles",
+    parsed.data.userId,
+    parsed.data,
+  );
 
   revalidatePath("/admin/utilizatori");
 }

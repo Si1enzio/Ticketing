@@ -32,7 +32,7 @@ export function MatchCard({ match }: { match: PublicMatch }) {
           </CardTitle>
           <p className="text-sm leading-6 text-neutral-600">
             {match.description ??
-              "Rezervare gratuita cu QR unic, acces steward si cabinet personal pentru suporteri."}
+              "Bilet gratuit emis cu QR unic, acces steward si cabinet personal pentru suporteri."}
           </p>
         </div>
       </CardHeader>
@@ -66,7 +66,7 @@ export function MatchCard({ match }: { match: PublicMatch }) {
           variant="outline"
           className="w-full rounded-full border-[#dc2626] bg-white text-[#b91c1c] hover:bg-[#fef2f2] sm:flex-1"
         >
-          <Link href={`/meciuri/${match.slug}/rezerva`}>Rezerva locuri</Link>
+          <Link href={`/meciuri/${match.slug}/rezerva`}>Solicita locuri</Link>
         </Button>
       </CardFooter>
     </Card>

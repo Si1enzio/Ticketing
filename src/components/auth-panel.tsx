@@ -31,7 +31,7 @@ const resetSchema = z.object({
   email: z.string().email("Introdu o adresa de email valida."),
 });
 
-export function AuthPanel() {
+export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [mode, setMode] = useState("signin");
@@ -75,7 +75,7 @@ export function AuthPanel() {
     }
 
     toast.success("Autentificare reusita.");
-    router.push("/cabinet");
+    router.push(nextPath);
     router.refresh();
   }
 
@@ -105,7 +105,7 @@ export function AuthPanel() {
         data: {
           full_name: parsed.data.fullName,
         },
-        emailRedirectTo: `${env.siteUrl}/auth/callback?next=/cabinet`,
+        emailRedirectTo: `${env.siteUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
     });
 
@@ -118,7 +118,7 @@ export function AuthPanel() {
 
     if (data.session) {
       toast.success("Cont creat si autentificat.");
-      router.push("/cabinet");
+      router.push(nextPath);
       router.refresh();
       return;
     }
@@ -165,8 +165,8 @@ export function AuthPanel() {
           Intra in platforma
         </CardTitle>
         <p className="text-sm leading-6 text-neutral-600">
-          Creeaza cont, rezerva pana la 4 bilete per meci si acceseaza QR-urile din
-          cabinetul personal.
+          Creeaza cont, intra in cabinet si acceseaza biletele QR emise pentru meciurile
+          la care ai primit drept de solicitare.
         </p>
       </CardHeader>
       <CardContent>

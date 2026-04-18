@@ -51,7 +51,7 @@ export async function getViewerContext(): Promise<ViewerContext> {
   }
 
   try {
-    const supabase = createSupabasePublicServerClient();
+    const supabase = await createSupabaseServerClient();
 
     if (!supabase) {
       return mockViewer;
@@ -68,7 +68,7 @@ export async function getViewerContext(): Promise<ViewerContext> {
     const [{ data: profile }, { data: roles }, { data: block }] = await Promise.all([
       supabase
         .from("profiles")
-        .select("full_name")
+        .select("full_name, can_reserve")
         .eq("id", user.id)
         .maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", user.id),
@@ -82,7 +82,10 @@ export async function getViewerContext(): Promise<ViewerContext> {
         .maybeSingle(),
     ]);
 
-    const profileRecord = profile as { full_name?: string | null } | null;
+    const profileRecord = profile as {
+      full_name?: string | null;
+      can_reserve?: boolean | null;
+    } | null;
     const roleRows = (roles ?? []) as Array<{ role: string }>;
     const activeBlock = block as { ends_at?: string | null; reason?: string | null } | null;
 
@@ -90,6 +93,7 @@ export async function getViewerContext(): Promise<ViewerContext> {
       userId: user.id,
       email: user.email ?? null,
       fullName: profileRecord?.full_name ?? null,
+      canReserve: Boolean(profileRecord?.can_reserve),
       roles: normalizeRoles(roleRows.map((item) => item.role)),
       reservationBlockedUntil: activeBlock?.ends_at ?? null,
       reservationBlockReason: activeBlock?.reason ?? null,
@@ -507,6 +511,7 @@ export async function getAdminUsersOverview(): Promise<AdminUserOverview[]> {
         email: item.email,
         fullName: item.full_name,
         roles: item.roles,
+        canReserve: item.can_reserve,
         totalReserved: item.total_reserved,
         totalScanned: item.total_scanned,
         noShowRatio: item.no_show_ratio,

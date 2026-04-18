@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope, Teko } from "next/font/google";
+import { Space_Grotesk, Sora } from "next/font/google";
 import "./globals.css";
 
 import { Analytics } from "@vercel/analytics/next";
@@ -7,13 +7,13 @@ import { Providers } from "@/components/providers";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
-const bodyFont = Manrope({
-  variable: "--font-manrope",
+const bodyFont = Sora({
+  variable: "--font-sora",
   subsets: ["latin"],
 });
 
-const headingFont = Teko({
-  variable: "--font-teko",
+const headingFont = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
 });
 

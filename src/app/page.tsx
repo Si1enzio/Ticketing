@@ -8,9 +8,9 @@ import { getPublicMatches } from "@/lib/supabase/queries";
 
 const highlights = [
   {
-    title: "Rezervare rapida",
+    title: "Emitere controlata",
     description:
-      "Alegi sectorul si locurile intr-o experienta clara, gandita pentru mobil si trafic de meci.",
+      "Adminii pot acorda acces doar suporterilor eligibili, iar emiterea ramane simpla si rapida pe mobil.",
     icon: Ticket,
   },
   {
@@ -48,7 +48,7 @@ export default async function HomePage() {
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-neutral-600">
                 O interfata mai curata, mai directa si mai sportiva pentru suporteri,
-                stewarzi si admini. Rezervare rapida, acces sigur si control operational
+                stewarzi si admini. Emitere rapida, acces sigur si control operational
                 intr-o platforma unica.
               </p>
             </div>
@@ -60,7 +60,7 @@ export default async function HomePage() {
                 className="rounded-full border border-[#dc2626] bg-[#dc2626] px-8 text-white hover:bg-[#b91c1c]"
               >
                 <Link href={featuredMatch ? `/meciuri/${featuredMatch.slug}/rezerva` : "/"}>
-                  Rezerva pentru urmatorul meci
+                  Solicita bilete pentru urmatorul meci
                 </Link>
               </Button>
               <Button
@@ -168,12 +168,12 @@ export default async function HomePage() {
               Meciuri publicate
             </p>
             <h2 className="mt-2 font-heading text-4xl uppercase tracking-[0.12em] text-[#111111]">
-              Alege meciul si rezerva-ti locul
+              Alege meciul si solicita-ti locul
             </h2>
           </div>
           <p className="max-w-xl text-sm leading-6 text-neutral-600">
-            Paleta noua aduce un contrast mai puternic si un ritm vizual mai clar, dar
-            pastram aceeasi logica de rezervare, scanare si administrare.
+            Biletele sunt gratuite in aceasta etapa, iar solicitarea lor poate fi activata
+            per utilizator fara sa schimbam arhitectura pentru viitoarea plata online.
           </p>
         </div>
 

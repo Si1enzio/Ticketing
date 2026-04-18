@@ -22,14 +22,13 @@ export default async function AdminLayout({
   if (!hasAnyRole(viewer.roles, ["admin", "superadmin"])) {
     return (
       <section className="mx-auto flex w-full max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-        <Card className="w-full border-[#d5a021]/15 bg-white/95">
+        <Card className="surface-panel w-full rounded-[30px] border border-white/70 bg-white/94">
           <CardContent className="space-y-4 p-8">
-            <h1 className="font-heading text-5xl uppercase tracking-[0.12em] text-[#08140f]">
+            <h1 className="font-heading text-5xl uppercase tracking-[0.08em] text-[#111111]">
               Acces limitat
             </h1>
-            <p className="text-sm leading-7 text-slate-600">
-              Zona admin este disponibilă doar pentru rolurile `admin` și
-              `superadmin`.
+            <p className="text-sm leading-7 text-neutral-600">
+              Zona admin este disponibila doar pentru rolurile admin si superadmin.
             </p>
           </CardContent>
         </Card>
@@ -44,7 +43,7 @@ export default async function AdminLayout({
           <Link
             key={item.href}
             href={item.href}
-            className="rounded-full border border-[#d5a021]/20 bg-white/80 px-4 py-2 text-sm font-medium text-[#08140f]"
+            className="rounded-full border border-black/8 bg-white/80 px-4 py-2 text-sm font-medium text-[#111111] shadow-[0_16px_40px_-34px_rgba(23,23,23,0.32)] transition hover:border-[#dc2626]/18 hover:text-[#b91c1c]"
           >
             {item.label}
           </Link>

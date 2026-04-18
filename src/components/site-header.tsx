@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { href: "/", label: "Meciuri" },
+  { href: "/cabinet", label: "Cabinet" },
   { href: "/scanner", label: "Scanner" },
   { href: "/admin", label: "Admin" },
 ] as const;
@@ -72,7 +73,11 @@ export function SiteHeader() {
     }
 
     const [{ data: profile }, { data: roles }, { data: block }] = await Promise.all([
-      supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("full_name, can_reserve")
+        .eq("id", user.id)
+        .maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", user.id),
       supabase
         .from("user_blocks")
@@ -84,7 +89,10 @@ export function SiteHeader() {
         .maybeSingle(),
     ]);
 
-    const profileRecord = profile as { full_name?: string | null } | null;
+    const profileRecord = profile as {
+      full_name?: string | null;
+      can_reserve?: boolean | null;
+    } | null;
     const roleRows = (roles ?? []) as Array<{ role: string }>;
     const activeBlock = block as { ends_at?: string | null; reason?: string | null } | null;
 
@@ -93,6 +101,7 @@ export function SiteHeader() {
         userId: user.id,
         email: user.email ?? null,
         fullName: profileRecord?.full_name ?? null,
+        canReserve: Boolean(profileRecord?.can_reserve),
         roles: normalizeRoles(roleRows.map((item) => item.role)),
         reservationBlockedUntil: activeBlock?.ends_at ?? null,
         reservationBlockReason: activeBlock?.reason ?? null,
@@ -147,7 +156,8 @@ export function SiteHeader() {
                   !viewer.roles.includes("steward") &&
                   !viewer.roles.includes("admin") &&
                   !viewer.roles.includes("superadmin")) ||
-                (item.href === "/admin" && !viewer.isAdmin);
+                (item.href === "/admin" && !viewer.isAdmin) ||
+                (item.href === "/cabinet" && !viewer.isAuthenticated);
 
               return (
                 <Link
@@ -180,7 +190,13 @@ export function SiteHeader() {
                 <p className="text-sm font-semibold text-[#111111]">
                   {viewer.fullName ?? viewer.email ?? "Cont activ"}
                 </p>
-                <p className="text-xs text-neutral-500">Cabinet personal</p>
+                <p className="text-xs text-neutral-500">
+                  {viewer.isPrivileged
+                    ? "Acces administrativ activ"
+                    : viewer.canReserve
+                      ? "Poate solicita bilete gratuite"
+                      : "Cabinet personal"}
+                </p>
               </div>
               <Button
                 asChild

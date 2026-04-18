@@ -331,6 +331,8 @@ update public.profiles set full_name = 'Admin Demo' where email = 'admin.demo@or
 update public.profiles set full_name = 'Steward Demo' where email = 'steward.demo@orhei.local';
 update public.profiles set full_name = 'Supporter Demo' where email = 'supporter.demo@orhei.local';
 update public.profiles set full_name = 'Supporter Flagged Demo' where email = 'supporter.flagged@orhei.local';
+update public.profiles set can_reserve = true where email = 'supporter.demo@orhei.local';
+update public.profiles set can_reserve = false where email = 'supporter.flagged@orhei.local';
 
 insert into public.user_roles (user_id, role)
 select id, 'superadmin'::public.app_role
