@@ -2,7 +2,8 @@
 
 import { useEffect, useEffectEvent, useState } from "react";
 import Link from "next/link";
-import { Menu } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { LogOut, Menu } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,7 @@ function getHighestRole(viewer: ViewerContext) {
 
 export function SiteHeader() {
   const [viewer, setViewer] = useState<ViewerContext>(mockViewer);
+  const router = useRouter();
 
   const syncViewer = useEffectEvent(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -142,6 +144,20 @@ export function SiteHeader() {
   }, []);
 
   const highestRole = getHighestRole(viewer);
+  const stewardOnly = isStewardOnly(viewer);
+
+  async function handleSignOut() {
+    const supabase = createSupabaseBrowserClient();
+
+    if (!supabase) {
+      return;
+    }
+
+    await supabase.auth.signOut();
+    setViewer(mockViewer);
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-black/8 bg-white/75 backdrop-blur-xl">
@@ -210,6 +226,9 @@ export function SiteHeader() {
               <div className="grid gap-3 px-5 py-5">
                 {navigation.map((item) => {
                   const disabled = isNavItemDisabled(item.href, viewer);
+                  if (shouldHideNavItem(item.href, viewer)) {
+                    return null;
+                  }
 
                   return (
                     <SheetClose asChild key={item.href}>
@@ -242,15 +261,32 @@ export function SiteHeader() {
                       ? "Acces administrativ activ"
                       : viewer.canReserve
                         ? "Poate solicita bilete gratuite"
-                        : "Cabinet personal activ"}
+                        : stewardOnly
+                          ? "Cont steward activ"
+                          : "Cabinet personal activ"}
                   </p>
-                  <div className="mt-4">
+                  {!stewardOnly ? (
+                    <div className="mt-4">
+                      <SheetClose asChild>
+                        <Button
+                          asChild
+                          className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+                        >
+                          <Link href="/cabinet">Biletele mele</Link>
+                        </Button>
+                      </SheetClose>
+                    </div>
+                  ) : null}
+                  <div className="mt-3">
                     <SheetClose asChild>
                       <Button
-                        asChild
-                        className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+                        type="button"
+                        variant="outline"
+                        onClick={() => void handleSignOut()}
+                        className="w-full rounded-full border-black/10 bg-white text-[#111111] hover:bg-neutral-100"
                       >
-                        <Link href="/cabinet">Biletele mele</Link>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Log out
                       </Button>
                     </SheetClose>
                   </div>
@@ -287,15 +323,19 @@ export function SiteHeader() {
                     ? "Acces administrativ activ"
                     : viewer.canReserve
                       ? "Poate solicita bilete gratuite"
-                      : "Cabinet personal"}
+                      : stewardOnly
+                        ? "Cont steward"
+                        : "Cabinet personal"}
                 </p>
               </div>
-              <Button
-                asChild
-                className="hidden rounded-full border border-[#dc2626] bg-[#dc2626] px-5 text-white hover:bg-[#b91c1c] sm:inline-flex"
-              >
-                <Link href="/cabinet">Biletele mele</Link>
-              </Button>
+              {!stewardOnly ? (
+                <Button
+                  asChild
+                  className="hidden rounded-full border border-[#dc2626] bg-[#dc2626] px-5 text-white hover:bg-[#b91c1c] sm:inline-flex"
+                >
+                  <Link href="/cabinet">Biletele mele</Link>
+                </Button>
+              ) : null}
             </>
           ) : (
             <Button
@@ -318,6 +358,14 @@ function isNavItemDisabled(href: string, viewer: ViewerContext) {
       !viewer.roles.includes("admin") &&
       !viewer.roles.includes("superadmin")) ||
     (href === "/admin" && !viewer.isAdmin) ||
-    (href === "/cabinet" && !viewer.isAuthenticated)
+    (href === "/cabinet" && (!viewer.isAuthenticated || isStewardOnly(viewer)))
   );
+}
+
+function shouldHideNavItem(href: string, viewer: ViewerContext) {
+  return href === "/cabinet" && isStewardOnly(viewer);
+}
+
+function isStewardOnly(viewer: ViewerContext) {
+  return viewer.roles.includes("steward") && !viewer.isAdmin;
 }
