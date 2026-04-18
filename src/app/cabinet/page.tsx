@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { CalendarClock, Download, Ticket, UserRoundCheck } from "lucide-react";
 
 import { TicketListItem } from "@/components/ticket-list-item";
@@ -8,6 +9,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { getViewerContext, getViewerTickets } from "@/lib/supabase/queries";
 
 export default async function CabinetPage() {
+  await connection();
   const viewer = await getViewerContext();
 
   if (!viewer.isAuthenticated && isSupabaseConfigured()) {
@@ -136,4 +138,3 @@ function EmptyState({
     </Card>
   );
 }
-

@@ -1,3 +1,5 @@
+import { connection } from "next/server";
+
 import { createMatchAction } from "@/lib/actions/admin";
 import { getAdminMatchOverview, getStadiumBuilderData } from "@/lib/supabase/queries";
 import { Button } from "@/components/ui/button";
@@ -6,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default async function AdminMatchesPage() {
+  await connection();
   const [matches, stadiums] = await Promise.all([
     getAdminMatchOverview(),
     getStadiumBuilderData(),
@@ -100,4 +103,3 @@ function Field({
     </div>
   );
 }
-

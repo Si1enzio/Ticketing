@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { hasAnyRole } from "@/lib/auth/roles";
@@ -15,6 +16,7 @@ const navItems = [
 export default async function AdminLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  await connection();
   const viewer = await getViewerContext();
 
   if (!hasAnyRole(viewer.roles, ["admin", "superadmin"])) {
@@ -52,4 +54,3 @@ export default async function AdminLayout({
     </section>
   );
 }
-

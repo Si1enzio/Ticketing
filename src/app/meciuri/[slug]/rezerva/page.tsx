@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 
 import { SeatMapBoard } from "@/components/seat-map-board";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -9,6 +10,7 @@ export default async function ReserveSeatPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  await connection();
   const { slug } = await params;
   const viewer = await getViewerContext();
   const match = await getPublicMatchBySlug(slug);
@@ -62,4 +64,3 @@ export default async function ReserveSeatPage({
     </section>
   );
 }
-

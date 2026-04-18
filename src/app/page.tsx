@@ -4,31 +4,31 @@ import Link from "next/link";
 import { MatchCard } from "@/components/match-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getPublicMatches, getViewerContext } from "@/lib/supabase/queries";
+import { getPublicMatches } from "@/lib/supabase/queries";
 
 const highlights = [
   {
-    title: "Rezervare rapidă",
+    title: "Rezervare rapida",
     description:
-      "Alegi locul direct din hartă și primești biletele instant în cabinetul personal.",
+      "Alegi locul direct din harta si primesti biletele instant in cabinetul personal.",
     icon: Ticket,
   },
   {
     title: "Acces sigur",
     description:
-      "Fiecare bilet are QR semnat și validare unică pentru steward la poartă.",
+      "Fiecare bilet are QR semnat si validare unica pentru steward la poarta.",
     icon: ShieldCheck,
   },
   {
-    title: "Administrare completă",
+    title: "Administrare completa",
     description:
-      "Dashboard pentru meciuri, locuri, rapoarte, utilizatori și indicatori de abuz.",
+      "Dashboard pentru meciuri, locuri, rapoarte, utilizatori si indicatori de abuz.",
     icon: UsersRound,
   },
 ] as const;
 
 export default async function HomePage() {
-  const [viewer, matches] = await Promise.all([getViewerContext(), getPublicMatches()]);
+  const matches = await getPublicMatches();
   const featuredMatch = matches[0] ?? null;
 
   return (
@@ -37,16 +37,16 @@ export default async function HomePage() {
         <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-20">
           <div className="space-y-6">
             <span className="inline-flex rounded-full border border-[#d5a021]/30 bg-[#123826]/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.32em] text-[#f8d376]">
-              Stadionul Municipal „Orhei”
+              Stadionul Municipal &quot;Orhei&quot;
             </span>
             <div className="space-y-4">
               <h1 className="font-heading text-5xl uppercase leading-none tracking-[0.12em] text-white sm:text-6xl">
-                Platformă de ticketing pentru meciurile FC Milsami
+                Platforma de ticketing pentru meciurile FC Milsami
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-white/72">
-                MVP construit pentru rezervări gratuite acum, dar arhitecturat
-                pentru plăți, abonamente, transferuri de bilete și integrare cu
-                turnicheți mai târziu.
+                MVP construit pentru rezervari gratuite acum, dar arhitecturat
+                pentru plati, abonamente, transferuri de bilete si integrare cu
+                turnicheti mai tarziu.
               </p>
             </div>
 
@@ -56,12 +56,8 @@ export default async function HomePage() {
                 size="lg"
                 className="rounded-full bg-[#d5a021] px-8 text-[#08140f] hover:bg-[#f0bd44]"
               >
-                <Link
-                  href={
-                    featuredMatch ? `/meciuri/${featuredMatch.slug}/rezerva` : "/"
-                  }
-                >
-                  Rezervă pentru următorul meci
+                <Link href={featuredMatch ? `/meciuri/${featuredMatch.slug}/rezerva` : "/"}>
+                  Rezerva pentru urmatorul meci
                 </Link>
               </Button>
               <Button
@@ -70,11 +66,7 @@ export default async function HomePage() {
                 variant="outline"
                 className="rounded-full border-white/20 bg-white/5 text-white hover:bg-white/10"
               >
-                <Link href="/cabinet">
-                  {viewer.isAuthenticated
-                    ? "Deschide cabinetul personal"
-                    : "Intră în cont"}
-                </Link>
+                <Link href="/autentificare">Intra in cont</Link>
               </Button>
             </div>
 
@@ -112,7 +104,7 @@ export default async function HomePage() {
                   Matchday snapshot
                 </p>
                 <h2 className="font-heading text-3xl uppercase tracking-[0.12em]">
-                  {featuredMatch?.title ?? "Meci demo pregătit"}
+                  {featuredMatch?.title ?? "Meci demo pregatit"}
                 </h2>
               </div>
               <div className="grid gap-3 text-sm text-white/72">
@@ -123,7 +115,7 @@ export default async function HomePage() {
                   {featuredMatch?.availableEstimate ?? 0} locuri disponibile estimativ
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  Limită curentă: {featuredMatch?.maxTicketsPerUser ?? 4} bilete /
+                  Limita curenta: {featuredMatch?.maxTicketsPerUser ?? 4} bilete /
                   suporter
                 </div>
               </div>
@@ -133,7 +125,7 @@ export default async function HomePage() {
                 className="w-full rounded-full bg-white text-[#08140f] hover:bg-white/90"
               >
                 <Link href={featuredMatch ? `/meciuri/${featuredMatch.slug}` : "/"}>
-                  Explorează meciul <ArrowRight className="ml-2 h-4 w-4" />
+                  Exploreaza meciul <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </CardContent>
@@ -148,11 +140,11 @@ export default async function HomePage() {
               Meciuri publicate
             </p>
             <h2 className="mt-2 font-heading text-4xl uppercase tracking-[0.12em] text-[#08140f]">
-              Alege meciul și rezervă-ți locul
+              Alege meciul si rezerva-ti locul
             </h2>
           </div>
           <p className="max-w-xl text-sm leading-6 text-slate-600">
-            Platforma afișează disponibilitatea generală, limitele per meci și
+            Platforma afiseaza disponibilitatea generala, limitele per meci si
             starea ticketing-ului. Pentru rezervare este necesar un cont valid.
           </p>
         </div>

@@ -5,7 +5,6 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { getViewerContext } from "@/lib/supabase/queries";
 
 const bodyFont = Manrope({
   variable: "--font-manrope",
@@ -28,8 +27,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const viewer = await getViewerContext();
-
   return (
     <html
       lang="ro"
@@ -38,7 +35,7 @@ export default async function RootLayout({
       <body className="min-h-full bg-[#f6f5ef] text-[#08140f]">
         <Providers>
           <div className="flex min-h-screen flex-col">
-            <SiteHeader viewer={viewer} />
+            <SiteHeader />
             <main className="flex flex-1 flex-col">{children}</main>
             <SiteFooter />
           </div>

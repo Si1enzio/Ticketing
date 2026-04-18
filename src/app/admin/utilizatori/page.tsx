@@ -1,3 +1,5 @@
+import { connection } from "next/server";
+
 import { assignRoleAction, createUserBlockAction } from "@/lib/actions/admin";
 import { getAdminUsersOverview } from "@/lib/supabase/queries";
 import { Button } from "@/components/ui/button";
@@ -6,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default async function AdminUsersPage() {
+  await connection();
   const users = await getAdminUsersOverview();
 
   return (
@@ -67,4 +70,3 @@ export default async function AdminUsersPage() {
     </div>
   );
 }
-

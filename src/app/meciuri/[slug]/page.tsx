@@ -1,13 +1,13 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
 import { CalendarClock, MapPin, ShieldCheck, TimerReset } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getPublicMatchBySlug, getSeatMapForMatch, getViewerContext } from "@/lib/supabase/queries";
+import { getPublicMatchBySlug, getSeatMapForMatch } from "@/lib/supabase/queries";
 
 export default async function MatchDetailPage({
   params,
@@ -15,14 +15,13 @@ export default async function MatchDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const viewer = await getViewerContext();
   const match = await getPublicMatchBySlug(slug);
 
   if (!match) {
     notFound();
   }
 
-  const sectors = await getSeatMapForMatch(match.id, viewer);
+  const sectors = await getSeatMapForMatch(match.id);
   const sectorSummaries = sectors.map((sector) => ({
     ...sector,
     available: sector.seats.filter((seat) => seat.availability === "available").length,
@@ -69,13 +68,13 @@ export default async function MatchDetailPage({
               />
               <InfoRow
                 icon={TimerReset}
-                label="Rezervare deschisă"
+                label="Rezervare deschisa"
                 value={
                   match.reservationClosesAt
-                    ? `Până la ${format(new Date(match.reservationClosesAt), "d MMMM • HH:mm", {
+                    ? `Pana la ${format(new Date(match.reservationClosesAt), "d MMMM • HH:mm", {
                         locale: ro,
                       })}`
-                    : "Conform setărilor meciului"
+                    : "Conform setarilor meciului"
                 }
               />
             </div>
@@ -99,7 +98,7 @@ export default async function MatchDetailPage({
             </div>
             <Button asChild className="w-full rounded-full bg-[#11552d] hover:bg-[#0e4524]">
               <Link href={`/meciuri/${match.slug}/rezerva`}>
-                {viewer.isAuthenticated ? "Alege locurile" : "Vezi harta și autentifică-te"}
+                Vezi harta si continua spre rezervare
               </Link>
             </Button>
           </CardContent>
@@ -175,4 +174,3 @@ function StatChip({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
-

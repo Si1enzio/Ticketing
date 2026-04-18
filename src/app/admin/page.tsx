@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { AlertTriangle, Ban, ScanLine, Ticket } from "lucide-react";
+import { connection } from "next/server";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getAdminMatchOverview, getAdminUsersOverview } from "@/lib/supabase/queries";
 
 export default async function AdminDashboardPage() {
+  await connection();
   const [matches, users] = await Promise.all([
     getAdminMatchOverview(),
     getAdminUsersOverview(),
@@ -112,4 +114,3 @@ function NumberCell({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
-

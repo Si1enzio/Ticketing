@@ -1,9 +1,12 @@
+import { connection } from "next/server";
+
 import { ScannerConsole } from "@/components/scanner-console";
 import { Card, CardContent } from "@/components/ui/card";
 import { hasAnyRole } from "@/lib/auth/roles";
 import { getScannerMatches, getViewerContext } from "@/lib/supabase/queries";
 
 export default async function ScannerPage() {
+  await connection();
   const viewer = await getViewerContext();
   const matches = await getScannerMatches();
 

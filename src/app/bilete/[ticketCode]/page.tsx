@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
 import { BadgeCheck, DownloadCloud } from "lucide-react";
@@ -24,6 +25,7 @@ export default async function TicketPage({
 }: {
   params: Promise<{ ticketCode: string }>;
 }) {
+  await connection();
   const { ticketCode } = await params;
   const viewer = await getViewerContext();
   const ticket = await getTicketByCode(ticketCode, viewer);

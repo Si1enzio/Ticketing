@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { connection } from "next/server";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getAdminUsersOverview } from "@/lib/supabase/queries";
 
 export default async function AdminAbusePage() {
+  await connection();
   const users = await getAdminUsersOverview();
   const suspiciousUsers = users.filter(
     (user) => user.abuseScore >= 30 || user.noShowRatio >= 0.5,

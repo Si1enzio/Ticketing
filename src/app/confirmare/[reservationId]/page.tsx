@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { CheckCircle2, Download, QrCode } from "lucide-react";
 
 import { TicketListItem } from "@/components/ticket-list-item";
@@ -12,6 +13,7 @@ export default async function ReservationConfirmationPage({
 }: {
   params: Promise<{ reservationId: string }>;
 }) {
+  await connection();
   const { reservationId } = await params;
   const viewer = await getViewerContext();
   const tickets = await getTicketsByReservationId(reservationId, viewer);

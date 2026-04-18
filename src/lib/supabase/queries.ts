@@ -26,7 +26,10 @@ import {
   mockViewer,
 } from "@/lib/domain/mock";
 import { isSupabaseConfigured } from "@/lib/env";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createSupabasePublicServerClient,
+  createSupabaseServerClient,
+} from "@/lib/supabase/server";
 
 function enrichViewer(
   base: Omit<ViewerContext, "isAdmin" | "isAuthenticated" | "isPrivileged">,
@@ -48,7 +51,7 @@ export async function getViewerContext(): Promise<ViewerContext> {
   }
 
   try {
-    const supabase = await createSupabaseServerClient();
+    const supabase = createSupabasePublicServerClient();
 
     if (!supabase) {
       return mockViewer;
@@ -79,13 +82,17 @@ export async function getViewerContext(): Promise<ViewerContext> {
         .maybeSingle(),
     ]);
 
+    const profileRecord = profile as { full_name?: string | null } | null;
+    const roleRows = (roles ?? []) as Array<{ role: string }>;
+    const activeBlock = block as { ends_at?: string | null; reason?: string | null } | null;
+
     return enrichViewer({
       userId: user.id,
       email: user.email ?? null,
-      fullName: profile?.full_name ?? null,
-      roles: roles?.map((item) => item.role) ?? ["user"],
-      reservationBlockedUntil: block?.ends_at ?? null,
-      reservationBlockReason: block?.reason ?? null,
+      fullName: profileRecord?.full_name ?? null,
+      roles: normalizeRoles(roleRows.map((item) => item.role)),
+      reservationBlockedUntil: activeBlock?.ends_at ?? null,
+      reservationBlockReason: activeBlock?.reason ?? null,
     });
   } catch (error) {
     console.error("Nu am putut încărca contextul utilizatorului.", error);
@@ -99,7 +106,7 @@ export async function getPublicMatches(): Promise<PublicMatch[]> {
   }
 
   try {
-    const supabase = await createSupabaseServerClient();
+    const supabase = createSupabasePublicServerClient();
 
     if (!supabase) {
       return mockMatches;
@@ -156,14 +163,16 @@ export async function getPublicMatchBySlug(slug: string) {
 
 export async function getSeatMapForMatch(
   matchId: string,
-  viewer: ViewerContext,
+  viewer: ViewerContext = mockViewer,
 ): Promise<SeatMapSector[]> {
   if (!isSupabaseConfigured()) {
     return mockSeatMap;
   }
 
   try {
-    const supabase = await createSupabaseServerClient();
+    const supabase = viewer.userId
+      ? await createSupabaseServerClient()
+      : createSupabasePublicServerClient();
 
     if (!supabase) {
       return mockSeatMap;

@@ -1,3 +1,5 @@
+import { connection } from "next/server";
+
 import { createSectorAction, createStadiumAction } from "@/lib/actions/admin";
 import { getStadiumBuilderData } from "@/lib/supabase/queries";
 import { SeatFlagEditor } from "@/components/seat-flag-editor";
@@ -7,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default async function AdminStadiumPage() {
+  await connection();
   const stadiums = await getStadiumBuilderData();
   const defaultStadium = stadiums[0];
 
@@ -111,4 +114,3 @@ function Field({
     </div>
   );
 }
-
