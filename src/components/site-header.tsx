@@ -17,7 +17,9 @@ const navigation = [
   { href: "/admin", label: "Admin" },
 ] as const;
 
-function toViewerContext(base: Omit<ViewerContext, "isAdmin" | "isAuthenticated" | "isPrivileged">) {
+function toViewerContext(
+  base: Omit<ViewerContext, "isAdmin" | "isAuthenticated" | "isPrivileged">,
+) {
   const roles = normalizeRoles(base.roles);
 
   return {
@@ -123,20 +125,18 @@ export function SiteHeader() {
   const highestRole = getHighestRole(viewer);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#08140f]/95 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-black/8 bg-white/75 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#d5a021]/30 bg-gradient-to-br from-[#125c30] to-[#0b2b19] text-sm font-black uppercase tracking-[0.2em] text-[#f6c453]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#dc2626]/20 bg-[linear-gradient(135deg,#ef4444,#991b1b)] text-sm font-black uppercase tracking-[0.2em] text-white shadow-[0_12px_30px_-18px_rgba(220,38,38,0.8)]">
               MO
             </div>
             <div>
-              <p className="font-heading text-lg uppercase tracking-[0.26em] text-white">
+              <p className="font-heading text-lg uppercase tracking-[0.26em] text-[#111111]">
                 Milsami Ticketing
               </p>
-              <p className="text-xs text-white/60">
-                Stadionul Municipal &quot;Orhei&quot;
-              </p>
+              <p className="text-xs text-neutral-500">Stadionul Municipal Orhei</p>
             </div>
           </Link>
 
@@ -156,8 +156,8 @@ export function SiteHeader() {
                   className={cn(
                     "rounded-full px-4 py-2 text-sm font-medium transition",
                     disabled
-                      ? "pointer-events-none opacity-40"
-                      : "text-white/70 hover:bg-white/5 hover:text-white",
+                      ? "pointer-events-none bg-neutral-100 text-neutral-400"
+                      : "text-neutral-600 hover:bg-[#dc2626]/8 hover:text-[#b91c1c]",
                   )}
                 >
                   {item.label}
@@ -172,19 +172,19 @@ export function SiteHeader() {
             <>
               <Badge
                 variant="secondary"
-                className="hidden rounded-full border border-[#d5a021]/20 bg-[#143b27] px-3 py-1 text-[#f8d376] sm:inline-flex"
+                className="hidden rounded-full border border-[#dc2626]/12 bg-[#dc2626]/8 px-3 py-1 text-[#b91c1c] sm:inline-flex"
               >
                 {roleLabels[highestRole]}
               </Badge>
               <div className="hidden text-right sm:block">
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-[#111111]">
                   {viewer.fullName ?? viewer.email ?? "Cont activ"}
                 </p>
-                <p className="text-xs text-white/55">Cabinet personal</p>
+                <p className="text-xs text-neutral-500">Cabinet personal</p>
               </div>
               <Button
                 asChild
-                className="rounded-full bg-[#d5a021] text-[#08140f] hover:bg-[#f0bd44]"
+                className="rounded-full border border-[#dc2626] bg-[#dc2626] px-5 text-white hover:bg-[#b91c1c]"
               >
                 <Link href="/cabinet">Biletele mele</Link>
               </Button>
@@ -192,7 +192,7 @@ export function SiteHeader() {
           ) : (
             <Button
               asChild
-              className="rounded-full bg-[#d5a021] text-[#08140f] hover:bg-[#f0bd44]"
+              className="rounded-full border border-[#dc2626] bg-[#dc2626] px-5 text-white hover:bg-[#b91c1c]"
             >
               <Link href="/autentificare">Autentificare</Link>
             </Button>

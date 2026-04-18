@@ -20,7 +20,7 @@ const headingFont = Teko({
 export const metadata: Metadata = {
   title: "Milsami Ticketing",
   description:
-    "Platformă MVP pentru rezervarea biletelor gratuite la Stadionul Municipal „Orhei”.",
+    "Platforma MVP pentru rezervarea biletelor gratuite la Stadionul Municipal Orhei.",
 };
 
 export default async function RootLayout({
@@ -33,11 +33,12 @@ export default async function RootLayout({
       lang="ro"
       className={`${bodyFont.variable} ${headingFont.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-[#f6f5ef] text-[#08140f]">
+      <body className="min-h-full bg-[#f7f7f8] text-[#161616]">
         <Providers>
-          <div className="flex min-h-screen flex-col">
+          <div className="relative flex min-h-screen flex-col">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(135deg,rgba(220,38,38,0.14),rgba(255,255,255,0))]" />
             <SiteHeader />
-            <main className="flex flex-1 flex-col">{children}</main>
+            <main className="relative flex flex-1 flex-col">{children}</main>
             <SiteFooter />
           </div>
         </Providers>

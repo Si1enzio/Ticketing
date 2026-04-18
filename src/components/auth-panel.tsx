@@ -159,26 +159,35 @@ export function AuthPanel() {
   }
 
   return (
-    <Card className="border-[#d5a021]/15 bg-white/95 shadow-[0_20px_80px_-42px_rgba(8,20,15,0.45)]">
+    <Card className="surface-panel red-ring rounded-[32px] border border-white/60 bg-white/88">
       <CardHeader className="space-y-3">
-        <CardTitle className="font-heading text-4xl uppercase tracking-[0.12em] text-[#08140f]">
+        <CardTitle className="font-heading text-4xl uppercase tracking-[0.12em] text-[#111111]">
           Intra in platforma
         </CardTitle>
-        <p className="text-sm leading-6 text-slate-600">
+        <p className="text-sm leading-6 text-neutral-600">
           Creeaza cont, rezerva pana la 4 bilete per meci si acceseaza QR-urile din
           cabinetul personal.
         </p>
       </CardHeader>
       <CardContent>
         <Tabs value={mode} onValueChange={setMode}>
-          <TabsList className="grid w-full grid-cols-3 rounded-full bg-[#f2efe3]">
-            <TabsTrigger value="signin" className="rounded-full">
+          <TabsList className="grid w-full grid-cols-3 rounded-full border border-black/6 bg-neutral-100 p-1">
+            <TabsTrigger
+              value="signin"
+              className="rounded-full data-[state=active]:bg-[#dc2626] data-[state=active]:text-white"
+            >
               Login
             </TabsTrigger>
-            <TabsTrigger value="signup" className="rounded-full">
+            <TabsTrigger
+              value="signup"
+              className="rounded-full data-[state=active]:bg-[#dc2626] data-[state=active]:text-white"
+            >
               Cont nou
             </TabsTrigger>
-            <TabsTrigger value="reset" className="rounded-full">
+            <TabsTrigger
+              value="reset"
+              className="rounded-full data-[state=active]:bg-[#dc2626] data-[state=active]:text-white"
+            >
               Resetare
             </TabsTrigger>
           </TabsList>
@@ -186,14 +195,14 @@ export function AuthPanel() {
           <TabsContent value="signin" className="mt-6">
             <form
               action={handleSignIn}
-              className="grid gap-4 rounded-3xl border border-[#e7dfbf] bg-[#fbf9f1] p-5"
+              className="grid gap-4 rounded-[28px] border border-black/6 bg-white p-5 shadow-[0_20px_50px_-36px_rgba(23,23,23,0.32)]"
             >
               <Field name="signin-email" label="Email" type="email" />
               <Field name="signin-password" label="Parola" type="password" />
               <Button
                 type="submit"
                 disabled={isPending}
-                className="rounded-full bg-[#11552d] hover:bg-[#0e4524]"
+                className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
               >
                 {isPending ? <LoaderCircle className="animate-spin" /> : <Mail />}
                 Autentificare
@@ -204,7 +213,7 @@ export function AuthPanel() {
           <TabsContent value="signup" className="mt-6">
             <form
               action={handleSignUp}
-              className="grid gap-4 rounded-3xl border border-[#e7dfbf] bg-[#fbf9f1] p-5"
+              className="grid gap-4 rounded-[28px] border border-black/6 bg-white p-5 shadow-[0_20px_50px_-36px_rgba(23,23,23,0.32)]"
             >
               <Field name="signup-name" label="Nume complet" />
               <Field name="signup-email" label="Email" type="email" />
@@ -212,7 +221,7 @@ export function AuthPanel() {
               <Button
                 type="submit"
                 disabled={isPending}
-                className="rounded-full bg-[#11552d] hover:bg-[#0e4524]"
+                className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
               >
                 {isPending ? <LoaderCircle className="animate-spin" /> : <UserPlus />}
                 Creeaza cont
@@ -223,13 +232,13 @@ export function AuthPanel() {
           <TabsContent value="reset" className="mt-6">
             <form
               action={handleReset}
-              className="grid gap-4 rounded-3xl border border-[#e7dfbf] bg-[#fbf9f1] p-5"
+              className="grid gap-4 rounded-[28px] border border-black/6 bg-white p-5 shadow-[0_20px_50px_-36px_rgba(23,23,23,0.32)]"
             >
               <Field name="reset-email" label="Email" type="email" />
               <Button
                 type="submit"
                 disabled={isPending}
-                className="rounded-full bg-[#11552d] hover:bg-[#0e4524]"
+                className="rounded-full border border-[#111111] bg-[#111111] text-white hover:bg-black"
               >
                 {isPending ? (
                   <LoaderCircle className="animate-spin" />
@@ -257,8 +266,16 @@ function Field({
 }) {
   return (
     <div className="grid gap-2">
-      <Label htmlFor={name}>{label}</Label>
-      <Input id={name} name={name} type={type} required className="rounded-2xl bg-white" />
+      <Label htmlFor={name} className="text-[#111111]">
+        {label}
+      </Label>
+      <Input
+        id={name}
+        name={name}
+        type={type}
+        required
+        className="rounded-2xl border-black/8 bg-neutral-50 focus-visible:border-[#dc2626] focus-visible:ring-[#dc2626]/20"
+      />
     </div>
   );
 }
