@@ -24,6 +24,22 @@ export const env = {
   siteUrl: parsedEnv.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
 };
 
+export function getMissingSupabasePublicEnvVars() {
+  const missing: string[] = [];
+
+  if (!env.supabaseUrl) {
+    missing.push("NEXT_PUBLIC_SUPABASE_URL");
+  }
+
+  if (!env.supabaseAnonKey) {
+    missing.push(
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY sau NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    );
+  }
+
+  return missing;
+}
+
 export function isSupabaseConfigured() {
   return Boolean(env.supabaseUrl && env.supabaseAnonKey);
 }

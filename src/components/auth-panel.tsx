@@ -1,22 +1,26 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { LoaderCircle, Mail, ShieldCheck, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
-import { LoaderCircle, Mail, ShieldCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { env, isSupabaseConfigured } from "@/lib/env";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  env,
+  getMissingSupabasePublicEnvVars,
+  isSupabaseConfigured,
+} from "@/lib/env";
 
 const signInSchema = z.object({
-  email: z.string().email("Introdu o adresă de email validă."),
-  password: z.string().min(6, "Parola trebuie să aibă minimum 6 caractere."),
+  email: z.string().email("Introdu o adresa de email valida."),
+  password: z.string().min(6, "Parola trebuie sa aiba minimum 6 caractere."),
 });
 
 const signUpSchema = signInSchema.extend({
@@ -24,7 +28,7 @@ const signUpSchema = signInSchema.extend({
 });
 
 const resetSchema = z.object({
-  email: z.string().email("Introdu o adresă de email validă."),
+  email: z.string().email("Introdu o adresa de email valida."),
 });
 
 export function AuthPanel() {
@@ -33,6 +37,15 @@ export function AuthPanel() {
   const [mode, setMode] = useState("signin");
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const missingSupabaseVars = getMissingSupabasePublicEnvVars();
+
+  function showMissingSupabaseConfigMessage() {
+    toast.error(
+      missingSupabaseVars.length
+        ? `Lipsesc variabilele publice Supabase: ${missingSupabaseVars.join(", ")}. Daca rulezi local, actualizeaza .env.local si reporneste serverul Next.`
+        : "Configuratia publica Supabase nu este disponibila in acest build. Daca rulezi local, reporneste serverul Next dupa ce actualizezi .env.local.",
+    );
+  }
 
   async function handleSignIn(formData: FormData) {
     const parsed = signInSchema.safeParse({
@@ -46,7 +59,7 @@ export function AuthPanel() {
     }
 
     if (!supabase || !isSupabaseConfigured()) {
-      toast.error("Configurează variabilele Supabase pentru autentificare.");
+      showMissingSupabaseConfigMessage();
       return;
     }
 
@@ -61,7 +74,7 @@ export function AuthPanel() {
       return;
     }
 
-    toast.success("Autentificare reușită.");
+    toast.success("Autentificare reusita.");
     router.push("/cabinet");
     router.refresh();
   }
@@ -79,7 +92,7 @@ export function AuthPanel() {
     }
 
     if (!supabase || !isSupabaseConfigured()) {
-      toast.error("Configurează variabilele Supabase pentru autentificare.");
+      showMissingSupabaseConfigMessage();
       return;
     }
 
@@ -104,13 +117,13 @@ export function AuthPanel() {
     }
 
     if (data.session) {
-      toast.success("Cont creat și autentificat.");
+      toast.success("Cont creat si autentificat.");
       router.push("/cabinet");
       router.refresh();
       return;
     }
 
-    toast.success("Cont creat. Verifică emailul pentru confirmare.");
+    toast.success("Cont creat. Verifica emailul pentru confirmare.");
     setMode("signin");
   }
 
@@ -125,7 +138,7 @@ export function AuthPanel() {
     }
 
     if (!supabase || !isSupabaseConfigured()) {
-      toast.error("Configurează variabilele Supabase pentru autentificare.");
+      showMissingSupabaseConfigMessage();
       return;
     }
 
@@ -149,10 +162,10 @@ export function AuthPanel() {
     <Card className="border-[#d5a021]/15 bg-white/95 shadow-[0_20px_80px_-42px_rgba(8,20,15,0.45)]">
       <CardHeader className="space-y-3">
         <CardTitle className="font-heading text-4xl uppercase tracking-[0.12em] text-[#08140f]">
-          Intră în platformă
+          Intra in platforma
         </CardTitle>
         <p className="text-sm leading-6 text-slate-600">
-          Creează cont, rezervă până la 4 bilete per meci și accesează QR-urile din
+          Creeaza cont, rezerva pana la 4 bilete per meci si acceseaza QR-urile din
           cabinetul personal.
         </p>
       </CardHeader>
@@ -176,7 +189,7 @@ export function AuthPanel() {
               className="grid gap-4 rounded-3xl border border-[#e7dfbf] bg-[#fbf9f1] p-5"
             >
               <Field name="signin-email" label="Email" type="email" />
-              <Field name="signin-password" label="Parolă" type="password" />
+              <Field name="signin-password" label="Parola" type="password" />
               <Button
                 type="submit"
                 disabled={isPending}
@@ -195,14 +208,14 @@ export function AuthPanel() {
             >
               <Field name="signup-name" label="Nume complet" />
               <Field name="signup-email" label="Email" type="email" />
-              <Field name="signup-password" label="Parolă" type="password" />
+              <Field name="signup-password" label="Parola" type="password" />
               <Button
                 type="submit"
                 disabled={isPending}
                 className="rounded-full bg-[#11552d] hover:bg-[#0e4524]"
               >
                 {isPending ? <LoaderCircle className="animate-spin" /> : <UserPlus />}
-                Creează cont
+                Creeaza cont
               </Button>
             </form>
           </TabsContent>
@@ -249,4 +262,3 @@ function Field({
     </div>
   );
 }
-
