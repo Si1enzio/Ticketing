@@ -100,10 +100,10 @@ const styles = StyleSheet.create({
     flexBasis: 0,
   },
   qrColumn: {
-    width: 150,
+    width: 176,
     alignSelf: "stretch",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     paddingTop: 8,
     paddingBottom: 8,
     paddingHorizontal: 10,
@@ -120,16 +120,31 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
     marginBottom: 8,
   },
+  qrCanvas: {
+    width: "100%",
+    flexGrow: 1,
+    minHeight: 148,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.2,
+    borderColor: "#fca5a5",
+    borderStyle: "solid",
+    borderRadius: 12,
+    backgroundColor: "#fff7f7",
+    paddingTop: 8,
+    paddingRight: 8,
+    paddingBottom: 8,
+    paddingLeft: 8,
+  },
   qrImage: {
-    width: 118,
-    height: 118,
+    width: 132,
+    height: 132,
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: "#d1d5db",
     borderStyle: "solid",
     backgroundColor: "#ffffff",
     padding: 8,
-    marginBottom: 8,
   },
   qrInfoBand: {
     width: "100%",
@@ -143,6 +158,7 @@ const styles = StyleSheet.create({
     paddingBottom: 7,
     paddingLeft: 8,
     alignItems: "center",
+    marginTop: 8,
   },
   qrCaption: {
     fontSize: 6.8,
@@ -267,7 +283,9 @@ export function TicketDocument({
 
               <View style={styles.qrColumn}>
                 <Text style={styles.qrBadge}>QR unic de acces</Text>
-                <Image src={qrDataUrl} style={styles.qrImage} />
+                <View style={styles.qrCanvas}>
+                  <Image src={qrDataUrl} style={styles.qrImage} />
+                </View>
                 <View style={styles.qrInfoBand}>
                   <Text style={styles.qrCaption}>Cod bilet</Text>
                   <Text style={styles.qrCodeText}>{ticket.ticketCode}</Text>
