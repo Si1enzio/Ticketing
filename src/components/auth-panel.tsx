@@ -38,6 +38,10 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const missingSupabaseVars = getMissingSupabasePublicEnvVars();
+  const siteOrigin =
+    typeof window !== "undefined" && window.location.origin
+      ? window.location.origin
+      : env.siteUrl;
 
   function showMissingSupabaseConfigMessage() {
     toast.error(
@@ -105,7 +109,7 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
         data: {
           full_name: parsed.data.fullName,
         },
-        emailRedirectTo: `${env.siteUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+        emailRedirectTo: `${siteOrigin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
     });
 
@@ -145,7 +149,7 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
     setIsPending(true);
 
     const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-      redirectTo: `${env.siteUrl}/actualizare-parola`,
+      redirectTo: `${siteOrigin}/actualizare-parola`,
     });
 
     setIsPending(false);
