@@ -26,6 +26,15 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: "#dc2626",
   },
+  ticketLayout: {
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  mainColumn: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+  },
   topPanel: {
     backgroundColor: "#111111",
     color: "#ffffff",
@@ -89,62 +98,70 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingLeft: 12,
   },
-  contentRow: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    gap: 10,
-  },
-  detailsColumn: {
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 0,
-  },
   qrColumn: {
-    width: 176,
-    alignSelf: "stretch",
+    width: 198,
     alignItems: "center",
-    justifyContent: "flex-start",
-    paddingTop: 8,
-    paddingBottom: 8,
-    paddingHorizontal: 10,
+    justifyContent: "space-between",
     backgroundColor: "#ffffff",
     borderWidth: 1,
     borderColor: "#fca5a5",
     borderStyle: "solid",
-    borderRadius: 14,
+    borderRadius: 0,
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
+  },
+  qrTopPanel: {
+    width: "100%",
+    backgroundColor: "#111111",
+    paddingTop: 11,
+    paddingRight: 10,
+    paddingBottom: 12,
+    paddingLeft: 10,
+    minHeight: 84,
+    justifyContent: "center",
   },
   qrBadge: {
-    fontSize: 7.8,
+    fontSize: 8,
     textTransform: "uppercase",
-    color: "#7f1d1d",
-    letterSpacing: 1.1,
-    marginBottom: 8,
+    color: "#fecaca",
+    letterSpacing: 1.2,
+    textAlign: "center",
+  },
+  qrBody: {
+    width: "100%",
+    flexGrow: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 12,
+    paddingRight: 10,
+    paddingBottom: 10,
+    paddingLeft: 10,
   },
   qrCanvas: {
     width: "100%",
     flexGrow: 1,
-    minHeight: 148,
+    minHeight: 156,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.2,
-    borderColor: "#fca5a5",
+    borderWidth: 1.4,
+    borderColor: "#f87171",
     borderStyle: "solid",
     borderRadius: 12,
-    backgroundColor: "#fff7f7",
-    paddingTop: 8,
-    paddingRight: 8,
-    paddingBottom: 8,
-    paddingLeft: 8,
+    backgroundColor: "#fff5f5",
+    paddingTop: 10,
+    paddingRight: 10,
+    paddingBottom: 10,
+    paddingLeft: 10,
   },
   qrImage: {
-    width: 132,
-    height: 132,
+    width: 146,
+    height: 146,
     borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: "#d1d5db",
+    borderWidth: 1.8,
+    borderColor: "#cbd5e1",
     borderStyle: "solid",
     backgroundColor: "#ffffff",
-    padding: 8,
+    padding: 10,
   },
   qrInfoBand: {
     width: "100%",
@@ -158,7 +175,7 @@ const styles = StyleSheet.create({
     paddingBottom: 7,
     paddingLeft: 8,
     alignItems: "center",
-    marginTop: 8,
+    marginTop: 10,
   },
   qrCaption: {
     fontSize: 6.8,
@@ -245,25 +262,25 @@ export function TicketDocument({
       <Page size="A4" style={styles.page}>
         <View style={styles.ticket}>
           <View style={styles.band} />
-          <View style={styles.topPanel}>
-            <Text style={styles.eyebrow}>Stadionul Municipal Orhei</Text>
-            <Text style={styles.title}>{ticket.matchTitle}</Text>
-            <Text style={styles.subtitle}>{ticket.competitionName}</Text>
-            {sponsors.length ? (
-              <View style={styles.sponsorRow}>
-                <Text style={styles.sponsorLabel}>Sponsori club gazda</Text>
-                {sponsors.slice(0, 4).map((sponsor) => (
-                  <View key={sponsor.id} style={styles.sponsorBadge}>
-                    <Image src={sponsor.logoUrl} style={styles.sponsorLogo} />
+          <View style={styles.ticketLayout}>
+            <View style={styles.mainColumn}>
+              <View style={styles.topPanel}>
+                <Text style={styles.eyebrow}>Stadionul Municipal Orhei</Text>
+                <Text style={styles.title}>{ticket.matchTitle}</Text>
+                <Text style={styles.subtitle}>{ticket.competitionName}</Text>
+                {sponsors.length ? (
+                  <View style={styles.sponsorRow}>
+                    <Text style={styles.sponsorLabel}>Sponsori club gazda</Text>
+                    {sponsors.slice(0, 4).map((sponsor) => (
+                      <View key={sponsor.id} style={styles.sponsorBadge}>
+                        <Image src={sponsor.logoUrl} style={styles.sponsorLogo} />
+                      </View>
+                    ))}
                   </View>
-                ))}
+                ) : null}
               </View>
-            ) : null}
-          </View>
 
-          <View style={styles.body}>
-            <View style={styles.contentRow}>
-              <View style={styles.detailsColumn}>
+              <View style={styles.body}>
                 <View style={styles.grid}>
                   <Field label="Sector" value={ticket.sectorName} />
                   <Field label="Rand" value={ticket.rowLabel} />
@@ -280,9 +297,13 @@ export function TicketDocument({
                   <Field fullWidth label="Stadion" value={ticket.stadiumName} />
                 </View>
               </View>
+            </View>
 
-              <View style={styles.qrColumn}>
+            <View style={styles.qrColumn}>
+              <View style={styles.qrTopPanel}>
                 <Text style={styles.qrBadge}>QR unic de acces</Text>
+              </View>
+              <View style={styles.qrBody}>
                 <View style={styles.qrCanvas}>
                   <Image src={qrDataUrl} style={styles.qrImage} />
                 </View>
