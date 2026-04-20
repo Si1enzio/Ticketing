@@ -36,9 +36,12 @@ Aplicatia este gandita pentru bilete gratuite in prezent, dar schema, rolurile, 
 
 - `src/app` contine rutele App Router pentru public, cabinet, scanner si admin
 - `src/components` contine componente UI reutilizabile si zonele interactive
+- `src/components/stadium` contine modulul reutilizabil pentru overview map, tribune, sectoare si seat map detaliat
 - `src/lib/actions` contine Server Actions pentru admin si rezervari
 - `src/lib/supabase` contine clientii si query helpers
 - `src/lib/security/tickets.ts` gestioneaza token-urile QR semnate
+- `src/lib/stadium` contine tipurile, registry-ul, utilitarele de geometrie si localizarea modulului de stadion
+- `src/data/stadiums` contine configuratiile per stadion si template-ul pentru stadioane noi
 
 ### Database
 
@@ -181,6 +184,83 @@ Flux recomandat:
 4. utilizatorul confirma rezervarea
 5. se genereaza cate un bilet per loc
 6. biletele apar in `Cabinet personal`
+
+### Modul stadion
+
+Fluxul de selectie foloseste acum un modul reutilizabil pe 3 niveluri:
+
+1. `overview stadion` - SVG interactiv cu sectoare clickabile
+2. `tribuna / sector` - selectie operationala pe zone, cu capacitate si status
+3. `seat map sector` - randuri si locuri, integrat in fluxul existent de hold / emitere / checkout
+
+Modulul nu redeseneaza toata aplicatia de ticketing. El este integrat in pagina:
+
+- `/meciuri/[slug]/rezerva`
+
+iar logica de business ramane in:
+
+- `src/lib/actions/reservations.ts`
+- functiile SQL `hold_seats`, `confirm_hold_reservation`, `complete_demo_payment`
+
+### Cum adaugi un stadion nou
+
+1. creezi un config nou in `src/data/stadiums/<nume-stadion>.ts`
+2. definesti:
+   - `viewBox`
+   - `tribunes`
+   - `tiers` daca ai nevoie
+   - `sectors` cu `code`, `tribuneId`, `shape`, `isVisible`, `isBookable`
+   - eventual `decorations`
+3. inregistrezi config-ul in `src/lib/stadium/stadium-config-registry.ts`
+4. adaugi aliasurile folosite pentru rezolvare:
+   - `mapKey`
+   - slug stadion
+   - nume stadion
+   - optional `stadiumId` daca vrei legare directa pe baza de date
+
+Exista deja:
+
+- `src/data/stadiums/orhei.ts` - prima implementare reala
+- `src/data/stadiums/stadium-template.ts` - punct de plecare pentru alte stadioane
+
+### Cum functioneaza registry-ul
+
+Registry-ul incearca sa rezolve configuratia in ordinea:
+
+1. `mapKey`
+2. `stadiumSlug`
+3. `stadiumName`
+4. `stadiumId`
+
+Daca nu exista configuratie custom, modulul foloseste automat un fallback generat din sectoarele reale ale meciului. Astfel, stadionul continua sa functioneze chiar si inainte de a avea o geometrie SVG desenata manual.
+
+### Cum editezi sectoare, randuri si locuri
+
+- pentru administrare structurala:
+  - `Admin -> Stadion`
+  - editezi tribune, sectoare, culori si numarul de randuri / locuri
+- pentru editare de status loc:
+  - `SeatFlagEditor` din `src/components/seat-flag-editor.tsx`
+  - poti marca `dezactivat`, `obstructionat`, `intern`
+- pentru geometria overview-ului:
+  - modifici doar config-ul din `src/data/stadiums/...`
+  - harta mare este separata de seat map-ul operational
+
+Aceasta separare este intentionata:
+
+- overview map = navigare vizuala
+- sector seat map = selectie detaliata si statusuri live
+
+### Ready pentru extindere
+
+Modulul este pregatit pentru:
+
+- stadioane multiple
+- tribune si tiers diferite
+- sectoare ascunse
+- zone VIP / media / upper-lower tiers
+- sectoare curbe sau custom-path
+- alocare viitoare a `mapKey` direct din admin sau din baza de date
 
 ### Scanare
 

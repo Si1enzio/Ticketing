@@ -15,7 +15,8 @@ import { toast } from "sonner";
 
 import { confirmSeatHoldAction, holdSeatsAction } from "@/lib/actions/reservations";
 import type { SeatMapSector, ViewerContext } from "@/lib/domain/types";
-import { cn, formatCurrencyFromCents } from "@/lib/utils";
+import { formatCurrencyFromCents } from "@/lib/utils";
+import { StadiumMap } from "@/components/stadium/stadium-map";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -24,17 +25,12 @@ type HoldState = {
   expiresAt: string;
 };
 
-const legendItems = [
-  { label: "Disponibil", className: "bg-[#111111] text-white" },
-  { label: "Selectat", className: "bg-[#dc2626] text-white" },
-  { label: "Blocat temporar", className: "bg-neutral-200 text-neutral-700" },
-  { label: "Indisponibil", className: "bg-[#fee2e2] text-[#b91c1c]" },
-] as const;
-
 export function SeatMapBoard({
   matchId,
   matchSlug,
   matchTitle,
+  stadiumId,
+  stadiumName,
   sectors,
   viewer,
   remainingLimit,
@@ -45,6 +41,8 @@ export function SeatMapBoard({
   matchId: string;
   matchSlug: string;
   matchTitle: string;
+  stadiumId: string;
+  stadiumName: string;
   sectors: SeatMapSector[];
   viewer: ViewerContext;
   remainingLimit: number | null;
@@ -180,21 +178,9 @@ export function SeatMapBoard({
       <Card className="surface-panel overflow-hidden rounded-[30px] border border-white/70 bg-white/94">
         <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
         <CardHeader className="gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
-              Harta locurilor
-            </CardTitle>
-            <div className="flex flex-wrap gap-2">
-              {legendItems.map((item) => (
-                <span
-                  key={item.label}
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${item.className}`}
-                >
-                  {item.label}
-                </span>
-              ))}
-            </div>
-          </div>
+          <CardTitle className="font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
+            Harta stadionului si locurilor
+          </CardTitle>
           <p className="max-w-3xl text-sm leading-6 text-neutral-600">
             {ticketingMode === "paid"
               ? `Acest meci foloseste procurare cu plata. Selectezi locurile, le blochezi temporar, apoi continui spre checkout pentru emiterea biletelor QR. Pretul curent este ${formatCurrencyFromCents(ticketPriceCents, currency)} pe loc.`
@@ -202,75 +188,14 @@ export function SeatMapBoard({
           </p>
         </CardHeader>
         <CardContent className="grid gap-6">
-          {sectors.map((sector) => (
-            <div
-              key={sector.sectorId}
-              className="rounded-[28px] border border-black/6 bg-neutral-50 p-5"
-            >
-              <div className="mb-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="h-4 w-4 rounded-full ring-2 ring-white"
-                    style={{ backgroundColor: sector.color }}
-                  />
-                  <div>
-                    <p className="font-semibold text-[#111111]">{sector.name}</p>
-                    <p className="text-xs uppercase tracking-[0.24em] text-neutral-500">
-                      {sector.code}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-xs text-neutral-500">{sector.seats.length} locuri</p>
-              </div>
-
-              <div className="grid gap-3">
-                {Object.entries(groupByRow(sector.seats)).map(([rowLabel, seats]) => (
-                  <div key={rowLabel} className="grid grid-cols-[auto_1fr] items-center gap-3">
-                    <div className="w-12 rounded-full bg-[#111111] px-3 py-2 text-center text-xs font-semibold text-white">
-                      {rowLabel}
-                    </div>
-                    <div className="grid grid-cols-5 gap-2 sm:grid-cols-8 xl:grid-cols-10">
-                      {seats.map((seat) => {
-                        const isSelected = selectedSeatIds.includes(seat.seatId);
-                        const isDisabled =
-                          seat.availability !== "available" && !selectedSeatIds.includes(seat.seatId);
-
-                        return (
-                          <button
-                            key={seat.seatId}
-                            type="button"
-                            disabled={isDisabled || isPending || isTicketingDisabled}
-                            onClick={() => toggleSeat(seat.seatId, seat.availability)}
-                            className={cn(
-                              "aspect-square rounded-2xl border text-xs font-semibold transition",
-                              isSelected &&
-                                "border-[#dc2626] bg-[#dc2626] text-white shadow-[0_16px_30px_-18px_rgba(220,38,38,0.85)]",
-                              !isSelected &&
-                                seat.availability === "available" &&
-                                "border-black/10 bg-white text-[#111111] hover:-translate-y-0.5 hover:border-[#dc2626]/35 hover:text-[#b91c1c]",
-                              !isSelected &&
-                                (seat.availability === "reserved" ||
-                                  seat.availability === "held") &&
-                                "border-neutral-300 bg-neutral-200 text-neutral-600",
-                              !isSelected &&
-                                (seat.availability === "blocked" ||
-                                  seat.availability === "disabled" ||
-                                  seat.availability === "obstructed" ||
-                                  seat.availability === "internal") &&
-                                "border-[#fecaca] bg-[#fff1f2] text-[#b91c1c]",
-                            )}
-                            title={`${sector.name} - Rand ${seat.rowLabel} - Loc ${seat.seatNumber}`}
-                          >
-                            {seat.seatNumber}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+          <StadiumMap
+            stadiumId={stadiumId}
+            stadiumName={stadiumName}
+            sectors={sectors}
+            selectedSeatIds={selectedSeatIds}
+            disabled={isPending || isTicketingDisabled}
+            onSeatToggle={toggleSeat}
+          />
         </CardContent>
       </Card>
 
@@ -418,11 +343,4 @@ export function SeatMapBoard({
       </Card>
     </div>
   );
-}
-
-function groupByRow<T extends { rowLabel: string }>(seats: T[]) {
-  return seats.reduce<Record<string, T[]>>((acc, seat) => {
-    acc[seat.rowLabel] = acc[seat.rowLabel] ? [...acc[seat.rowLabel], seat] : [seat];
-    return acc;
-  }, {});
 }

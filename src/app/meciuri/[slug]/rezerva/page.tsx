@@ -67,6 +67,8 @@ export default async function ReserveSeatPage({
         matchId={match.id}
         matchSlug={match.slug}
         matchTitle={match.title}
+        stadiumId={match.stadiumId}
+        stadiumName={match.stadiumName}
         sectors={sectors}
         viewer={viewer}
         remainingLimit={remainingLimit}

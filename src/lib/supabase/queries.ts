@@ -137,6 +137,7 @@ export async function getPublicMatches(): Promise<PublicMatch[]> {
     return rows.map((item) =>
       publicMatchSchema.parse({
         id: item.id,
+        stadiumId: item.stadium_id,
         slug: item.slug,
         title: item.title,
         competitionName: item.competition_name,

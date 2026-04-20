@@ -63,6 +63,7 @@ export type ViewerContext = z.infer<typeof viewerContextSchema> & {
 
 export const publicMatchSchema = z.object({
   id: z.string().uuid(),
+  stadiumId: z.string(),
   slug: z.string(),
   title: z.string(),
   competitionName: z.string(),

@@ -73,6 +73,7 @@ export const mockViewer: ViewerContext = {
 export const mockMatches: PublicMatch[] = [
   {
     id: "6dcb4147-e12c-4f6b-a06d-111111111111",
+    stadiumId: "demo-stadium",
     slug: "milsami-orhei-fc-zimbru-chisinau",
     title: "FC Milsami Orhei vs FC Zimbru Chișinău",
     competitionName: "Super Liga Moldovei",
@@ -98,6 +99,7 @@ export const mockMatches: PublicMatch[] = [
   },
   {
     id: "7e1f2262-a5f6-44b0-a06d-222222222222",
+    stadiumId: "demo-stadium",
     slug: "milsami-orhei-sheriff-tiraspol",
     title: "FC Milsami Orhei vs FC Sheriff Tiraspol",
     competitionName: "Cupa Moldovei",
