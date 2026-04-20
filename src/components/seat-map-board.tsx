@@ -59,10 +59,11 @@ export function SeatMapBoard({
   const [isPending, startTransition] = useTransition();
   const isPaidFlow = ticketingMode === "paid" && !viewer.isPrivileged;
   const requiresReservationPermission = ticketingMode === "free" && !viewer.isPrivileged;
+  const missingFreeAccess = requiresReservationPermission && viewer.isAuthenticated && !viewer.canReserve;
 
   const isReservationDisabled =
     Boolean(viewer.reservationBlockedUntil) ||
-    (requiresReservationPermission && viewer.isAuthenticated && !viewer.canReserve);
+    missingFreeAccess;
 
   useEffect(() => {
     if (!holdState?.expiresAt) {
@@ -208,6 +209,14 @@ export function SeatMapBoard({
           </p>
         </CardHeader>
         <CardContent className="grid gap-6">
+          {missingFreeAccess ? (
+            <div className="rounded-[26px] border border-[#fecaca] bg-[#fff1f2] px-5 py-4 text-sm leading-6 text-[#991b1b]">
+              Acest meci foloseste emitere gratuita cu acces aprobat de admin. Pentru contul tau,
+              selectia locurilor ramane blocata pana cand primesti dreptul de emitere a
+              biletelor gratuite.
+            </div>
+          ) : null}
+
           {sectors.map((sector) => (
             <div
               key={sector.sectorId}

@@ -81,7 +81,7 @@ export const messages = {
       bullets: [
         "Accesul la solicitarea biletelor poate fi acordat de admin per utilizator",
         "QR unic pentru fiecare loc si validare atomica la scanare",
-        "Resetare parola si confirmare email prin Supabase Auth",
+        "Creare cont rapida, resetare parola si acces imediat prin Supabase Auth",
       ],
     },
     auth: {
@@ -111,7 +111,7 @@ export const messages = {
       },
       toasts: {
         signInSuccess: "Autentificare reusita.",
-        signUpSuccess: "Cont creat. Verifica emailul pentru confirmare.",
+        signUpSuccess: "Cont creat. Te poti autentifica imediat.",
         signUpSession: "Cont creat si autentificat.",
         resetSuccess: "Link-ul pentru resetare a fost trimis pe email.",
         missingConfig:
@@ -168,12 +168,16 @@ export const messages = {
     },
     matchCard: {
       estimatedSeats: "locuri estimate",
+      freeManaged: "Gratuit cu aprobare admin",
+      paidOpen: "Procurare cu plata",
       defaultDescription:
         "Bilet gratuit emis cu QR unic, acces steward si cabinet personal pentru suporteri.",
       standardLimit: "Limita standard:",
       ticketsPerAccount: "bilete / cont",
       details: "Vezi detalii",
       requestSeats: "Solicita locuri",
+      requestFree: "Vezi emiterea gratuita",
+      buyPaid: "Procura bilete",
     },
     ticketList: {
       status: {
@@ -276,7 +280,7 @@ export const messages = {
       bullets: [
         "Доступ к запросу билетов администратор может выдать каждому пользователю отдельно",
         "Уникальный QR для каждого места и атомарная проверка при сканировании",
-        "Сброс пароля и подтверждение email через Supabase Auth",
+        "Быстрое создание аккаунта, сброс пароля и мгновенный доступ через Supabase Auth",
       ],
     },
     auth: {
@@ -306,7 +310,7 @@ export const messages = {
       },
       toasts: {
         signInSuccess: "Вход выполнен.",
-        signUpSuccess: "Аккаунт создан. Проверь email для подтверждения.",
+        signUpSuccess: "Аккаунт создан. Теперь можно сразу войти.",
         signUpSession: "Аккаунт создан и авторизация выполнена.",
         resetSuccess: "Ссылка для сброса пароля отправлена на email.",
         missingConfig:
@@ -360,12 +364,16 @@ export const messages = {
     },
     matchCard: {
       estimatedSeats: "мест примерно",
+      freeManaged: "Бесплатно с одобрением админа",
+      paidOpen: "Платная покупка",
       defaultDescription:
         "Бесплатный билет с уникальным QR, доступом для стюарда и личным кабинетом болельщика.",
       standardLimit: "Стандартный лимит:",
       ticketsPerAccount: "билетов / аккаунт",
       details: "Подробнее",
       requestSeats: "Запросить места",
+      requestFree: "Открыть бесплатную выдачу",
+      buyPaid: "Купить билеты",
     },
     ticketList: {
       status: {

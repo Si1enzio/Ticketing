@@ -122,7 +122,7 @@ export default async function MatchDetailPage({
               <p className="mt-2 text-sm leading-6 text-neutral-700">
                 {isPaid
                   ? `Procurare cu plata la ${formatCurrencyFromCents(match.ticketPriceCents, match.currency)} / loc.`
-                  : "Emitere gratuita pe baza de autentificare si drept de acces."}
+                  : "Emitere gratuita doar pentru conturi aprobate de admin."}
               </p>
             </div>
 
@@ -137,7 +137,7 @@ export default async function MatchDetailPage({
                     Vezi harta si procura bilete
                   </>
                 ) : (
-                  "Vezi harta si continua spre emitere"
+                  "Vezi harta pentru emitere gratuita"
                 )}
               </Link>
             </Button>

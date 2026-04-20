@@ -31,12 +31,22 @@ export function MatchCard({
           <Badge className="rounded-full bg-[#111111] px-3 py-1 text-white hover:bg-[#111111]">
             {match.competitionName}
           </Badge>
-          <Badge
-            variant="outline"
-            className="rounded-full border-[#dc2626]/18 bg-[#dc2626]/6 text-[#b91c1c]"
-          >
-            {match.availableEstimate} {t("matchCard.estimatedSeats")}
-          </Badge>
+          <div className="flex flex-wrap gap-2">
+            <Badge
+              variant="outline"
+              className="rounded-full border-[#dc2626]/18 bg-[#dc2626]/6 text-[#b91c1c]"
+            >
+              {match.ticketingMode === "paid"
+                ? t("matchCard.paidOpen")
+                : t("matchCard.freeManaged")}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="rounded-full border-[#dc2626]/18 bg-[#dc2626]/6 text-[#b91c1c]"
+            >
+              {match.availableEstimate} {t("matchCard.estimatedSeats")}
+            </Badge>
+          </div>
         </div>
         <div className="space-y-3">
           <CardTitle className="font-heading text-3xl uppercase tracking-[0.12em] text-[#111111]">
@@ -84,7 +94,9 @@ export function MatchCard({
           variant="outline"
           className="w-full rounded-full border-[#dc2626] bg-white text-[#b91c1c] hover:bg-[#fef2f2] sm:flex-1"
         >
-          <Link href={`/meciuri/${match.slug}/rezerva`}>{t("matchCard.requestSeats")}</Link>
+          <Link href={`/meciuri/${match.slug}/rezerva`}>
+            {match.ticketingMode === "paid" ? t("matchCard.buyPaid") : t("matchCard.requestFree")}
+          </Link>
         </Button>
       </CardFooter>
     </Card>

@@ -63,6 +63,20 @@ export default async function ReserveSeatPage({
         </Alert>
       ) : null}
 
+      {match.ticketingMode === "free" &&
+      viewer.isAuthenticated &&
+      !viewer.isPrivileged &&
+      !viewer.canReserve ? (
+        <Alert className="border-amber-200 bg-amber-50 text-amber-950">
+          <AlertTitle>Accesul la emiterea gratuita nu este activ</AlertTitle>
+          <AlertDescription>
+            Conturile noi nu pot selecta locuri la meciurile gratuite pana cand un admin nu
+            activeaza dreptul de emitere. Pentru procurare deschisa tuturor, foloseste un meci
+            marcat ca platit.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <SeatMapBoard
         matchId={match.id}
         matchSlug={match.slug}
