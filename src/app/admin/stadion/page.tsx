@@ -6,6 +6,8 @@ import {
   createSectorAction,
   createStadiumAction,
   createStandAction,
+  deleteSectorAction,
+  deleteStandAction,
   updateSponsorAction,
   updateSectorAction,
   updateStadiumAction,
@@ -13,18 +15,45 @@ import {
 } from "@/lib/actions/admin";
 import { getStadiumBuilderData } from "@/lib/supabase/queries";
 import { SeatFlagEditor } from "@/components/seat-flag-editor";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default async function AdminStadiumPage() {
+export default async function AdminStadiumPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string; notice?: string }>;
+}) {
   await connection();
+  const resolvedSearchParams = (await searchParams) ?? {};
   const stadiums = await getStadiumBuilderData();
   const defaultStadium = stadiums[0];
 
   return (
     <div className="grid gap-8">
+      {resolvedSearchParams.error ? (
+        <Alert
+          variant="destructive"
+          className="rounded-[24px] border border-[#fecaca] bg-[#fff1f2] px-5 py-4 text-[#b91c1c]"
+        >
+          <AlertTitle className="text-base font-semibold">Stergerea a fost blocata</AlertTitle>
+          <AlertDescription className="text-sm text-[#b91c1c]">
+            {resolvedSearchParams.error}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {resolvedSearchParams.notice ? (
+        <Alert className="rounded-[24px] border border-[#d1fae5] bg-[#ecfdf5] px-5 py-4 text-[#166534]">
+          <AlertTitle className="text-base font-semibold">Operatiune reusita</AlertTitle>
+          <AlertDescription className="text-sm text-[#166534]">
+            {resolvedSearchParams.notice}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#b91c1c]">
           Stadium builder
@@ -108,7 +137,7 @@ export default async function AdminStadiumPage() {
                 options={stadiums.flatMap((stadium) =>
                   stadium.stands.map((stand) => ({
                     value: stand.id,
-                    label: `${stadium.name} · ${stand.name} (${stand.code})`,
+                    label: `${stadium.name} - ${stand.name} (${stand.code})`,
                   })),
                 )}
               />
@@ -309,7 +338,7 @@ export default async function AdminStadiumPage() {
                       key={stand.id}
                       className="grid gap-5 rounded-[28px] border border-black/6 bg-neutral-50 p-5"
                     >
-                      <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
+                      <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr_auto]">
                         <div>
                           <div className="flex items-center gap-3">
                             <div
@@ -319,7 +348,7 @@ export default async function AdminStadiumPage() {
                             <div>
                               <p className="font-semibold text-[#111111]">{stand.name}</p>
                               <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
-                                {stand.code} · {standSectors.length} sectoare
+                                {stand.code} - {standSectors.length} sectoare
                               </p>
                             </div>
                           </div>
@@ -354,6 +383,17 @@ export default async function AdminStadiumPage() {
                               Salveaza tribuna
                             </Button>
                           </div>
+                        </form>
+
+                        <form action={deleteStandAction} className="flex items-end">
+                          <input type="hidden" name="standId" value={stand.id} />
+                          <Button
+                            type="submit"
+                            variant="destructive"
+                            className="rounded-full border border-[#b91c1c] bg-[#fff1f2] px-5 text-[#b91c1c] hover:bg-[#ffe4e6]"
+                          >
+                            Sterge tribuna
+                          </Button>
                         </form>
                       </div>
 
@@ -440,63 +480,76 @@ function SectorEditor({
         <div>
           <p className="font-semibold text-[#111111]">{sector.name}</p>
           <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
-            {sector.code} · {sector.rowsCount} randuri · {sector.seatsPerRow} locuri/rand
+            {sector.code} - {sector.rowsCount} randuri - {sector.seatsPerRow} locuri/rand
           </p>
         </div>
       </div>
 
-      <form action={updateSectorAction} className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
-        <input type="hidden" name="sectorId" value={sector.id} />
-        <input type="hidden" name="stadiumId" value={stadiumId} />
-        <SelectField
-          name="standId"
-          label="Tribuna"
-          allowEmpty
-          emptyLabel="Fara tribuna"
-          options={standOptions}
-          defaultValue={sector.standId ?? ""}
-        />
-        <Field
-          name={`sector-name-${sector.id}`}
-          htmlName="name"
-          label="Nume sector"
-          defaultValue={sector.name}
-        />
-        <Field
-          name={`sector-code-${sector.id}`}
-          htmlName="code"
-          label="Cod"
-          defaultValue={sector.code}
-        />
-        <Field
-          name={`sector-color-${sector.id}`}
-          htmlName="color"
-          label="Culoare"
-          defaultValue={sector.color}
-        />
-        <Field
-          name={`sector-rows-${sector.id}`}
-          htmlName="rowsCount"
-          label="Numar randuri"
-          type="number"
-          defaultValue={String(sector.rowsCount)}
-        />
-        <Field
-          name={`sector-seats-${sector.id}`}
-          htmlName="seatsPerRow"
-          label="Locuri / rand"
-          type="number"
-          defaultValue={String(sector.seatsPerRow)}
-        />
-        <div className="flex items-end">
+      <div className="grid gap-4 xl:grid-cols-[1fr_auto]">
+        <form action={updateSectorAction} className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+          <input type="hidden" name="sectorId" value={sector.id} />
+          <input type="hidden" name="stadiumId" value={stadiumId} />
+          <SelectField
+            name="standId"
+            label="Tribuna"
+            allowEmpty
+            emptyLabel="Fara tribuna"
+            options={standOptions}
+            defaultValue={sector.standId ?? ""}
+          />
+          <Field
+            name={`sector-name-${sector.id}`}
+            htmlName="name"
+            label="Nume sector"
+            defaultValue={sector.name}
+          />
+          <Field
+            name={`sector-code-${sector.id}`}
+            htmlName="code"
+            label="Cod"
+            defaultValue={sector.code}
+          />
+          <Field
+            name={`sector-color-${sector.id}`}
+            htmlName="color"
+            label="Culoare"
+            defaultValue={sector.color}
+          />
+          <Field
+            name={`sector-rows-${sector.id}`}
+            htmlName="rowsCount"
+            label="Numar randuri"
+            type="number"
+            defaultValue={String(sector.rowsCount)}
+          />
+          <Field
+            name={`sector-seats-${sector.id}`}
+            htmlName="seatsPerRow"
+            label="Locuri / rand"
+            type="number"
+            defaultValue={String(sector.seatsPerRow)}
+          />
+          <div className="flex items-end xl:col-span-1">
+            <Button
+              type="submit"
+              className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+            >
+              Salveaza sectorul
+            </Button>
+          </div>
+        </form>
+
+        <form action={deleteSectorAction} className="flex items-end">
+          <input type="hidden" name="sectorId" value={sector.id} />
           <Button
             type="submit"
-            className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+            variant="destructive"
+            className="rounded-full border border-[#b91c1c] bg-[#fff1f2] px-5 text-[#b91c1c] hover:bg-[#ffe4e6]"
           >
-            Salveaza sectorul
+            Sterge sectorul
           </Button>
-        </div>
-      </form>
+        </form>
+      </div>
 
       <div className="rounded-[24px] border border-dashed border-black/10 bg-neutral-50 p-4">
         <SeatFlagEditor seats={sector.seats} sectorName={sector.name} />

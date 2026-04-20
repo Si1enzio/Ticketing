@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { hasAnyRole } from "@/lib/auth/roles";
@@ -29,6 +30,10 @@ const standUpdateSchema = standSchema.extend({
   standId: z.string(),
 });
 
+const standDeleteSchema = z.object({
+  standId: z.string(),
+});
+
 const sponsorSchema = z.object({
   stadiumId: z.string(),
   name: z.string().min(2),
@@ -52,6 +57,10 @@ const sectorSchema = z.object({
 });
 
 const sectorUpdateSchema = sectorSchema.extend({
+  sectorId: z.string(),
+});
+
+const sectorDeleteSchema = z.object({
   sectorId: z.string(),
 });
 
@@ -143,6 +152,11 @@ async function logAudit(actorUserId: string, action: string, entityType: string,
     entity_id: entityId,
     details,
   });
+}
+
+function redirectToAdminStadium(params: Record<string, string>): never {
+  const query = new URLSearchParams(params);
+  redirect(`/admin/stadion?${query.toString()}`);
 }
 
 export async function createStadiumAction(formData: FormData) {
@@ -322,6 +336,91 @@ export async function updateSectorAction(formData: FormData) {
   await logAudit(viewer.userId, "update_sector", "stadium_sectors", parsed.data.sectorId, parsed.data);
 
   revalidatePath("/admin/stadion");
+}
+
+export async function deleteSectorAction(formData: FormData) {
+  const parsed = sectorDeleteSchema.safeParse({
+    sectorId: formData.get("sectorId"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    redirectToAdminStadium({
+      error: "Cererea de stergere a sectorului este invalida.",
+    });
+  }
+
+  const input = parsed.data;
+
+  const viewer = await ensureAdmin();
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    redirectToAdminStadium({
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
+
+  const { data: sector } = await supabase
+    .from("stadium_sectors")
+    .select("id, name")
+    .eq("id", input.sectorId)
+    .maybeSingle();
+
+  if (!sector) {
+    redirectToAdminStadium({
+      error: "Sectorul nu mai exista sau a fost deja sters.",
+    });
+  }
+
+  const { data: seats } = await supabase
+    .from("seats")
+    .select("id")
+    .eq("sector_id", input.sectorId);
+
+  const seatIds = (seats ?? []).map((seat) => seat.id);
+
+  if (seatIds.length) {
+    const nowIso = new Date().toISOString();
+    const [{ count: activeHoldCount }, { count: reservationItemCount }, { count: ticketCount }] =
+      await Promise.all([
+        supabase
+          .from("seat_holds")
+          .select("id", { count: "exact", head: true })
+          .in("seat_id", seatIds)
+          .eq("status", "active")
+          .gt("expires_at", nowIso),
+        supabase
+          .from("reservation_items")
+          .select("id", { count: "exact", head: true })
+          .in("seat_id", seatIds),
+        supabase.from("tickets").select("id", { count: "exact", head: true }).in("seat_id", seatIds),
+      ]);
+
+    if ((activeHoldCount ?? 0) > 0) {
+      redirectToAdminStadium({
+        error:
+          "Sectorul nu poate fi sters cat timp are locuri blocate temporar. Asteapta expirarea hold-urilor active.",
+      });
+    }
+
+    if ((reservationItemCount ?? 0) > 0 || (ticketCount ?? 0) > 0) {
+      redirectToAdminStadium({
+        error:
+          "Sectorul nu poate fi sters deoarece are locuri legate de rezervari sau bilete emise.",
+      });
+    }
+  }
+
+  await supabase.from("stadium_sectors").delete().eq("id", input.sectorId);
+
+  await logAudit(viewer.userId, "delete_sector", "stadium_sectors", input.sectorId, {
+    sectorName: sector.name,
+  });
+
+  revalidatePath("/admin/stadion");
+  redirectToAdminStadium({
+    notice: `Sectorul ${sector.name} a fost sters.`,
+  });
 }
 
 export async function toggleSeatFlagAction(input: z.input<typeof seatToggleSchema>) {
@@ -542,6 +641,64 @@ export async function updateStandAction(formData: FormData) {
   await logAudit(viewer.userId, "update_stand", "stadium_stands", parsed.data.standId, parsed.data);
 
   revalidatePath("/admin/stadion");
+}
+
+export async function deleteStandAction(formData: FormData) {
+  const parsed = standDeleteSchema.safeParse({
+    standId: formData.get("standId"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    redirectToAdminStadium({
+      error: "Cererea de stergere a tribunei este invalida.",
+    });
+  }
+
+  const input = parsed.data;
+
+  const viewer = await ensureAdmin();
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    redirectToAdminStadium({
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
+
+  const { data: stand } = await supabase
+    .from("stadium_stands")
+    .select("id, name")
+    .eq("id", input.standId)
+    .maybeSingle();
+
+  if (!stand) {
+    redirectToAdminStadium({
+      error: "Tribuna nu mai exista sau a fost deja stearsa.",
+    });
+  }
+
+  const { count: sectorCount } = await supabase
+    .from("stadium_sectors")
+    .select("id", { count: "exact", head: true })
+    .eq("stand_id", input.standId);
+
+  if ((sectorCount ?? 0) > 0) {
+    redirectToAdminStadium({
+      error:
+        "Tribuna nu poate fi stearsa cat timp contine sectoare. Muta sau sterge mai intai sectoarele din ea.",
+    });
+  }
+
+  await supabase.from("stadium_stands").delete().eq("id", input.standId);
+
+  await logAudit(viewer.userId, "delete_stand", "stadium_stands", input.standId, {
+    standName: stand.name,
+  });
+
+  revalidatePath("/admin/stadion");
+  redirectToAdminStadium({
+    notice: `Tribuna ${stand.name} a fost stearsa.`,
+  });
 }
 
 export async function updateMatchAction(formData: FormData) {
