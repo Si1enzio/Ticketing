@@ -61,6 +61,14 @@ export function TicketListItem({
             </p>
             <p>{ticket.stadiumName}</p>
             <p>{ticket.gateName ?? t("common.noGate")}</p>
+            {ticket.usedAt ? (
+              <p className="sm:col-span-2">
+                {t("ticketList.scannedAt")}{" "}
+                {format(new Date(ticket.usedAt), "EEEE, d MMMM yyyy - HH:mm", {
+                  locale: getDateFnsLocale(locale),
+                })}
+              </p>
+            ) : null}
           </div>
         </div>
 

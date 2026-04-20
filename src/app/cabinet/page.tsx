@@ -23,8 +23,13 @@ export default async function CabinetPage() {
     getViewerTickets(viewer),
     viewer.userId ? getUserSubscriptions(viewer.userId) : Promise.resolve([]),
   ]);
-  const upcoming = tickets.filter((ticket) => new Date(ticket.startsAt) >= new Date());
-  const archived = tickets.filter((ticket) => new Date(ticket.startsAt) < new Date());
+  const now = new Date();
+  const upcoming = tickets.filter(
+    (ticket) => ticket.status === "active" && new Date(ticket.startsAt) >= now,
+  );
+  const archived = tickets.filter(
+    (ticket) => ticket.status !== "active" || new Date(ticket.startsAt) < now,
+  );
   const activeSubscriptions = subscriptions.filter((item) => item.status === "active");
 
   return (

@@ -140,7 +140,7 @@ export const messages = {
           "Biletele active apar aici imediat dupa confirmarea emiterii.",
         historyTitle: "Istoric si bilete folosite",
         historySubtitle:
-          "Dupa meci poti verifica starea scanarii si istoricul accesului.",
+          "Aici apar biletele scanate, folosite sau meciurile deja trecute.",
       },
       empty: {
         noSubscriptionsTitle: "Nu ai abonamente active",
@@ -187,6 +187,7 @@ export const messages = {
       },
       row: "Rand",
       seat: "Loc",
+      scannedAt: "Scanat la",
       openTicket: "Deschide biletul",
       viewMatch: "Vezi meciul",
       pdf: "PDF",
@@ -336,7 +337,7 @@ export const messages = {
         upcomingTitle: "Ближайшие матчи",
         upcomingSubtitle: "Активные билеты появляются здесь сразу после подтверждения.",
         historyTitle: "История и использованные билеты",
-        historySubtitle: "После матча ты можешь проверить статус сканирования и историю входа.",
+        historySubtitle: "Здесь появляются отсканированные, использованные билеты и уже прошедшие матчи.",
       },
       empty: {
         noSubscriptionsTitle: "Нет активных абонементов",
@@ -382,6 +383,7 @@ export const messages = {
       },
       row: "Ряд",
       seat: "Место",
+      scannedAt: "Отсканирован",
       openTicket: "Открыть билет",
       viewMatch: "Открыть матч",
       pdf: "PDF",
