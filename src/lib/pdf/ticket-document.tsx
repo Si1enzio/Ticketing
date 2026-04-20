@@ -19,8 +19,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: "#ffffff",
     overflow: "hidden",
-    minHeight: 262,
-    maxHeight: 272,
+    minHeight: 252,
+    maxHeight: 262,
   },
   band: {
     height: 6,
@@ -40,8 +40,9 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     paddingTop: 9,
     paddingRight: 12,
-    paddingBottom: 11,
+    paddingBottom: 10,
     paddingLeft: 12,
+    borderBottomRightRadius: 0,
   },
   eyebrow: {
     fontSize: 8,
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexWrap: "wrap",
     gap: 5,
-    marginTop: 7,
+    marginTop: 6,
   },
   sponsorLabel: {
     fontSize: 6.6,
@@ -95,107 +96,71 @@ const styles = StyleSheet.create({
   body: {
     paddingTop: 10,
     paddingRight: 12,
-    paddingBottom: 10,
+    paddingBottom: 8,
     paddingLeft: 12,
   },
   qrColumn: {
-    width: 198,
+    width: 190,
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#fca5a5",
-    borderStyle: "solid",
-    borderRadius: 0,
-    borderTopRightRadius: 16,
-    borderBottomRightRadius: 16,
-  },
-  qrTopPanel: {
-    width: "100%",
-    backgroundColor: "#111111",
-    paddingTop: 11,
-    paddingRight: 10,
-    paddingBottom: 12,
-    paddingLeft: 10,
-    minHeight: 84,
-    justifyContent: "center",
+    paddingTop: 22,
+    paddingRight: 16,
+    paddingBottom: 14,
+    paddingLeft: 16,
   },
   qrBadge: {
-    fontSize: 8,
+    fontSize: 7.8,
     textTransform: "uppercase",
-    color: "#fecaca",
+    color: "#7f1d1d",
     letterSpacing: 1.2,
     textAlign: "center",
+    marginBottom: 14,
   },
   qrBody: {
     width: "100%",
-    flexGrow: 1,
     alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 12,
-    paddingRight: 10,
-    paddingBottom: 10,
-    paddingLeft: 10,
+    justifyContent: "flex-start",
   },
   qrCanvas: {
     width: "100%",
-    flexGrow: 1,
-    minHeight: 156,
+    minHeight: 154,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.4,
-    borderColor: "#f87171",
+    borderWidth: 1.2,
+    borderColor: "#d7dbe2",
     borderStyle: "solid",
-    borderRadius: 12,
-    backgroundColor: "#fff5f5",
-    paddingTop: 10,
-    paddingRight: 10,
-    paddingBottom: 10,
-    paddingLeft: 10,
+    borderRadius: 18,
+    backgroundColor: "#ffffff",
+    paddingTop: 12,
+    paddingRight: 12,
+    paddingBottom: 12,
+    paddingLeft: 12,
   },
   qrImage: {
     width: 146,
     height: 146,
-    borderRadius: 12,
-    borderWidth: 1.8,
-    borderColor: "#cbd5e1",
-    borderStyle: "solid",
+    borderRadius: 0,
     backgroundColor: "#ffffff",
-    padding: 10,
+    padding: 0,
   },
   qrInfoBand: {
     width: "100%",
-    borderWidth: 1.2,
-    borderColor: "#fca5a5",
-    borderStyle: "solid",
-    borderRadius: 10,
-    backgroundColor: "#ffffff",
-    paddingTop: 7,
-    paddingRight: 8,
-    paddingBottom: 7,
-    paddingLeft: 8,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 12,
   },
   qrCaption: {
-    fontSize: 6.8,
+    fontSize: 6.9,
     color: "#6b7280",
     letterSpacing: 1,
     textTransform: "uppercase",
-    marginBottom: 2,
+    marginBottom: 4,
   },
   qrCodeText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 600,
     textAlign: "center",
     color: "#111111",
-  },
-  qrHelper: {
-    marginTop: 7,
-    fontSize: 6.9,
-    lineHeight: 1.3,
-    color: "#7f1d1d",
-    textAlign: "center",
   },
   grid: {
     flexDirection: "row",
@@ -220,7 +185,7 @@ const styles = StyleSheet.create({
     paddingRight: 8,
     paddingBottom: 7,
     paddingLeft: 8,
-    minHeight: 42,
+    minHeight: 40,
   },
   cardPriority: {
     borderColor: "#fecaca",
@@ -282,10 +247,6 @@ export function TicketDocument({
 
               <View style={styles.body}>
                 <View style={styles.grid}>
-                  <Field label="Sector" value={ticket.sectorName} />
-                  <Field label="Rand" value={ticket.rowLabel} />
-                  <Field label="Loc" value={String(ticket.seatNumber)} />
-                  <Field label="Poarta" value={ticket.gateName ?? "Fara poarta alocata"} />
                   <Field
                     label="Titular"
                     value={ticket.purchaserName ?? ticket.purchaserEmail ?? "Cont suporter"}
@@ -294,15 +255,16 @@ export function TicketDocument({
                     label="Data si ora"
                     value={new Date(ticket.startsAt).toLocaleString("ro-RO")}
                   />
-                  <Field fullWidth label="Stadion" value={ticket.stadiumName} />
+                  <Field label="Sector" value={ticket.sectorName} />
+                  <Field label="Poarta" value={ticket.gateName ?? "Fara poarta alocata"} />
+                  <Field label="Rand" value={ticket.rowLabel} />
+                  <Field label="Loc" value={String(ticket.seatNumber)} />
                 </View>
               </View>
             </View>
 
             <View style={styles.qrColumn}>
-              <View style={styles.qrTopPanel}>
-                <Text style={styles.qrBadge}>QR unic de acces</Text>
-              </View>
+              <Text style={styles.qrBadge}>QR unic de acces</Text>
               <View style={styles.qrBody}>
                 <View style={styles.qrCanvas}>
                   <Image src={qrDataUrl} style={styles.qrImage} />
@@ -311,9 +273,6 @@ export function TicketDocument({
                   <Text style={styles.qrCaption}>Cod bilet</Text>
                   <Text style={styles.qrCodeText}>{ticket.ticketCode}</Text>
                 </View>
-                <Text style={styles.qrHelper}>
-                  Prezentati acest cod la acces. Valabil pentru o singura intrare.
-                </Text>
               </View>
             </View>
           </View>
