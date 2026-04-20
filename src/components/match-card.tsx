@@ -62,7 +62,7 @@ export function MatchCard({
         <div className="flex items-center gap-3 rounded-2xl border border-black/6 bg-neutral-50 px-4 py-3">
           <CalendarClock className="h-5 w-5 text-[#dc2626]" />
           <span>
-            {format(startsAt, "EEEE, d MMMM yyyy â€¢ HH:mm", {
+            {format(startsAt, "EEEE, d MMMM yyyy - HH:mm", {
               locale: getDateFnsLocale(locale),
             })}
           </span>

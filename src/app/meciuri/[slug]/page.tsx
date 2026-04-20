@@ -68,7 +68,7 @@ export default async function MatchDetailPage({
               <InfoRow
                 icon={CalendarClock}
                 label="Program"
-                value={format(new Date(match.startsAt), "EEEE, d MMMM yyyy • HH:mm", {
+                value={format(new Date(match.startsAt), "EEEE, d MMMM yyyy - HH:mm", {
                   locale: ro,
                 })}
               />
@@ -87,7 +87,7 @@ export default async function MatchDetailPage({
                 label="Ticketing activ"
                 value={
                   match.reservationClosesAt
-                    ? `Pana la ${format(new Date(match.reservationClosesAt), "d MMMM • HH:mm", {
+                    ? `Pana la ${format(new Date(match.reservationClosesAt), "d MMMM - HH:mm", {
                         locale: ro,
                       })}`
                     : "Conform setarilor meciului"
