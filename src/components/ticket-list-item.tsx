@@ -1,22 +1,35 @@
-import Link from "next/link";
 import { format } from "date-fns";
-import { ro } from "date-fns/locale";
+import Link from "next/link";
 import { ArrowUpRight, QrCode, Ticket } from "lucide-react";
 
-import type { TicketCard } from "@/lib/domain/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import type { TicketCard } from "@/lib/domain/types";
+import type { AppLocale } from "@/lib/i18n/config";
+import { getDateFnsLocale } from "@/lib/i18n/date";
+import type { AppMessages } from "@/lib/i18n/messages";
+import { translate } from "@/lib/i18n/translate";
 
-const statusMap = {
-  active: { label: "Activ", className: "bg-[#111111] text-white" },
-  used: { label: "Folosit", className: "bg-neutral-700 text-white" },
-  canceled: { label: "Anulat", className: "bg-[#fee2e2] text-[#b91c1c]" },
-  blocked: { label: "Blocat", className: "bg-[#fff1f2] text-[#b91c1c]" },
-} as const;
-
-export function TicketListItem({ ticket }: { ticket: TicketCard }) {
+export function TicketListItem({
+  ticket,
+  locale,
+  messages,
+}: {
+  ticket: TicketCard;
+  locale: AppLocale;
+  messages: AppMessages;
+}) {
   const startsAt = new Date(ticket.startsAt);
+  const t = (key: string) => translate(messages, key);
+
+  const statusMap = {
+    active: { label: t("ticketList.status.active"), className: "bg-[#111111] text-white" },
+    used: { label: t("ticketList.status.used"), className: "bg-neutral-700 text-white" },
+    canceled: { label: t("ticketList.status.canceled"), className: "bg-[#fee2e2] text-[#b91c1c]" },
+    blocked: { label: t("ticketList.status.blocked"), className: "bg-[#fff1f2] text-[#b91c1c]" },
+  } as const;
+
   const status = statusMap[ticket.status];
 
   return (
@@ -37,12 +50,17 @@ export function TicketListItem({ ticket }: { ticket: TicketCard }) {
             <p className="text-sm text-neutral-600">{ticket.competitionName}</p>
           </div>
           <div className="grid gap-2 text-sm text-neutral-600 sm:grid-cols-2">
-            <p>{format(startsAt, "EEEE, d MMMM yyyy - HH:mm", { locale: ro })}</p>
             <p>
-              {ticket.sectorName} - Rand {ticket.rowLabel} - Loc {ticket.seatNumber}
+              {format(startsAt, "EEEE, d MMMM yyyy - HH:mm", {
+                locale: getDateFnsLocale(locale),
+              })}
+            </p>
+            <p>
+              {ticket.sectorName} - {t("ticketList.row")} {ticket.rowLabel} -{" "}
+              {t("ticketList.seat")} {ticket.seatNumber}
             </p>
             <p>{ticket.stadiumName}</p>
-            <p>{ticket.gateName ?? "Fara poarta alocata"}</p>
+            <p>{ticket.gateName ?? t("common.noGate")}</p>
           </div>
         </div>
 
@@ -53,7 +71,7 @@ export function TicketListItem({ ticket }: { ticket: TicketCard }) {
           >
             <Link href={`/bilete/${ticket.ticketCode}`}>
               <QrCode className="mr-2 h-4 w-4" />
-              Deschide biletul
+              {t("ticketList.openTicket")}
             </Link>
           </Button>
           <Button
@@ -63,12 +81,12 @@ export function TicketListItem({ ticket }: { ticket: TicketCard }) {
           >
             <Link href={`/meciuri/${ticket.matchSlug}`}>
               <Ticket className="mr-2 h-4 w-4" />
-              Vezi meciul
+              {t("ticketList.viewMatch")}
             </Link>
           </Button>
           <Button asChild variant="ghost" className="rounded-full text-[#b91c1c] hover:bg-[#fff1f2]">
             <Link href={`/bilete/${ticket.ticketCode}/pdf`} target="_blank">
-              PDF <ArrowUpRight className="ml-2 h-4 w-4" />
+              {t("ticketList.pdf")} <ArrowUpRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
         </div>

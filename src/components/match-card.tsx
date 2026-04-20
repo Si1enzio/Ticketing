@@ -1,5 +1,4 @@
 import { format } from "date-fns";
-import { ro } from "date-fns/locale";
 import { CalendarClock, MapPin, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
@@ -7,9 +6,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { PublicMatch } from "@/lib/domain/types";
+import type { AppLocale } from "@/lib/i18n/config";
+import { getDateFnsLocale } from "@/lib/i18n/date";
+import type { AppMessages } from "@/lib/i18n/messages";
+import { translate } from "@/lib/i18n/translate";
 
-export function MatchCard({ match }: { match: PublicMatch }) {
+export function MatchCard({
+  match,
+  locale,
+  messages,
+}: {
+  match: PublicMatch;
+  locale: AppLocale;
+  messages: AppMessages;
+}) {
   const startsAt = new Date(match.startsAt);
+  const t = (key: string) => translate(messages, key);
 
   return (
     <Card className="surface-panel overflow-hidden rounded-[28px] border border-white/60 bg-white/90">
@@ -23,7 +35,7 @@ export function MatchCard({ match }: { match: PublicMatch }) {
             variant="outline"
             className="rounded-full border-[#dc2626]/18 bg-[#dc2626]/6 text-[#b91c1c]"
           >
-            {match.availableEstimate} locuri estimate
+            {match.availableEstimate} {t("matchCard.estimatedSeats")}
           </Badge>
         </div>
         <div className="space-y-3">
@@ -31,8 +43,7 @@ export function MatchCard({ match }: { match: PublicMatch }) {
             {match.title}
           </CardTitle>
           <p className="text-sm leading-6 text-neutral-600">
-            {match.description ??
-              "Bilet gratuit emis cu QR unic, acces steward si cabinet personal pentru suporteri."}
+            {match.description ?? t("matchCard.defaultDescription")}
           </p>
         </div>
       </CardHeader>
@@ -40,7 +51,11 @@ export function MatchCard({ match }: { match: PublicMatch }) {
       <CardContent className="grid gap-3 text-sm text-neutral-600">
         <div className="flex items-center gap-3 rounded-2xl border border-black/6 bg-neutral-50 px-4 py-3">
           <CalendarClock className="h-5 w-5 text-[#dc2626]" />
-          <span>{format(startsAt, "EEEE, d MMMM yyyy • HH:mm", { locale: ro })}</span>
+          <span>
+            {format(startsAt, "EEEE, d MMMM yyyy â€¢ HH:mm", {
+              locale: getDateFnsLocale(locale),
+            })}
+          </span>
         </div>
         <div className="flex items-center gap-3 rounded-2xl border border-black/6 bg-neutral-50 px-4 py-3">
           <MapPin className="h-5 w-5 text-[#dc2626]" />
@@ -50,7 +65,10 @@ export function MatchCard({ match }: { match: PublicMatch }) {
         </div>
         <div className="flex items-center gap-3 rounded-2xl border border-black/6 bg-neutral-50 px-4 py-3">
           <ShieldCheck className="h-5 w-5 text-[#dc2626]" />
-          <span>Limita standard: {match.maxTicketsPerUser} bilete / cont</span>
+          <span>
+            {t("matchCard.standardLimit")} {match.maxTicketsPerUser}{" "}
+            {t("matchCard.ticketsPerAccount")}
+          </span>
         </div>
       </CardContent>
 
@@ -59,14 +77,14 @@ export function MatchCard({ match }: { match: PublicMatch }) {
           asChild
           className="w-full rounded-full border border-[#111111] bg-[#111111] text-white hover:bg-black sm:flex-1"
         >
-          <Link href={`/meciuri/${match.slug}`}>Vezi detalii</Link>
+          <Link href={`/meciuri/${match.slug}`}>{t("matchCard.details")}</Link>
         </Button>
         <Button
           asChild
           variant="outline"
           className="w-full rounded-full border-[#dc2626] bg-white text-[#b91c1c] hover:bg-[#fef2f2] sm:flex-1"
         >
-          <Link href={`/meciuri/${match.slug}/rezerva`}>Solicita locuri</Link>
+          <Link href={`/meciuri/${match.slug}/rezerva`}>{t("matchCard.requestSeats")}</Link>
         </Button>
       </CardFooter>
     </Card>

@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "@/components/providers";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { getServerI18n } from "@/lib/i18n/server";
 
 const bodyFont = Sora({
   variable: "--font-sora",
@@ -28,13 +29,15 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { locale, messages } = await getServerI18n();
+
   return (
     <html
-      lang="ro"
+      lang={locale}
       className={`${bodyFont.variable} ${headingFont.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-[#f7f7f8] text-[#161616]">
-        <Providers>
+        <Providers locale={locale} messages={messages}>
           <div className="relative flex min-h-screen flex-col">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(135deg,rgba(220,38,38,0.14),rgba(255,255,255,0))]" />
             <SiteHeader />

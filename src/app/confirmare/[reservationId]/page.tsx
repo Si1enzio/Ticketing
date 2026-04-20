@@ -6,6 +6,7 @@ import { CheckCircle2, Download, QrCode, Ticket } from "lucide-react";
 import { TicketListItem } from "@/components/ticket-list-item";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getServerI18n } from "@/lib/i18n/server";
 import { getTicketsByReservationId, getViewerContext } from "@/lib/supabase/queries";
 
 export default async function ReservationConfirmationPage({
@@ -17,6 +18,7 @@ export default async function ReservationConfirmationPage({
   const { reservationId } = await params;
   const viewer = await getViewerContext();
   const tickets = await getTicketsByReservationId(reservationId, viewer);
+  const { locale, messages } = await getServerI18n();
 
   if (!tickets.length) {
     notFound();
@@ -29,15 +31,16 @@ export default async function ReservationConfirmationPage({
         <CardContent className="space-y-5 p-8">
           <div className="flex items-center gap-3 text-[#fecaca]">
             <CheckCircle2 className="h-7 w-7" />
-            <span className="text-sm uppercase tracking-[0.28em]">Emitere confirmata</span>
+            <span className="text-sm uppercase tracking-[0.28em]">
+              {messages.confirmation.badge}
+            </span>
           </div>
           <div>
             <h1 className="font-heading text-5xl uppercase tracking-[0.08em]">
-              Biletele sunt gata
+              {messages.confirmation.title}
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">
-              Fiecare loc selectat a primit un bilet cu QR unic. Le poti deschide
-              individual, descarca in PDF sau afisa direct la poarta.
+              {messages.confirmation.description}
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -47,7 +50,7 @@ export default async function ReservationConfirmationPage({
             >
               <Link href={`/bilete/${tickets[0].ticketCode}`}>
                 <QrCode className="mr-2 h-4 w-4" />
-                Deschide primul bilet
+                {messages.confirmation.openFirst}
               </Link>
             </Button>
             <Button
@@ -57,7 +60,7 @@ export default async function ReservationConfirmationPage({
             >
               <Link href={`/bilete/${tickets[0].ticketCode}/pdf`} target="_blank">
                 <Download className="mr-2 h-4 w-4" />
-                Descarca PDF
+                {messages.confirmation.downloadPdf}
               </Link>
             </Button>
             <Button
@@ -67,7 +70,7 @@ export default async function ReservationConfirmationPage({
             >
               <Link href="/cabinet">
                 <Ticket className="mr-2 h-4 w-4" />
-                Mergi in cabinet
+                {messages.confirmation.goToCabinet}
               </Link>
             </Button>
           </div>
@@ -76,7 +79,12 @@ export default async function ReservationConfirmationPage({
 
       <div className="grid gap-4">
         {tickets.map((ticket) => (
-          <TicketListItem key={ticket.ticketId} ticket={ticket} />
+          <TicketListItem
+            key={ticket.ticketId}
+            ticket={ticket}
+            locale={locale}
+            messages={messages}
+          />
         ))}
       </div>
     </section>

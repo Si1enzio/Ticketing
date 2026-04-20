@@ -6,12 +6,14 @@ import { TicketListItem } from "@/components/ticket-list-item";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { isSupabaseConfigured } from "@/lib/env";
-import { getViewerContext, getViewerTickets } from "@/lib/supabase/queries";
+import { getServerI18n } from "@/lib/i18n/server";
 import { getUserSubscriptions } from "@/lib/supabase/reports";
+import { getViewerContext, getViewerTickets } from "@/lib/supabase/queries";
 
 export default async function CabinetPage() {
   await connection();
   const viewer = await getViewerContext();
+  const { locale, messages } = await getServerI18n();
 
   if (!viewer.isAuthenticated && isSupabaseConfigured()) {
     redirect("/autentificare?next=/cabinet");
@@ -30,14 +32,13 @@ export default async function CabinetPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Badge className="rounded-full border border-[#dc2626]/15 bg-[#fff1f2] text-[#b91c1c] hover:bg-[#fff1f2]">
-            Cabinet personal
+            {messages.cabinet.badge}
           </Badge>
           <h1 className="mt-4 font-heading text-5xl uppercase tracking-[0.08em] text-[#111111]">
-            Biletele mele
+            {messages.cabinet.title}
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-neutral-600">
-            Aici vezi biletele emise, istoricul de scanare si accesul rapid spre PDF,
-            print si pagina individuala a fiecarui loc.
+            {messages.cabinet.description}
           </p>
         </div>
         <div className="rounded-[28px] border border-black/6 bg-white/80 px-5 py-4 text-sm text-neutral-600 shadow-[0_18px_60px_-42px_rgba(23,23,23,0.35)]">
@@ -46,35 +47,58 @@ export default async function CabinetPage() {
           </p>
           <p className="mt-1">
             {viewer.canReserve || viewer.isPrivileged
-              ? "Acces activ la emiterea biletelor gratuite"
-              : "Cabinet activ, fara drept de solicitare momentan"}
+              ? messages.cabinet.activeReserveAccess
+              : messages.cabinet.inactiveReserveAccess}
           </p>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <SummaryCard icon={Ticket} label="Bilete active" value={upcoming.length} />
-        <SummaryCard icon={CalendarClock} label="Meciuri viitoare" value={upcoming.length} />
-        <SummaryCard icon={Download} label="Istoric bilete" value={archived.length} />
-        <SummaryCard icon={UserRoundCheck} label="Abonamente active" value={activeSubscriptions.length} />
+        <SummaryCard
+          icon={Ticket}
+          label={messages.cabinet.summary.activeTickets}
+          value={upcoming.length}
+        />
+        <SummaryCard
+          icon={CalendarClock}
+          label={messages.cabinet.summary.upcomingMatches}
+          value={upcoming.length}
+        />
+        <SummaryCard
+          icon={Download}
+          label={messages.cabinet.summary.history}
+          value={archived.length}
+        />
+        <SummaryCard
+          icon={UserRoundCheck}
+          label={messages.cabinet.summary.subscriptions}
+          value={activeSubscriptions.length}
+        />
       </div>
 
       <div className="space-y-4">
         <SectionTitle
-          title="Abonamente"
-          subtitle="Daca ai primit un abonament anual sau semi-anual, il vezi aici."
+          title={messages.cabinet.sections.subscriptionsTitle}
+          subtitle={messages.cabinet.sections.subscriptionsSubtitle}
         />
         {activeSubscriptions.length ? (
           <div className="grid gap-4 md:grid-cols-2">
             {activeSubscriptions.map((subscription) => (
-              <Card key={subscription.id} className="surface-panel rounded-[28px] border border-white/70 bg-white/92">
+              <Card
+                key={subscription.id}
+                className="surface-panel rounded-[28px] border border-white/70 bg-white/92"
+              >
                 <CardContent className="space-y-2 p-5">
                   <p className="font-semibold text-[#111111]">{subscription.product.name}</p>
                   <p className="text-sm text-neutral-600">
-                    Valabil pana la {new Date(subscription.endsAt).toLocaleDateString("ro-RO")}
+                    {messages.cabinet.subscriptionValidUntil}{" "}
+                    {new Date(subscription.endsAt).toLocaleDateString(
+                      locale === "ru" ? "ru-RU" : "ro-RO",
+                    )}
                   </p>
                   <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
-                    {subscription.product.durationMonths} luni · {(subscription.pricePaidCents / 100).toFixed(2)} {subscription.currency}
+                    {subscription.product.durationMonths} {messages.cabinet.months} ·{" "}
+                    {(subscription.pricePaidCents / 100).toFixed(2)} {subscription.currency}
                   </p>
                 </CardContent>
               </Card>
@@ -82,46 +106,56 @@ export default async function CabinetPage() {
           </div>
         ) : (
           <EmptyState
-            title="Nu ai abonamente active"
-            description="Abonamentele alocate de administratie apar aici imediat."
+            title={messages.cabinet.empty.noSubscriptionsTitle}
+            description={messages.cabinet.empty.noSubscriptionsDescription}
           />
         )}
       </div>
 
       <div className="space-y-4">
         <SectionTitle
-          title="Meciuri urmatoare"
-          subtitle="Biletele active apar aici imediat dupa confirmarea emiterii."
+          title={messages.cabinet.sections.upcomingTitle}
+          subtitle={messages.cabinet.sections.upcomingSubtitle}
         />
         {upcoming.length ? (
           <div className="grid gap-4">
             {upcoming.map((ticket) => (
-              <TicketListItem key={ticket.ticketId} ticket={ticket} />
+              <TicketListItem
+                key={ticket.ticketId}
+                ticket={ticket}
+                locale={locale}
+                messages={messages}
+              />
             ))}
           </div>
         ) : (
           <EmptyState
-            title="Nu ai inca bilete active"
-            description="Dupa ce sunt emise bilete pentru contul tau, ele apar instant aici."
+            title={messages.cabinet.empty.noTicketsTitle}
+            description={messages.cabinet.empty.noTicketsDescription}
           />
         )}
       </div>
 
       <div className="space-y-4">
         <SectionTitle
-          title="Istoric si bilete folosite"
-          subtitle="Dupa meci poti verifica starea scanarii si istoricul accesului."
+          title={messages.cabinet.sections.historyTitle}
+          subtitle={messages.cabinet.sections.historySubtitle}
         />
         {archived.length ? (
           <div className="grid gap-4">
             {archived.map((ticket) => (
-              <TicketListItem key={ticket.ticketId} ticket={ticket} />
+              <TicketListItem
+                key={ticket.ticketId}
+                ticket={ticket}
+                locale={locale}
+                messages={messages}
+              />
             ))}
           </div>
         ) : (
           <EmptyState
-            title="Istoricul este inca gol"
-            description="Biletele scanate sau meciurile trecute vor aparea aici."
+            title={messages.cabinet.empty.noHistoryTitle}
+            description={messages.cabinet.empty.noHistoryDescription}
           />
         )}
       </div>

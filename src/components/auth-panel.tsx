@@ -6,35 +6,33 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { toast } from "sonner";
 
+import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { env, getMissingSupabasePublicEnvVars, isSupabaseConfigured } from "@/lib/env";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import {
-  env,
-  getMissingSupabasePublicEnvVars,
-  isSupabaseConfigured,
-} from "@/lib/env";
-
-const signInSchema = z.object({
-  email: z.string().email("Introdu o adresa de email valida."),
-  password: z.string().min(6, "Parola trebuie sa aiba minimum 6 caractere."),
-});
-
-const signUpSchema = signInSchema.extend({
-  fullName: z.string().min(3, "Introdu numele complet."),
-});
-
-const resetSchema = z.object({
-  email: z.string().email("Introdu o adresa de email valida."),
-});
 
 export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [mode, setMode] = useState("signin");
+  const { t } = useI18n();
+
+  const signInSchema = z.object({
+    email: z.string().email(t("auth.validation.email")),
+    password: z.string().min(6, t("auth.validation.password")),
+  });
+
+  const signUpSchema = signInSchema.extend({
+    fullName: z.string().min(3, t("auth.validation.fullName")),
+  });
+
+  const resetSchema = z.object({
+    email: z.string().email(t("auth.validation.email")),
+  });
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const missingSupabaseVars = getMissingSupabasePublicEnvVars();
@@ -46,8 +44,8 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
   function showMissingSupabaseConfigMessage() {
     toast.error(
       missingSupabaseVars.length
-        ? `Lipsesc variabilele publice Supabase: ${missingSupabaseVars.join(", ")}. Daca rulezi local, actualizeaza .env.local si reporneste serverul Next.`
-        : "Configuratia publica Supabase nu este disponibila in acest build. Daca rulezi local, reporneste serverul Next dupa ce actualizezi .env.local.",
+        ? `${t("auth.missingVarsPrefix")} ${missingSupabaseVars.join(", ")}.`
+        : t("auth.toasts.missingConfig"),
     );
   }
 
@@ -58,7 +56,7 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
     });
 
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Date invalide.");
+      toast.error(parsed.error.issues[0]?.message ?? t("auth.validation.invalidData"));
       return;
     }
 
@@ -78,7 +76,7 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
       return;
     }
 
-    toast.success("Autentificare reusita.");
+    toast.success(t("auth.toasts.signInSuccess"));
     router.push(nextPath);
     router.refresh();
   }
@@ -91,7 +89,7 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
     });
 
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Date invalide.");
+      toast.error(parsed.error.issues[0]?.message ?? t("auth.validation.invalidData"));
       return;
     }
 
@@ -121,13 +119,13 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
     }
 
     if (data.session) {
-      toast.success("Cont creat si autentificat.");
+      toast.success(t("auth.toasts.signUpSession"));
       router.push(nextPath);
       router.refresh();
       return;
     }
 
-    toast.success("Cont creat. Verifica emailul pentru confirmare.");
+    toast.success(t("auth.toasts.signUpSuccess"));
     setMode("signin");
   }
 
@@ -137,7 +135,7 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
     });
 
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Date invalide.");
+      toast.error(parsed.error.issues[0]?.message ?? t("auth.validation.invalidData"));
       return;
     }
 
@@ -159,19 +157,16 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
       return;
     }
 
-    toast.success("Link-ul pentru resetare a fost trimis pe email.");
+    toast.success(t("auth.toasts.resetSuccess"));
   }
 
   return (
     <Card className="surface-panel red-ring rounded-[32px] border border-white/60 bg-white/88">
       <CardHeader className="space-y-3">
         <CardTitle className="font-heading text-4xl uppercase tracking-[0.12em] text-[#111111]">
-          Intra in platforma
+          {t("auth.title")}
         </CardTitle>
-        <p className="text-sm leading-6 text-neutral-600">
-          Creeaza cont, intra in cabinet si acceseaza biletele QR emise pentru meciurile
-          la care ai primit drept de solicitare.
-        </p>
+        <p className="text-sm leading-6 text-neutral-600">{t("auth.description")}</p>
       </CardHeader>
       <CardContent>
         <Tabs value={mode} onValueChange={setMode}>
@@ -180,19 +175,19 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
               value="signin"
               className="rounded-full data-[state=active]:bg-[#dc2626] data-[state=active]:text-white"
             >
-              Login
+              {t("auth.tabs.signin")}
             </TabsTrigger>
             <TabsTrigger
               value="signup"
               className="rounded-full data-[state=active]:bg-[#dc2626] data-[state=active]:text-white"
             >
-              Cont nou
+              {t("auth.tabs.signup")}
             </TabsTrigger>
             <TabsTrigger
               value="reset"
               className="rounded-full data-[state=active]:bg-[#dc2626] data-[state=active]:text-white"
             >
-              Resetare
+              {t("auth.tabs.reset")}
             </TabsTrigger>
           </TabsList>
 
@@ -201,15 +196,19 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
               action={handleSignIn}
               className="grid gap-4 rounded-[28px] border border-black/6 bg-white p-5 shadow-[0_20px_50px_-36px_rgba(23,23,23,0.32)]"
             >
-              <Field name="signin-email" label="Email" type="email" />
-              <Field name="signin-password" label="Parola" type="password" />
+              <Field name="signin-email" label={t("auth.fields.email")} type="email" />
+              <Field
+                name="signin-password"
+                label={t("auth.fields.password")}
+                type="password"
+              />
               <Button
                 type="submit"
                 disabled={isPending}
                 className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
               >
                 {isPending ? <LoaderCircle className="animate-spin" /> : <Mail />}
-                Autentificare
+                {t("auth.actions.signin")}
               </Button>
             </form>
           </TabsContent>
@@ -219,16 +218,20 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
               action={handleSignUp}
               className="grid gap-4 rounded-[28px] border border-black/6 bg-white p-5 shadow-[0_20px_50px_-36px_rgba(23,23,23,0.32)]"
             >
-              <Field name="signup-name" label="Nume complet" />
-              <Field name="signup-email" label="Email" type="email" />
-              <Field name="signup-password" label="Parola" type="password" />
+              <Field name="signup-name" label={t("auth.fields.fullName")} />
+              <Field name="signup-email" label={t("auth.fields.email")} type="email" />
+              <Field
+                name="signup-password"
+                label={t("auth.fields.password")}
+                type="password"
+              />
               <Button
                 type="submit"
                 disabled={isPending}
                 className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
               >
                 {isPending ? <LoaderCircle className="animate-spin" /> : <UserPlus />}
-                Creeaza cont
+                {t("auth.actions.signup")}
               </Button>
             </form>
           </TabsContent>
@@ -238,7 +241,7 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
               action={handleReset}
               className="grid gap-4 rounded-[28px] border border-black/6 bg-white p-5 shadow-[0_20px_50px_-36px_rgba(23,23,23,0.32)]"
             >
-              <Field name="reset-email" label="Email" type="email" />
+              <Field name="reset-email" label={t("auth.fields.email")} type="email" />
               <Button
                 type="submit"
                 disabled={isPending}
@@ -249,7 +252,7 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
                 ) : (
                   <ShieldCheck />
                 )}
-                Trimite link de resetare
+                {t("auth.actions.reset")}
               </Button>
             </form>
           </TabsContent>

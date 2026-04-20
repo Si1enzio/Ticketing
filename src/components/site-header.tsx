@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, Menu } from "lucide-react";
 
+import { useI18n } from "@/components/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,13 +22,6 @@ import { mockViewer } from "@/lib/domain/mock";
 import type { ViewerContext } from "@/lib/domain/types";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-
-const navigation = [
-  { href: "/", label: "Meciuri" },
-  { href: "/cabinet", label: "Cabinet" },
-  { href: "/scanner", label: "Scanner" },
-  { href: "/admin", label: "Admin" },
-] as const;
 
 function toViewerContext(
   base: Omit<ViewerContext, "isAdmin" | "isAuthenticated" | "isPrivileged">,
@@ -66,6 +60,13 @@ function getHighestRole(viewer: ViewerContext) {
 export function SiteHeader() {
   const [viewer, setViewer] = useState<ViewerContext>(mockViewer);
   const router = useRouter();
+  const { locale, setLocale, t } = useI18n();
+  const navigation = [
+    { href: "/", label: t("common.matches") },
+    { href: "/cabinet", label: t("common.cabinet") },
+    { href: "/scanner", label: t("common.scanner") },
+    { href: "/admin", label: t("common.admin") },
+  ] as const;
 
   const syncViewer = useEffectEvent(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -171,7 +172,7 @@ export function SiteHeader() {
               <p className="font-heading text-lg uppercase tracking-[0.26em] text-[#111111]">
                 Milsami Ticketing
               </p>
-              <p className="text-xs text-neutral-500">Stadionul Municipal Orhei</p>
+              <p className="text-xs text-neutral-500">{t("header.venue")}</p>
             </div>
           </Link>
 
@@ -207,7 +208,7 @@ export function SiteHeader() {
                 className="rounded-full border-[#111111]/10 bg-white text-[#111111] hover:bg-neutral-100 lg:hidden"
               >
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">Deschide meniul</span>
+                <span className="sr-only">{t("common.openMenu")}</span>
               </Button>
             </SheetTrigger>
             <SheetContent
@@ -216,14 +217,37 @@ export function SiteHeader() {
             >
               <SheetHeader className="border-b border-black/6 px-5 pb-5">
                 <SheetTitle className="text-xl uppercase tracking-[0.18em] text-[#111111]">
-                  Meniu
+                  {t("common.menu")}
                 </SheetTitle>
                 <SheetDescription className="text-sm leading-6 text-neutral-500">
-                  Navigatie rapida pentru suporteri, stewardi si administratori.
+                  {t("header.menuDescription")}
                 </SheetDescription>
               </SheetHeader>
 
               <div className="grid gap-3 px-5 py-5">
+                <div className="rounded-[22px] border border-black/8 bg-neutral-50 px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-neutral-500">
+                    {t("common.language")}
+                  </p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant={locale === "ro" ? "default" : "outline"}
+                      onClick={() => setLocale("ro")}
+                      className="rounded-full"
+                    >
+                      {t("common.romanian")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={locale === "ru" ? "default" : "outline"}
+                      onClick={() => setLocale("ru")}
+                      className="rounded-full"
+                    >
+                      {t("common.russian")}
+                    </Button>
+                  </div>
+                </div>
                 {navigation.map((item) => {
                   const disabled = isNavItemDisabled(item.href, viewer);
                   if (shouldHideNavItem(item.href, viewer)) {
@@ -254,25 +278,25 @@ export function SiteHeader() {
                     {roleLabels[highestRole]}
                   </Badge>
                   <p className="mt-3 text-sm font-semibold text-[#111111]">
-                    {viewer.fullName ?? viewer.email ?? "Cont activ"}
+                    {viewer.fullName ?? viewer.email ?? t("header.activeAccount")}
                   </p>
                   <p className="mt-1 text-sm leading-6 text-neutral-500">
                     {viewer.isPrivileged
-                      ? "Acces administrativ activ"
+                      ? t("common.roleAdminAccess")
                       : viewer.canReserve
-                        ? "Poate solicita bilete gratuite"
+                        ? t("common.roleCanReserve")
                         : stewardOnly
-                          ? "Cont steward activ"
-                          : "Cabinet personal activ"}
+                          ? t("header.stewardOnly")
+                          : t("header.cabinetActive")}
                   </p>
                   {!stewardOnly ? (
                     <div className="mt-4">
                       <SheetClose asChild>
                         <Button
                           asChild
-                          className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
-                        >
-                          <Link href="/cabinet">Biletele mele</Link>
+                        className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+                      >
+                          <Link href="/cabinet">{t("common.tickets")}</Link>
                         </Button>
                       </SheetClose>
                     </div>
@@ -286,7 +310,7 @@ export function SiteHeader() {
                         className="w-full rounded-full border-black/10 bg-white text-[#111111] hover:bg-neutral-100"
                       >
                         <LogOut className="mr-2 h-4 w-4" />
-                        Log out
+                        {t("common.logout")}
                       </Button>
                     </SheetClose>
                   </div>
@@ -298,13 +322,32 @@ export function SiteHeader() {
                       asChild
                       className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
                     >
-                      <Link href="/autentificare">Autentificare</Link>
+                      <Link href="/autentificare">{t("common.login")}</Link>
                     </Button>
                   </SheetClose>
                 </div>
               )}
             </SheetContent>
           </Sheet>
+
+          <div className="hidden items-center gap-2 lg:flex">
+            <Button
+              type="button"
+              variant={locale === "ro" ? "default" : "outline"}
+              onClick={() => setLocale("ro")}
+              className="rounded-full"
+            >
+              RO
+            </Button>
+            <Button
+              type="button"
+              variant={locale === "ru" ? "default" : "outline"}
+              onClick={() => setLocale("ru")}
+              className="rounded-full"
+            >
+              RU
+            </Button>
+          </div>
 
           {viewer.isAuthenticated ? (
             <>
@@ -316,16 +359,16 @@ export function SiteHeader() {
               </Badge>
               <div className="hidden text-right sm:block">
                 <p className="text-sm font-semibold text-[#111111]">
-                  {viewer.fullName ?? viewer.email ?? "Cont activ"}
+                  {viewer.fullName ?? viewer.email ?? t("header.activeAccount")}
                 </p>
                 <p className="text-xs text-neutral-500">
                   {viewer.isPrivileged
-                    ? "Acces administrativ activ"
+                    ? t("common.roleAdminAccess")
                     : viewer.canReserve
-                      ? "Poate solicita bilete gratuite"
+                      ? t("common.roleCanReserve")
                       : stewardOnly
-                        ? "Cont steward"
-                        : "Cabinet personal"}
+                        ? t("common.roleSteward")
+                        : t("common.roleCabinet")}
                 </p>
               </div>
               {!stewardOnly ? (
@@ -333,7 +376,7 @@ export function SiteHeader() {
                   asChild
                   className="hidden rounded-full border border-[#dc2626] bg-[#dc2626] px-5 text-white hover:bg-[#b91c1c] sm:inline-flex"
                 >
-                  <Link href="/cabinet">Biletele mele</Link>
+                  <Link href="/cabinet">{t("common.tickets")}</Link>
                 </Button>
               ) : null}
             </>
@@ -342,7 +385,7 @@ export function SiteHeader() {
               asChild
               className="hidden rounded-full border border-[#dc2626] bg-[#dc2626] px-5 text-white hover:bg-[#b91c1c] sm:inline-flex"
             >
-              <Link href="/autentificare">Autentificare</Link>
+              <Link href="/autentificare">{t("common.login")}</Link>
             </Button>
           )}
         </div>
