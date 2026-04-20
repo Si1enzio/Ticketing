@@ -188,19 +188,28 @@ export async function getSeatMapForMatch(
       return mockSeatMap;
     }
 
-    const { data, error } = await supabase
-      .from("match_seat_status")
-      .select("*")
-      .eq("match_id", matchId)
-      .order("sector_sort_order", { ascending: true })
-      .order("row_sort_order", { ascending: true })
-      .order("seat_number", { ascending: true });
+    const { data, error } = await supabase.rpc("get_match_seat_status", {
+      p_match_id: matchId,
+    });
 
     if (error) {
       throw error;
     }
 
     const rows = (data ?? []) as Record<string, unknown>[];
+    rows.sort((left, right) => {
+      const sectorOrder = Number(left.sector_sort_order ?? 0) - Number(right.sector_sort_order ?? 0);
+      if (sectorOrder !== 0) {
+        return sectorOrder;
+      }
+
+      const rowOrder = Number(left.row_sort_order ?? 0) - Number(right.row_sort_order ?? 0);
+      if (rowOrder !== 0) {
+        return rowOrder;
+      }
+
+      return Number(left.seat_number ?? 0) - Number(right.seat_number ?? 0);
+    });
 
     const seats = rows.map((item) =>
       seatMapSeatSchema.parse({
@@ -214,7 +223,7 @@ export async function getSeatMapForMatch(
         seatLabel: item.seat_label,
         availability: item.availability_state,
         holdExpiresAt: item.hold_expires_at,
-        heldByCurrentUser: viewer.userId === item.held_by_user_id,
+        heldByCurrentUser: Boolean(item.held_by_current_user),
         gateName: item.gate_name,
       }),
     );
