@@ -283,11 +283,9 @@ export function SiteHeader() {
                   <p className="mt-1 text-sm leading-6 text-neutral-500">
                     {viewer.isPrivileged
                       ? t("common.roleAdminAccess")
-                      : viewer.canReserve
-                        ? t("common.roleCanReserve")
-                        : stewardOnly
-                          ? t("header.stewardOnly")
-                          : t("header.cabinetActive")}
+                      : stewardOnly
+                        ? t("header.stewardOnly")
+                        : t("header.cabinetActive")}
                   </p>
                   {!stewardOnly ? (
                     <div className="mt-4">
@@ -364,11 +362,9 @@ export function SiteHeader() {
                 <p className="text-xs text-neutral-500">
                   {viewer.isPrivileged
                     ? t("common.roleAdminAccess")
-                    : viewer.canReserve
-                      ? t("common.roleCanReserve")
-                      : stewardOnly
-                        ? t("common.roleSteward")
-                        : t("common.roleCabinet")}
+                    : stewardOnly
+                      ? t("common.roleSteward")
+                      : t("common.roleCabinet")}
                 </p>
               </div>
               {!stewardOnly ? (

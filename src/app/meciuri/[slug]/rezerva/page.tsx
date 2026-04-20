@@ -49,7 +49,7 @@ export default async function ReserveSeatPage({
         <p className="mt-3 max-w-3xl text-sm leading-7 text-neutral-600">
           {match.ticketingMode === "paid"
             ? "Acest meci foloseste checkout demo pentru procurare. Fluxul blocheaza locurile, confirma plata si emite instant biletele cu QR."
-            : "Acest meci foloseste emitere gratuita, cu drept controlat de admin pentru utilizatorii obisnuiti."}
+            : "Acest meci foloseste emitere gratuita. Locurile se blocheaza doar temporar, pentru cateva minute, cat timp confirmi emiterea biletelor."}
         </p>
       </div>
 
@@ -59,20 +59,6 @@ export default async function ReserveSeatPage({
           <AlertDescription>
             Solicitarea biletelor este blocata pana la{" "}
             {new Date(viewer.reservationBlockedUntil).toLocaleString("ro-RO")}.
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      {match.ticketingMode === "free" &&
-      viewer.isAuthenticated &&
-      !viewer.isPrivileged &&
-      !viewer.canReserve ? (
-        <Alert className="border-amber-200 bg-amber-50 text-amber-950">
-          <AlertTitle>Accesul la emiterea gratuita nu este activ</AlertTitle>
-          <AlertDescription>
-            Conturile noi nu pot selecta locuri la meciurile gratuite pana cand un admin nu
-            activeaza dreptul de emitere. Pentru procurare deschisa tuturor, foloseste un meci
-            marcat ca platit.
           </AlertDescription>
         </Alert>
       ) : null}

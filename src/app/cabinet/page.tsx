@@ -45,11 +45,7 @@ export default async function CabinetPage() {
           <p className="font-semibold text-[#111111]">
             {viewer.fullName ?? viewer.email ?? "Suporter demo"}
           </p>
-          <p className="mt-1">
-            {viewer.canReserve || viewer.isPrivileged
-              ? messages.cabinet.activeReserveAccess
-              : messages.cabinet.inactiveReserveAccess}
-          </p>
+          <p className="mt-1">{messages.cabinet.ticketingActive}</p>
         </div>
       </div>
 

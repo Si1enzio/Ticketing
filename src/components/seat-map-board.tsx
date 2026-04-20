@@ -58,12 +58,7 @@ export function SeatMapBoard({
   const [now, setNow] = useState(0);
   const [isPending, startTransition] = useTransition();
   const isPaidFlow = ticketingMode === "paid" && !viewer.isPrivileged;
-  const requiresReservationPermission = ticketingMode === "free" && !viewer.isPrivileged;
-  const missingFreeAccess = requiresReservationPermission && viewer.isAuthenticated && !viewer.canReserve;
-
-  const isReservationDisabled =
-    Boolean(viewer.reservationBlockedUntil) ||
-    missingFreeAccess;
+  const isTicketingDisabled = Boolean(viewer.reservationBlockedUntil);
 
   useEffect(() => {
     if (!holdState?.expiresAt) {
@@ -122,11 +117,9 @@ export function SeatMapBoard({
       return;
     }
 
-    if (isReservationDisabled) {
+    if (isTicketingDisabled) {
       toast.error(
-        ticketingMode === "free"
-          ? "Contul tau nu poate solicita bilete gratuite pentru acest meci."
-          : "Contul tau nu poate continua ticketing-ul pentru acest meci.",
+        "Contul tau nu poate continua ticketing-ul pentru acest meci.",
       );
       return;
     }
@@ -205,18 +198,10 @@ export function SeatMapBoard({
           <p className="max-w-3xl text-sm leading-6 text-neutral-600">
             {ticketingMode === "paid"
               ? `Acest meci foloseste procurare cu plata. Selectezi locurile, le blochezi temporar, apoi continui spre checkout pentru emiterea biletelor QR. Pretul curent este ${formatCurrencyFromCents(ticketPriceCents, currency)} pe loc.`
-              : "Acest meci foloseste emitere gratuita. Selectezi locurile, le blochezi temporar, apoi confirmi emiterea biletelor QR."}
+              : "Acest meci foloseste emitere gratuita. Selectezi locurile, le blochezi temporar pentru cateva minute, apoi confirmi emiterea biletelor QR."}
           </p>
         </CardHeader>
         <CardContent className="grid gap-6">
-          {missingFreeAccess ? (
-            <div className="rounded-[26px] border border-[#fecaca] bg-[#fff1f2] px-5 py-4 text-sm leading-6 text-[#991b1b]">
-              Acest meci foloseste emitere gratuita cu acces aprobat de admin. Pentru contul tau,
-              selectia locurilor ramane blocata pana cand primesti dreptul de emitere a
-              biletelor gratuite.
-            </div>
-          ) : null}
-
           {sectors.map((sector) => (
             <div
               key={sector.sectorId}
@@ -254,7 +239,7 @@ export function SeatMapBoard({
                           <button
                             key={seat.seatId}
                             type="button"
-                            disabled={isDisabled || isPending || isReservationDisabled}
+                            disabled={isDisabled || isPending || isTicketingDisabled}
                             onClick={() => toggleSeat(seat.seatId, seat.availability)}
                             className={cn(
                               "aspect-square rounded-2xl border text-xs font-semibold transition",
@@ -326,14 +311,6 @@ export function SeatMapBoard({
             </div>
           ) : null}
 
-          {viewer.isAuthenticated && !viewer.isPrivileged && !viewer.canReserve ? (
-            <div className="rounded-[26px] border border-[#fecaca]/20 bg-[#dc2626]/12 p-4 text-sm leading-6 text-white/80">
-              {ticketingMode === "free"
-                ? "Solicitarea biletelor gratuite este dezactivata pentru acest cont. Un admin trebuie sa iti acorde dreptul de acces."
-                : "Ticketing-ul pentru acest cont este restrictionat momentan pentru acest meci."}
-            </div>
-          ) : null}
-
           <div className="grid gap-3 rounded-[26px] border border-white/10 bg-white/5 p-4">
             <p className="text-xs uppercase tracking-[0.24em] text-[#fecaca]">
               Locuri selectate
@@ -397,19 +374,19 @@ export function SeatMapBoard({
                   isPending ||
                   !selectedSeatIds.length ||
                   Boolean(holdState) ||
-                  isReservationDisabled
+                  isTicketingDisabled
                 }
                 className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
               >
                 <LockKeyhole className="mr-2 h-4 w-4" />
                 {ticketingMode === "paid" && !viewer.isPrivileged
                   ? "Blocheaza locurile si continua la plata"
-                  : "Blocheaza locurile pentru emitere"}
+                  : "Blocheaza temporar locurile"}
               </Button>
               <Button
                 type="button"
                 onClick={confirmHold}
-                disabled={isPending || !holdState || isReservationDisabled || isPaidFlow}
+                disabled={isPending || !holdState || isTicketingDisabled || isPaidFlow}
                 className="rounded-full border border-white/10 bg-white text-[#111111] hover:bg-neutral-100"
               >
                 {viewer.isPrivileged ? (

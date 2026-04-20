@@ -38,7 +38,7 @@ export function MatchCard({
             >
               {match.ticketingMode === "paid"
                 ? t("matchCard.paidOpen")
-                : t("matchCard.freeManaged")}
+                : t("matchCard.freeOpen")}
             </Badge>
             <Badge
               variant="outline"
@@ -95,7 +95,7 @@ export function MatchCard({
           className="w-full rounded-full border-[#dc2626] bg-white text-[#b91c1c] hover:bg-[#fef2f2] sm:flex-1"
         >
           <Link href={`/meciuri/${match.slug}/rezerva`}>
-            {match.ticketingMode === "paid" ? t("matchCard.buyPaid") : t("matchCard.requestFree")}
+            {match.ticketingMode === "paid" ? t("matchCard.buyPaid") : t("matchCard.getFree")}
           </Link>
         </Button>
       </CardFooter>

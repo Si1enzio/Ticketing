@@ -16,7 +16,7 @@ export const messages = {
       romanian: "Romana",
       russian: "Rusa",
       roleAdminAccess: "Acces administrativ activ",
-      roleCanReserve: "Poate solicita bilete gratuite",
+      roleCanReserve: "Rezervari extinse active",
       roleSteward: "Cont steward",
       roleCabinet: "Cabinet personal",
       noGate: "Fara poarta alocata",
@@ -26,7 +26,7 @@ export const messages = {
       menuDescription: "Navigatie rapida pentru suporteri, stewardi si administratori.",
       activeAccount: "Cont activ",
       stewardOnly: "Cont steward activ",
-      reserveAccess: "Poate solicita bilete gratuite",
+      reserveAccess: "Ticketing disponibil",
       cabinetActive: "Cabinet personal activ",
     },
     footer: {
@@ -71,7 +71,7 @@ export const messages = {
       publishedBadge: "Meciuri publicate",
       publishedTitle: "Alege meciul si solicita-ti locul",
       publishedDescription:
-        "Biletele sunt gratuite in aceasta etapa, iar solicitarea lor poate fi activata per utilizator fara sa schimbam arhitectura pentru viitoarea plata online.",
+        "Biletele gratuite si cele cu plata pot fi obtinute imediat dupa autentificare, iar locurile raman blocate doar temporar in timpul selectiei.",
     },
     authPage: {
       badge: "Acces suporteri",
@@ -79,7 +79,7 @@ export const messages = {
       description:
         "Contul tau este baza pentru cabinetul personal, biletele emise sau procurate, PDF, partajare si istoricul de acces la stadion.",
       bullets: [
-        "Accesul la solicitarea biletelor poate fi acordat de admin per utilizator",
+        "Biletele gratuite sau cu plata pot fi obtinute imediat dupa autentificare",
         "QR unic pentru fiecare loc si validare atomica la scanare",
         "Creare cont rapida, resetare parola si acces imediat prin Supabase Auth",
       ],
@@ -87,7 +87,7 @@ export const messages = {
     auth: {
       title: "Intra in platforma",
       description:
-        "Creeaza cont, intra in cabinet si acceseaza biletele QR emise pentru meciurile la care ai primit drept de solicitare.",
+        "Creeaza cont, intra in cabinet si acceseaza biletele QR emise sau procurate imediat dupa selectia locurilor.",
       tabs: {
         signin: "Login",
         signup: "Cont nou",
@@ -124,8 +124,7 @@ export const messages = {
       title: "Biletele mele",
       description:
         "Aici vezi biletele emise, istoricul de scanare si accesul rapid spre PDF, print si pagina individuala a fiecarui loc.",
-      activeReserveAccess: "Acces activ la emiterea biletelor gratuite",
-      inactiveReserveAccess: "Cabinet activ, fara drept de solicitare momentan",
+      ticketingActive: "Ticketing activ pentru meciurile deschise publicului",
       summary: {
         activeTickets: "Bilete active",
         upcomingMatches: "Meciuri viitoare",
@@ -168,7 +167,7 @@ export const messages = {
     },
     matchCard: {
       estimatedSeats: "locuri estimate",
-      freeManaged: "Gratuit cu aprobare admin",
+      freeOpen: "Bilet gratuit",
       paidOpen: "Procurare cu plata",
       defaultDescription:
         "Bilet gratuit emis cu QR unic, acces steward si cabinet personal pentru suporteri.",
@@ -176,7 +175,7 @@ export const messages = {
       ticketsPerAccount: "bilete / cont",
       details: "Vezi detalii",
       requestSeats: "Solicita locuri",
-      requestFree: "Vezi emiterea gratuita",
+      getFree: "Obtine bilet gratuit",
       buyPaid: "Procura bilete",
     },
     ticketList: {
@@ -215,7 +214,7 @@ export const messages = {
       romanian: "Румынский",
       russian: "Русский",
       roleAdminAccess: "Административный доступ активен",
-      roleCanReserve: "Можно запрашивать бесплатные билеты",
+      roleCanReserve: "Расширенное резервирование активно",
       roleSteward: "Аккаунт стюарда",
       roleCabinet: "Личный кабинет",
       noGate: "Без назначенных ворот",
@@ -225,7 +224,7 @@ export const messages = {
       menuDescription: "Быстрая навигация для болельщиков, стюардов и администраторов.",
       activeAccount: "Активный аккаунт",
       stewardOnly: "Аккаунт стюарда активен",
-      reserveAccess: "Можно запрашивать бесплатные билеты",
+      reserveAccess: "Тикетинг доступен",
       cabinetActive: "Личный кабинет активен",
     },
     footer: {
@@ -323,8 +322,7 @@ export const messages = {
       title: "Мои билеты",
       description:
         "Здесь ты видишь выданные билеты, историю сканирования и быстрый доступ к PDF, печати и отдельной странице каждого места.",
-      activeReserveAccess: "Активирован доступ к выпуску бесплатных билетов",
-      inactiveReserveAccess: "Кабинет активен, но право запроса пока не выдано",
+      ticketingActive: "Тикетинг активен для матчей, открытых для публики",
       summary: {
         activeTickets: "Активные билеты",
         upcomingMatches: "Будущие матчи",
@@ -364,7 +362,7 @@ export const messages = {
     },
     matchCard: {
       estimatedSeats: "мест примерно",
-      freeManaged: "Бесплатно с одобрением админа",
+      freeOpen: "Бесплатный билет",
       paidOpen: "Платная покупка",
       defaultDescription:
         "Бесплатный билет с уникальным QR, доступом для стюарда и личным кабинетом болельщика.",
@@ -372,7 +370,7 @@ export const messages = {
       ticketsPerAccount: "билетов / аккаунт",
       details: "Подробнее",
       requestSeats: "Запросить места",
-      requestFree: "Открыть бесплатную выдачу",
+      getFree: "Получить бесплатный билет",
       buyPaid: "Купить билеты",
     },
     ticketList: {
