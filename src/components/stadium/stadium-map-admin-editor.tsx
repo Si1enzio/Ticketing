@@ -1003,7 +1003,7 @@ export function StadiumMapAdminEditor({
           }
         }}
       >
-        <DialogContent className="max-h-[92vh] w-[min(90vw,1440px)] max-w-none overflow-hidden rounded-[28px] p-0">
+        <DialogContent className="max-h-[92vh] w-[94vw] max-w-[1600px] overflow-hidden rounded-[28px] p-0 sm:max-w-[94vw] xl:w-[90vw] xl:max-w-[1600px]">
           {seatLayoutDraft ? (
             <div className="flex max-h-[92vh] flex-col">
               <DialogHeader className="shrink-0 border-b border-black/6 px-6 py-5">
@@ -1018,7 +1018,7 @@ export function StadiumMapAdminEditor({
 
               <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
                 <div className="grid gap-5">
-                <div className="grid gap-3 lg:grid-cols-4">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   <NumberField
                     label="Numar randuri"
                     value={seatLayoutDraft.rowsCount}
@@ -1060,9 +1060,10 @@ export function StadiumMapAdminEditor({
                       )
                     }
                   />
-                  <div className="rounded-[24px] border border-dashed border-black/10 bg-neutral-50 px-4 py-3 text-sm leading-6 text-neutral-600">
-                    Dialogul foloseste acum aproape toata latimea utila pe desktop si ramane complet in viewport.
-                  </div>
+                </div>
+
+                <div className="rounded-[24px] border border-dashed border-black/10 bg-neutral-50 px-4 py-3 text-sm leading-6 text-neutral-600">
+                  Dialogul foloseste acum aproape toata latimea utila pe desktop, iar continutul sau ramane complet in viewport.
                 </div>
 
                 <div className="overflow-auto rounded-[24px] border border-black/6 bg-neutral-50 p-4">
