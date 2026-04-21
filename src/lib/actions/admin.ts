@@ -50,6 +50,7 @@ const sponsorUpdateSchema = sponsorSchema.extend({
 const sectorSchema = z.object({
   stadiumId: z.string(),
   standId: z.string().optional(),
+  gateId: z.string().uuid().optional().or(z.literal("")),
   name: z.string().min(2),
   code: z.string().min(1),
   color: z.string().min(4),
@@ -239,6 +240,23 @@ async function ensureSeatsCanBeDeleted(
   }
 }
 
+async function syncSectorSeatsGate(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  sectorId: string,
+  gateId: string | null,
+) {
+  if (!supabase) {
+    return;
+  }
+
+  await supabase
+    .from("seats")
+    .update({
+      gate_id: gateId,
+    })
+    .eq("sector_id", sectorId);
+}
+
 async function syncSectorRowConfigsInMapConfig(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   stadiumId: string,
@@ -324,6 +342,7 @@ export async function createSectorAction(formData: FormData) {
   const parsed = sectorSchema.safeParse({
     stadiumId: formData.get("stadiumId"),
     standId: (formData.get("standId") || undefined) ?? undefined,
+    gateId: (formData.get("gateId") || undefined) ?? undefined,
     name: formData.get("name"),
     code: formData.get("code"),
     color: formData.get("color"),
@@ -343,6 +362,7 @@ export async function createSectorAction(formData: FormData) {
     .insert({
       stadium_id: parsed.data.stadiumId,
       stand_id: parsed.data.standId || null,
+      gate_id: parsed.data.gateId || null,
       name: parsed.data.name,
       code: parsed.data.code,
       color: parsed.data.color,
@@ -359,6 +379,7 @@ export async function createSectorAction(formData: FormData) {
       p_seats_per_row: parsed.data.seatsPerRow,
       p_replace_existing: true,
     });
+    await syncSectorSeatsGate(supabase, data.id, parsed.data.gateId || null);
     await logAudit(viewer.userId, "create_sector", "stadium_sectors", data.id, parsed.data);
   }
 
@@ -370,6 +391,7 @@ export async function createBuilderSectorAction(formData: FormData) {
   const parsed = builderSectorSchema.safeParse({
     stadiumId: formData.get("stadiumId"),
     standId: (formData.get("standId") || undefined) ?? undefined,
+    gateId: (formData.get("gateId") || undefined) ?? undefined,
     name: formData.get("name"),
     code: formData.get("code"),
     color: formData.get("color"),
@@ -395,6 +417,7 @@ export async function createBuilderSectorAction(formData: FormData) {
     .insert({
       stadium_id: parsed.data.stadiumId,
       stand_id: parsed.data.standId || null,
+      gate_id: parsed.data.gateId || null,
       name: parsed.data.name,
       code: parsed.data.code,
       color: parsed.data.color,
@@ -411,6 +434,7 @@ export async function createBuilderSectorAction(formData: FormData) {
       p_seats_per_row: parsed.data.seatsPerRow,
       p_replace_existing: true,
     });
+    await syncSectorSeatsGate(supabase, data.id, parsed.data.gateId || null);
 
     await logAudit(viewer.userId, "create_sector", "stadium_sectors", data.id, {
       ...parsed.data,
@@ -461,6 +485,7 @@ export async function updateSectorAction(formData: FormData) {
     sectorId: formData.get("sectorId"),
     stadiumId: formData.get("stadiumId"),
     standId: (formData.get("standId") || undefined) ?? undefined,
+    gateId: (formData.get("gateId") || undefined) ?? undefined,
     name: formData.get("name"),
     code: formData.get("code"),
     color: formData.get("color"),
@@ -504,6 +529,7 @@ export async function updateSectorAction(formData: FormData) {
     .update({
       stadium_id: parsed.data.stadiumId,
       stand_id: parsed.data.standId || null,
+      gate_id: parsed.data.gateId || null,
       name: parsed.data.name,
       code: parsed.data.code,
       color: parsed.data.color,
@@ -518,6 +544,7 @@ export async function updateSectorAction(formData: FormData) {
     p_seats_per_row: parsed.data.seatsPerRow,
     p_replace_existing: false,
   });
+  await syncSectorSeatsGate(supabase, parsed.data.sectorId, parsed.data.gateId || null);
 
   await logAudit(viewer.userId, "update_sector", "stadium_sectors", parsed.data.sectorId, parsed.data);
 
@@ -737,7 +764,7 @@ export async function saveSectorSeatLayoutAction(formData: FormData) {
 
   const { data: sector } = await supabase
     .from("stadium_sectors")
-    .select("id, stadium_id, name, code")
+    .select("id, stadium_id, gate_id, name, code")
     .eq("id", parsed.data.sectorId)
     .maybeSingle();
 
@@ -804,6 +831,7 @@ export async function saveSectorSeatLayoutAction(formData: FormData) {
         row_label: seat.rowLabel,
         seat_number: seat.seatNumber,
         seat_label: seat.seatLabel,
+        gate_id: sector.gate_id ?? null,
         is_disabled: false,
         is_obstructed: false,
         is_internal_only: false,

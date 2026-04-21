@@ -597,6 +597,35 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
             sectors: ["sector-e1"],
           },
         ],
+        gates: [
+          {
+            id: "demo-gate-west",
+            stadiumId: "demo-stadium",
+            name: "Poarta Vest",
+            code: "WEST",
+            description: "Acces principal pentru tribuna vest.",
+            sortOrder: 10,
+            isActive: true,
+          },
+          {
+            id: "demo-gate-east",
+            stadiumId: "demo-stadium",
+            name: "Poarta Est",
+            code: "EAST",
+            description: "Acces pentru tribuna est si sectorul family.",
+            sortOrder: 20,
+            isActive: true,
+          },
+          {
+            id: "demo-gate-north",
+            stadiumId: "demo-stadium",
+            name: "Poarta Nord",
+            code: "NORTH",
+            description: "Acces pentru peluze si staff operational.",
+            sortOrder: 30,
+            isActive: true,
+          },
+        ],
         sponsors: [
           {
             id: "demo-sponsor-1",
@@ -624,6 +653,16 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
               : sector.code.startsWith("E")
                 ? "demo-stand-east"
                 : null,
+          gateId: sector.code.startsWith("V")
+            ? "demo-gate-west"
+            : sector.code.startsWith("E")
+              ? "demo-gate-east"
+              : "demo-gate-north",
+          gateName: sector.code.startsWith("V")
+            ? "Poarta Vest"
+            : sector.code.startsWith("E")
+              ? "Poarta Est"
+              : "Poarta Nord",
           name: sector.name,
           code: sector.code,
           color: sector.color,
@@ -660,6 +699,7 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
     const [
       { data: stadiums, error: stadiumError },
       { data: stands, error: standError },
+      { data: gates, error: gateError },
       { data: sponsors, error: sponsorError },
       { data: sectors, error: sectorError },
       { data: seats, error: seatError },
@@ -671,13 +711,18 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
           .select("id, stadium_id, name, code, color")
           .order("sort_order"),
         supabase
+          .from("gates")
+          .select("id, stadium_id, name, code, description, sort_order, is_active")
+          .order("sort_order")
+          .order("name"),
+        supabase
           .from("stadium_sponsors")
           .select("id, stadium_id, name, logo_url, website_url, sort_order")
           .order("sort_order")
           .order("name"),
         supabase
           .from("stadium_sectors")
-          .select("id, stadium_id, stand_id, name, code, color, rows_count, seats_per_row")
+          .select("id, stadium_id, stand_id, gate_id, name, code, color, rows_count, seats_per_row")
           .order("sort_order"),
         supabase
           .from("seats")
@@ -686,12 +731,13 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
           .order("seat_number"),
       ]);
 
-    if (stadiumError || standError || sponsorError || sectorError || seatError) {
-      throw stadiumError ?? standError ?? sponsorError ?? sectorError ?? seatError;
+    if (stadiumError || standError || gateError || sponsorError || sectorError || seatError) {
+      throw stadiumError ?? standError ?? gateError ?? sponsorError ?? sectorError ?? seatError;
     }
 
     const stadiumRows = (stadiums ?? []) as Record<string, unknown>[];
     const standRows = (stands ?? []) as Record<string, unknown>[];
+    const gateRows = (gates ?? []) as Record<string, unknown>[];
     const sponsorRows = (sponsors ?? []) as Record<string, unknown>[];
     const sectorRows = (sectors ?? []) as Record<string, unknown>[];
     const seatRows = (seats ?? []) as Record<string, unknown>[];
@@ -717,6 +763,19 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
           acc[stadiumId] = [];
         }
         acc[stadiumId].push(stand);
+        return acc;
+      },
+      {},
+    );
+
+    const gatesByStadium = gateRows.reduce<Record<string, Record<string, unknown>[]>>(
+      (acc, gate) => {
+        const stadiumId = String(gate.stadium_id);
+
+        if (!acc[stadiumId]) {
+          acc[stadiumId] = [];
+        }
+        acc[stadiumId].push(gate);
         return acc;
       },
       {},
@@ -766,6 +825,15 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
             .filter((sector) => String(sector.stand_id ?? "") === String(stand.id))
             .map((sector) => String(sector.id)),
         })),
+        gates: (gatesByStadium[stadiumId] ?? []).map((gate) => ({
+          id: String(gate.id),
+          stadiumId,
+          name: String(gate.name),
+          code: String(gate.code),
+          description: gate.description ? String(gate.description) : null,
+          sortOrder: Number(gate.sort_order ?? 0),
+          isActive: Boolean(gate.is_active),
+        })),
         sponsors: (sponsorsByStadium[stadiumId] ?? []).map((sponsor) => ({
           id: String(sponsor.id),
           stadiumId,
@@ -777,11 +845,18 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
         sectors: (sectorsByStadium[stadiumId] ?? []).map(
           (sector: Record<string, unknown>) => {
             const sectorId = String(sector.id);
+            const gateId = sector.gate_id ? String(sector.gate_id) : null;
+            const gateName =
+              gateId
+                ? (gatesByStadium[stadiumId] ?? []).find((gate) => String(gate.id) === gateId)?.name
+                : null;
 
             return {
               id: sectorId,
               stadiumId: String(sector.stadium_id),
               standId: sector.stand_id ? String(sector.stand_id) : null,
+              gateId,
+              gateName: gateName ? String(gateName) : null,
               name: String(sector.name),
               code: String(sector.code),
               color: String(sector.color),

@@ -213,6 +213,18 @@ export const stadiumStandSchema = z.object({
 
 export type StadiumStand = z.infer<typeof stadiumStandSchema>;
 
+export const stadiumGateSchema = z.object({
+  id: z.string(),
+  stadiumId: z.string(),
+  name: z.string(),
+  code: z.string(),
+  description: z.string().nullable().default(null),
+  sortOrder: z.coerce.number().int().default(0),
+  isActive: z.boolean().default(true),
+});
+
+export type StadiumGate = z.infer<typeof stadiumGateSchema>;
+
 export const stadiumSponsorSchema = z.object({
   id: z.string(),
   stadiumId: z.string(),
@@ -240,6 +252,8 @@ export const stadiumSectorSchema = z.object({
   id: z.string(),
   stadiumId: z.string(),
   standId: z.string().nullable().default(null),
+  gateId: z.string().nullable().default(null),
+  gateName: z.string().nullable().default(null),
   name: z.string(),
   code: z.string(),
   color: z.string(),
@@ -256,6 +270,7 @@ export const stadiumBuilderSchema = z.object({
   slug: z.string(),
   city: z.string(),
   stands: z.array(stadiumStandSchema).default([]),
+  gates: z.array(stadiumGateSchema).default([]),
   sponsors: z.array(stadiumSponsorSchema).default([]),
   sectors: z.array(stadiumSectorSchema),
 });

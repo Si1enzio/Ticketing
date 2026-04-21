@@ -151,6 +151,20 @@ export default async function AdminStadiumPage({
                   })),
                 )}
               />
+              <SelectField
+                name="gateId"
+                label="Poarta implicita"
+                allowEmpty
+                emptyLabel="Fara poarta alocata"
+                options={stadiums.flatMap((stadium) =>
+                  stadium.gates
+                    .filter((gate) => gate.isActive)
+                    .map((gate) => ({
+                      value: gate.id,
+                      label: `${stadium.name} - ${gate.name} (${gate.code})`,
+                    })),
+                )}
+              />
               <Field name="name" label="Nume sector" />
               <Field name="code" label="Cod" />
               <Field name="color" label="Culoare" defaultValue="#dc2626" />
@@ -417,6 +431,12 @@ export default async function AdminStadiumPage({
                               value: item.id,
                               label: `${item.name} (${item.code})`,
                             }))}
+                            gateOptions={stadium.gates
+                              .filter((gate) => gate.isActive)
+                              .map((gate) => ({
+                                value: gate.id,
+                                label: `${gate.name} (${gate.code})`,
+                              }))}
                           />
                         ))}
                       </div>
@@ -443,6 +463,12 @@ export default async function AdminStadiumPage({
                             value: item.id,
                             label: `${item.name} (${item.code})`,
                           }))}
+                          gateOptions={stadium.gates
+                            .filter((gate) => gate.isActive)
+                            .map((gate) => ({
+                              value: gate.id,
+                              label: `${gate.name} (${gate.code})`,
+                            }))}
                         />
                       ))}
                     </div>
@@ -461,10 +487,13 @@ function SectorEditor({
   sector,
   stadiumId,
   standOptions,
+  gateOptions,
 }: {
   sector: {
     id: string;
     standId: string | null;
+    gateId: string | null;
+    gateName: string | null;
     name: string;
     code: string;
     color: string;
@@ -482,6 +511,7 @@ function SectorEditor({
   };
   stadiumId: string;
   standOptions: Array<{ value: string; label: string }>;
+  gateOptions: Array<{ value: string; label: string }>;
 }) {
   return (
     <div className="grid gap-5 rounded-[24px] border border-black/6 bg-white/90 p-5">
@@ -492,11 +522,14 @@ function SectorEditor({
           <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
             {sector.code} - {sector.rowsCount} randuri - {sector.seatsPerRow} locuri/rand
           </p>
+          <p className="mt-1 text-xs text-neutral-500">
+            Poarta implicita: {sector.gateName ?? "Fara poarta alocata"}
+          </p>
         </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1fr_auto]">
-        <form action={updateSectorAction} className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+        <form action={updateSectorAction} className="grid gap-4 md:grid-cols-2 xl:grid-cols-8">
           <input type="hidden" name="sectorId" value={sector.id} />
           <input type="hidden" name="stadiumId" value={stadiumId} />
           <SelectField
@@ -506,6 +539,14 @@ function SectorEditor({
             emptyLabel="Fara tribuna"
             options={standOptions}
             defaultValue={sector.standId ?? ""}
+          />
+          <SelectField
+            name="gateId"
+            label="Poarta implicita"
+            allowEmpty
+            emptyLabel="Fara poarta alocata"
+            options={gateOptions}
+            defaultValue={sector.gateId ?? ""}
           />
           <Field
             name={`sector-name-${sector.id}`}
