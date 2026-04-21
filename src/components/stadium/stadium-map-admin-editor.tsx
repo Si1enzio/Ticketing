@@ -257,7 +257,9 @@ export function StadiumMapAdminEditor({
                 Poti trage cu cursorul sectoarele de tip `rectangle`, `trapezoid`, `curve`,
                 `polygon` sau `arc`. Terenul si alte elemente decorative `rect` pot fi mutate,
                 iar terenul poate fi si redimensionat din handle-ul rosu din colt. Pentru
-                `custom-path`, ajustezi path-ul sau label-ul din configuratie.
+                `custom-path`, ajustezi path-ul sau label-ul din configuratie. Dupa ce selectezi
+                un sector, poti folosi si tastele sageti pentru mutare fina, iar cu `Shift` faci
+                pas mai mare.
               </p>
             </div>
             <StadiumLegend mode="overview" />

@@ -1,6 +1,11 @@
 "use client";
 
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 import { useI18n } from "@/components/i18n-provider";
 import { StadiumSector } from "@/components/stadium/stadium-sector";
@@ -197,6 +202,37 @@ export function StadiumMapRenderer({
     setDragState(null);
   }
 
+  function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!editable || !selectedSectorCode || !onSectorDrag) {
+      return;
+    }
+
+    const step = event.shiftKey ? 10 : 2;
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      onSectorDrag(selectedSectorCode, 0, -step);
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      onSectorDrag(selectedSectorCode, 0, step);
+      return;
+    }
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      onSectorDrag(selectedSectorCode, -step, 0);
+      return;
+    }
+
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      onSectorDrag(selectedSectorCode, step, 0);
+    }
+  }
+
   return (
     <div className="grid gap-4 rounded-[28px] border border-black/6 bg-neutral-50 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -215,7 +251,11 @@ export function StadiumMapRenderer({
         ) : null}
       </div>
 
-      <div className="overflow-hidden rounded-[28px] border border-black/6 bg-white p-3">
+      <div
+        className="overflow-hidden rounded-[28px] border border-black/6 bg-white p-3 outline-none focus-visible:ring-2 focus-visible:ring-[#dc2626]/40"
+        tabIndex={editable ? 0 : -1}
+        onKeyDown={handleKeyDown}
+      >
         <svg
           ref={svgRef}
           viewBox={`${config.viewBox.minX} ${config.viewBox.minY} ${config.viewBox.width} ${config.viewBox.height}`}
