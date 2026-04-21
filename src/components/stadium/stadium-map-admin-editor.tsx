@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from "react";
 
-import { saveStadiumMapConfigAction } from "@/lib/actions/admin";
+import {
+  createBuilderSectorAction,
+  deleteBuilderSectorAction,
+  saveSectorSeatLayoutAction,
+  saveStadiumMapConfigAction,
+} from "@/lib/actions/admin";
 import type { StadiumBuilder } from "@/lib/domain/types";
 import {
   resizeRectDecoration,
@@ -11,9 +16,22 @@ import {
 } from "@/lib/stadium/stadium-geometry";
 import { stadiumMapConfigSchema } from "@/lib/stadium/stadium-schema";
 import type { StadiumMapConfig } from "@/lib/stadium/stadium-types";
-import { buildRenderableSectors, convertStadiumBuilderSectorsToSeatMap, createFallbackStadiumMapConfig } from "@/lib/stadium/stadium-utils";
+import {
+  buildRenderableSectors,
+  convertStadiumBuilderSectorsToSeatMap,
+  createFallbackStadiumMapConfig,
+  reconcileStadiumMapConfigWithBuilder,
+} from "@/lib/stadium/stadium-utils";
 import { StadiumLegend } from "@/components/stadium/stadium-legend";
 import { StadiumMapRenderer } from "@/components/stadium/stadium-map-renderer";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,16 +44,94 @@ type StadiumMapConfigRecord = {
   config: StadiumMapConfig;
 };
 
+type SeatLayoutDraft = {
+  sectorId: string;
+  sectorName: string;
+  rowsCount: number;
+  seatsPerRow: number;
+  rows: Array<{
+    label: string;
+    cells: Array<{ kind: "seat" | "gap" }>;
+  }>;
+};
+
 function buildInitialConfig(stadium: StadiumBuilder, saved?: StadiumMapConfig | null) {
   if (saved) {
-    return saved;
+    return reconcileStadiumMapConfigWithBuilder(stadium, saved);
   }
 
-  return createFallbackStadiumMapConfig({
-    mapKey: stadium.slug,
-    stadiumName: stadium.name,
-    sectors: convertStadiumBuilderSectorsToSeatMap(stadium),
+  return reconcileStadiumMapConfigWithBuilder(
+    stadium,
+    createFallbackStadiumMapConfig({
+      mapKey: stadium.slug,
+      stadiumName: stadium.name,
+      sectors: convertStadiumBuilderSectorsToSeatMap(stadium),
+    }),
+  );
+}
+
+function createSeatLayoutDraft(
+  sector: StadiumBuilder["sectors"][number],
+  configSector?: StadiumMapConfig["sectors"][number] | null,
+): SeatLayoutDraft {
+  const rowLabels = Array.from({ length: sector.rowsCount }, (_, index) => String(index + 1));
+  const rowConfigsByLabel = new Map(
+    (configSector?.rowConfigs ?? []).map((row) => [row.label, row]),
+  );
+  const seatsByRowAndNumber = new Set(
+    sector.seats.map((seat) => `${seat.rowLabel}::${seat.seatNumber}`),
+  );
+
+  return {
+    sectorId: sector.id,
+    sectorName: sector.name,
+    rowsCount: sector.rowsCount,
+    seatsPerRow: sector.seatsPerRow,
+    rows: rowLabels.map((label) => {
+      const rowConfig = rowConfigsByLabel.get(label);
+
+      return {
+        label,
+        cells: Array.from({ length: sector.seatsPerRow }, (_, index) => {
+          if (rowConfig?.seats[index]) {
+            return {
+              kind: rowConfig.seats[index].kind === "seat" ? "seat" : "gap",
+            };
+          }
+
+          return {
+            kind: seatsByRowAndNumber.has(`${label}::${index + 1}`) ? "seat" : "gap",
+          };
+        }),
+      };
+    }),
+  };
+}
+
+function resizeSeatLayoutDraft(
+  current: SeatLayoutDraft,
+  rowsCount: number,
+  seatsPerRow: number,
+): SeatLayoutDraft {
+  const nextRows = Array.from({ length: rowsCount }, (_, rowIndex) => {
+    const existingRow = current.rows[rowIndex];
+    const label = existingRow?.label ?? String(rowIndex + 1);
+    const cells = Array.from({ length: seatsPerRow }, (_, seatIndex) => {
+      return existingRow?.cells[seatIndex] ?? { kind: "seat" as const };
+    });
+
+    return {
+      label,
+      cells,
+    };
   });
+
+  return {
+    ...current,
+    rowsCount,
+    seatsPerRow,
+    rows: nextRows,
+  };
 }
 
 export function StadiumMapAdminEditor({
@@ -77,6 +173,7 @@ export function StadiumMapAdminEditor({
   );
   const [selectedPreviewSectorCode, setSelectedPreviewSectorCode] = useState<string | null>(null);
   const [selectedDecorationId, setSelectedDecorationId] = useState<string | null>(null);
+  const [seatLayoutDraft, setSeatLayoutDraft] = useState<SeatLayoutDraft | null>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const config = selectedStadium ? configByStadium[selectedStadium.id] ?? buildInitialConfig(selectedStadium, savedConfig) : null;
   const rawJson = selectedStadium ? rawJsonByStadium[selectedStadium.id] ?? (config ? JSON.stringify(config, null, 2) : "") : "";
@@ -89,6 +186,11 @@ export function StadiumMapAdminEditor({
   const renderableSectors = useMemo(
     () => (config ? buildRenderableSectors(config, previewSectors, []) : []),
     [config, previewSectors],
+  );
+  const actualSectorsByCode = useMemo(
+    () =>
+      new Map((selectedStadium?.sectors ?? []).map((sector) => [sector.code, sector])),
+    [selectedStadium],
   );
   const effectivePreviewSectorCode =
     selectedPreviewSectorCode &&
@@ -242,6 +344,86 @@ export function StadiumMapAdminEditor({
               Porneste de la structura reala a stadionului si ajusteaza apoi sectoarele.
             </p>
           </div>
+
+          <form action={createBuilderSectorAction} className="grid gap-3 rounded-[24px] border border-black/6 bg-white p-4">
+            <input type="hidden" name="stadiumId" value={selectedStadium.id} />
+            <p className="text-xs uppercase tracking-[0.24em] text-[#b91c1c]">
+              Sector nou in builder
+            </p>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="builder-sector-name">Nume sector</Label>
+                <Input
+                  id="builder-sector-name"
+                  name="name"
+                  placeholder="Ex: Peluza Sud D"
+                  className="rounded-2xl bg-white"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="builder-sector-code">Cod</Label>
+                <Input
+                  id="builder-sector-code"
+                  name="code"
+                  placeholder="Ex: S4"
+                  className="rounded-2xl bg-white"
+                />
+              </div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-4">
+              <div className="grid gap-2">
+                <Label htmlFor="builder-sector-stand">Tribuna</Label>
+                <select
+                  id="builder-sector-stand"
+                  name="standId"
+                  className="h-10 rounded-2xl border border-black/8 bg-white px-3 text-sm text-[#111111] outline-none focus:border-[#dc2626]"
+                  defaultValue=""
+                >
+                  <option value="">Fara tribuna</option>
+                  {selectedStadium.stands.map((stand) => (
+                    <option key={stand.id} value={stand.id}>
+                      {stand.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="builder-sector-color">Culoare</Label>
+                <Input
+                  id="builder-sector-color"
+                  name="color"
+                  defaultValue="#dc2626"
+                  className="rounded-2xl bg-white"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="builder-sector-rows">Randuri</Label>
+                <Input
+                  id="builder-sector-rows"
+                  name="rowsCount"
+                  type="number"
+                  defaultValue="6"
+                  className="rounded-2xl bg-white"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="builder-sector-seats">Locuri / rand</Label>
+                <Input
+                  id="builder-sector-seats"
+                  name="seatsPerRow"
+                  type="number"
+                  defaultValue="12"
+                  className="rounded-2xl bg-white"
+                />
+              </div>
+            </div>
+            <Button
+              type="submit"
+              className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+            >
+              Adauga sector in builder
+            </Button>
+          </form>
         </div>
 
         <div className="grid gap-4">
@@ -431,12 +613,53 @@ export function StadiumMapAdminEditor({
       ) : null}
 
       <div className="grid gap-4">
-        {config.sectors.map((sector, index) => (
-          <div
-            key={`${sector.code}-${index}`}
-            className="grid gap-4 rounded-[28px] border border-black/6 bg-white p-5"
-          >
-            <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr_1fr_1fr]">
+        {config.sectors.map((sector, index) => {
+          const actualSector = actualSectorsByCode.get(sector.code) ?? null;
+
+          return (
+            <div
+              key={`${sector.code}-${index}`}
+              className="grid gap-4 rounded-[28px] border border-black/6 bg-white p-5"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
+                    {sector.code} {actualSector ? `- ${actualSector.rowsCount} randuri / ${actualSector.seatsPerRow} locuri` : "- doar in configuratie"}
+                  </p>
+                  <p className="mt-1 font-semibold text-[#111111]">
+                    {sector.mapTitle ?? sector.code} / {sector.mapSubtitle ?? sector.defaultLabel}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {actualSector ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-full border-[#111111] bg-white text-[#111111]"
+                      onClick={() => {
+                        setSeatLayoutDraft(createSeatLayoutDraft(actualSector, sector));
+                        setSelectedPreviewSectorCode(sector.code);
+                      }}
+                    >
+                      Setare / editare locuri
+                    </Button>
+                  ) : null}
+                  {actualSector ? (
+                    <form action={deleteBuilderSectorAction}>
+                      <input type="hidden" name="sectorId" value={actualSector.id} />
+                      <Button
+                        type="submit"
+                        variant="destructive"
+                        className="rounded-full border border-[#b91c1c] bg-[#fff1f2] text-[#b91c1c] hover:bg-[#ffe4e6]"
+                      >
+                        Sterge sectorul
+                      </Button>
+                    </form>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr_1fr_1fr]">
               <div className="grid gap-2">
                 <Label>Cod sector</Label>
                 <Input
@@ -670,8 +893,175 @@ export function StadiumMapAdminEditor({
               </label>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
+
+      <Dialog
+        open={Boolean(seatLayoutDraft)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSeatLayoutDraft(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-[min(1000px,calc(100%-2rem))] rounded-[28px] p-0">
+          {seatLayoutDraft ? (
+            <>
+              <DialogHeader className="border-b border-black/6 px-6 py-5">
+                <DialogTitle className="text-2xl uppercase tracking-[0.08em] text-[#111111]">
+                  Setare / editare locuri
+                </DialogTitle>
+                <DialogDescription className="text-sm leading-6 text-neutral-600">
+                  Configurezi randurile, locurile si golurile din {seatLayoutDraft.sectorName}.
+                  Click pe un slot pentru a-l comuta intre `loc` si `spatiu gol`.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid gap-5 px-6 py-5">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <NumberField
+                    label="Numar randuri"
+                    value={seatLayoutDraft.rowsCount}
+                    onChange={(value) =>
+                      setSeatLayoutDraft((current) =>
+                        current
+                          ? resizeSeatLayoutDraft(
+                              current,
+                              Math.max(1, value),
+                              current.seatsPerRow,
+                            )
+                          : current,
+                      )
+                    }
+                  />
+                  <NumberField
+                    label="Locuri / rand"
+                    value={seatLayoutDraft.seatsPerRow}
+                    onChange={(value) =>
+                      setSeatLayoutDraft((current) =>
+                        current
+                          ? resizeSeatLayoutDraft(
+                              current,
+                              current.rowsCount,
+                              Math.max(1, value),
+                            )
+                          : current,
+                      )
+                    }
+                  />
+                  <div className="rounded-[24px] border border-dashed border-black/10 bg-neutral-50 px-4 py-3 text-sm leading-6 text-neutral-600">
+                    `Shift` + sageti ramane pentru mutarea sectorului; aici configurezi structura interna a locurilor.
+                  </div>
+                </div>
+
+                <div className="max-h-[55vh] overflow-auto rounded-[24px] border border-black/6 bg-neutral-50 p-4">
+                  <div className="grid gap-4">
+                    {seatLayoutDraft.rows.map((row, rowIndex) => (
+                      <div
+                        key={`${row.label}-${rowIndex}`}
+                        className="grid gap-3 rounded-[20px] border border-black/6 bg-white p-4"
+                      >
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Label className="min-w-20">Rand</Label>
+                          <Input
+                            value={row.label}
+                            onChange={(event) =>
+                              setSeatLayoutDraft((current) =>
+                                current
+                                  ? {
+                                      ...current,
+                                      rows: current.rows.map((item, itemIndex) =>
+                                        itemIndex === rowIndex
+                                          ? { ...item, label: event.target.value || String(rowIndex + 1) }
+                                          : item,
+                                      ),
+                                    }
+                                  : current,
+                              )
+                            }
+                            className="max-w-32 rounded-2xl bg-white"
+                          />
+                          <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
+                            Click pe celula pentru toggle
+                          </p>
+                        </div>
+
+                        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${seatLayoutDraft.seatsPerRow}, minmax(0, 1fr))` }}>
+                          {row.cells.map((cell, cellIndex) => (
+                            <button
+                              key={`${row.label}-${cellIndex + 1}`}
+                              type="button"
+                              onClick={() =>
+                                setSeatLayoutDraft((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        rows: current.rows.map((item, itemIndex) =>
+                                          itemIndex === rowIndex
+                                            ? {
+                                                ...item,
+                                                cells: item.cells.map((slot, slotIndex) =>
+                                                  slotIndex === cellIndex
+                                                    ? { kind: slot.kind === "seat" ? "gap" : "seat" }
+                                                    : slot,
+                                                ),
+                                              }
+                                            : item,
+                                        ),
+                                      }
+                                    : current,
+                                )
+                              }
+                              className={`rounded-2xl border px-2 py-3 text-center text-sm font-semibold transition ${
+                                cell.kind === "seat"
+                                  ? "border-[#111111] bg-[#111111] text-white"
+                                  : "border-dashed border-[#d4d4d8] bg-white text-neutral-400"
+                              }`}
+                            >
+                              <span className="block text-xs uppercase tracking-[0.18em] opacity-70">
+                                {cell.kind === "seat" ? "loc" : "gol"}
+                              </span>
+                              <span className="mt-1 block">{cell.kind === "seat" ? cellIndex + 1 : "—"}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="px-6">
+                <form action={saveSectorSeatLayoutAction} className="flex w-full flex-wrap items-center justify-end gap-3">
+                  <input type="hidden" name="sectorId" value={seatLayoutDraft.sectorId} />
+                  <input type="hidden" name="rowsCount" value={seatLayoutDraft.rowsCount} />
+                  <input type="hidden" name="seatsPerRow" value={seatLayoutDraft.seatsPerRow} />
+                  <input
+                    type="hidden"
+                    name="layoutJson"
+                    value={JSON.stringify(seatLayoutDraft.rows)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full border-[#111111] bg-white text-[#111111]"
+                    onClick={() => setSeatLayoutDraft(null)}
+                  >
+                    Inchide
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+                  >
+                    Salveaza locurile
+                  </Button>
+                </form>
+              </DialogFooter>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <div className="grid gap-4 rounded-[28px] border border-black/6 bg-neutral-50 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">

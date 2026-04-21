@@ -96,6 +96,24 @@ const stadiumMapConfigSaveSchema = z.object({
   configJson: z.string().min(2),
 });
 
+const sectorLayoutCellSchema = z.object({
+  kind: z.enum(["seat", "gap"]),
+});
+
+const sectorLayoutRowSchema = z.object({
+  label: z.string().min(1),
+  cells: z.array(sectorLayoutCellSchema).min(1),
+});
+
+const builderSectorSchema = sectorSchema;
+
+const sectorSeatLayoutSaveSchema = z.object({
+  sectorId: z.string(),
+  rowsCount: z.coerce.number().int().min(1),
+  seatsPerRow: z.coerce.number().int().min(1),
+  layoutJson: z.string().min(2),
+});
+
 const userBlockSchema = z.object({
   userId: z.string(),
   type: z.enum(["warning", "block", "temp_ban"]),
@@ -180,6 +198,91 @@ function redirectToAdminStadiumMap(params: Record<string, string>): never {
   redirect(`/admin/stadion/harta?${query.toString()}`);
 }
 
+async function ensureSeatsCanBeDeleted(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  seatIds: string[],
+  redirectFn: (params: Record<string, string>) => never,
+) {
+  if (!supabase || !seatIds.length) {
+    return;
+  }
+
+  const nowIso = new Date().toISOString();
+  const [{ count: activeHoldCount }, { count: reservationItemCount }, { count: ticketCount }] =
+    await Promise.all([
+      supabase
+        .from("seat_holds")
+        .select("id", { count: "exact", head: true })
+        .in("seat_id", seatIds)
+        .eq("status", "active")
+        .gt("expires_at", nowIso),
+      supabase
+        .from("reservation_items")
+        .select("id", { count: "exact", head: true })
+        .in("seat_id", seatIds),
+      supabase.from("tickets").select("id", { count: "exact", head: true }).in("seat_id", seatIds),
+    ]);
+
+  if ((activeHoldCount ?? 0) > 0) {
+    redirectFn({
+      error:
+        "Operatiunea nu poate continua cat timp unele locuri au hold-uri active. Asteapta expirarea lor si incearca din nou.",
+    });
+  }
+
+  if ((reservationItemCount ?? 0) > 0 || (ticketCount ?? 0) > 0) {
+    redirectFn({
+      error:
+        "Operatiunea nu poate continua deoarece unele locuri sunt deja legate de rezervari sau bilete emise.",
+    });
+  }
+}
+
+async function syncSectorRowConfigsInMapConfig(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  stadiumId: string,
+  sectorCode: string,
+  rowConfigs: Array<{
+    id: string;
+    label: string;
+    sortOrder: number;
+    seats: Array<{ key: string; kind: "seat" | "gap"; number?: number; label?: string }>;
+  }>,
+) {
+  if (!supabase) {
+    return;
+  }
+
+  const { data } = await supabase
+    .from("stadium_map_configs")
+    .select("id, config")
+    .eq("stadium_id", stadiumId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  const row = data as { id?: string; config?: z.infer<typeof stadiumMapConfigSchema> } | null;
+  if (!row?.id || !row.config) {
+    return;
+  }
+
+  const nextConfig = {
+    ...row.config,
+    sectors: row.config.sectors.map((sector) =>
+      sector.code === sectorCode
+        ? {
+            ...sector,
+            rowConfigs,
+          }
+        : sector,
+    ),
+  };
+
+  await supabase
+    .from("stadium_map_configs")
+    .update({ config: nextConfig })
+    .eq("id", row.id);
+}
+
 export async function createStadiumAction(formData: FormData) {
   const viewer = await ensureAdmin();
   const parsed = stadiumSchema.safeParse({
@@ -258,6 +361,66 @@ export async function createSectorAction(formData: FormData) {
   }
 
   revalidatePath("/admin/stadion");
+}
+
+export async function createBuilderSectorAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = builderSectorSchema.safeParse({
+    stadiumId: formData.get("stadiumId"),
+    standId: (formData.get("standId") || undefined) ?? undefined,
+    name: formData.get("name"),
+    code: formData.get("code"),
+    color: formData.get("color"),
+    rowsCount: formData.get("rowsCount"),
+    seatsPerRow: formData.get("seatsPerRow"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    redirectToAdminStadiumMap({
+      error: "Date invalide pentru crearea sectorului in builder.",
+    });
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    redirectToAdminStadiumMap({
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
+
+  const { data } = await supabase
+    .from("stadium_sectors")
+    .insert({
+      stadium_id: parsed.data.stadiumId,
+      stand_id: parsed.data.standId || null,
+      name: parsed.data.name,
+      code: parsed.data.code,
+      color: parsed.data.color,
+      rows_count: parsed.data.rowsCount,
+      seats_per_row: parsed.data.seatsPerRow,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (data?.id) {
+    await supabase.rpc("generate_sector_seats", {
+      p_sector_id: data.id,
+      p_rows_count: parsed.data.rowsCount,
+      p_seats_per_row: parsed.data.seatsPerRow,
+      p_replace_existing: true,
+    });
+
+    await logAudit(viewer.userId, "create_sector", "stadium_sectors", data.id, {
+      ...parsed.data,
+      source: "builder",
+    });
+  }
+
+  revalidatePath("/admin/stadion");
+  revalidatePath("/admin/stadion/harta");
+  redirectToAdminStadiumMap({
+    notice: `Sectorul ${parsed.data.name} a fost adaugat in builder.`,
+  });
 }
 
 export async function updateStadiumAction(formData: FormData) {
@@ -441,6 +604,254 @@ export async function deleteSectorAction(formData: FormData) {
   revalidatePath("/admin/stadion");
   redirectToAdminStadium({
     notice: `Sectorul ${sector.name} a fost sters.`,
+  });
+}
+
+export async function deleteBuilderSectorAction(formData: FormData) {
+  const parsed = sectorDeleteSchema.safeParse({
+    sectorId: formData.get("sectorId"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    redirectToAdminStadiumMap({
+      error: "Cererea de stergere a sectorului din builder este invalida.",
+    });
+  }
+
+  const input = parsed.data;
+  const viewer = await ensureAdmin();
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    redirectToAdminStadiumMap({
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
+
+  const { data: sector } = await supabase
+    .from("stadium_sectors")
+    .select("id, stadium_id, name, code")
+    .eq("id", input.sectorId)
+    .maybeSingle();
+
+  if (!sector) {
+    redirectToAdminStadiumMap({
+      error: "Sectorul nu mai exista sau a fost deja sters.",
+    });
+  }
+
+  const { data: seats } = await supabase
+    .from("seats")
+    .select("id")
+    .eq("sector_id", input.sectorId);
+
+  const seatIds = (seats ?? []).map((seat) => seat.id);
+  await ensureSeatsCanBeDeleted(supabase, seatIds, redirectToAdminStadiumMap);
+
+  await supabase.from("stadium_sectors").delete().eq("id", input.sectorId);
+
+  const { data: mapConfigRow } = await supabase
+    .from("stadium_map_configs")
+    .select("id, config")
+    .eq("stadium_id", sector.stadium_id)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  const configRow = mapConfigRow as {
+    id?: string;
+    config?: z.infer<typeof stadiumMapConfigSchema>;
+  } | null;
+
+  if (configRow?.id && configRow.config) {
+    const nextConfig = {
+      ...configRow.config,
+      tribunes: configRow.config.tribunes.map((tribune) => ({
+        ...tribune,
+        sectorCodes: tribune.sectorCodes.filter((code) => code !== sector.code),
+      })),
+      sectors: configRow.config.sectors.filter((item) => item.code !== sector.code),
+    };
+
+    await supabase
+      .from("stadium_map_configs")
+      .update({ config: nextConfig })
+      .eq("id", configRow.id);
+  }
+
+  await logAudit(viewer.userId, "delete_sector", "stadium_sectors", input.sectorId, {
+    sectorName: sector.name,
+    source: "builder",
+  });
+
+  revalidatePath("/admin/stadion");
+  revalidatePath("/admin/stadion/harta");
+  redirectToAdminStadiumMap({
+    notice: `Sectorul ${sector.name} a fost sters din builder.`,
+  });
+}
+
+export async function saveSectorSeatLayoutAction(formData: FormData) {
+  const parsed = sectorSeatLayoutSaveSchema.safeParse({
+    sectorId: formData.get("sectorId"),
+    rowsCount: formData.get("rowsCount"),
+    seatsPerRow: formData.get("seatsPerRow"),
+    layoutJson: formData.get("layoutJson"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    redirectToAdminStadiumMap({
+      error: "Date invalide pentru configuratia locurilor.",
+    });
+  }
+
+  let layout: Array<z.infer<typeof sectorLayoutRowSchema>>;
+
+  try {
+    layout = z.array(sectorLayoutRowSchema).parse(JSON.parse(parsed.data.layoutJson));
+  } catch (error) {
+    console.error("Layout JSON invalid pentru sector.", error);
+    redirectToAdminStadiumMap({
+      error: "Structura randurilor si locurilor este invalida.",
+    });
+  }
+
+  if (
+    layout.length !== parsed.data.rowsCount ||
+    layout.some((row) => row.cells.length !== parsed.data.seatsPerRow)
+  ) {
+    redirectToAdminStadiumMap({
+      error: "Layout-ul locurilor nu corespunde cu numarul de randuri si locuri pe rand.",
+    });
+  }
+
+  const viewer = await ensureAdmin();
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    redirectToAdminStadiumMap({
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
+
+  const { data: sector } = await supabase
+    .from("stadium_sectors")
+    .select("id, stadium_id, name, code")
+    .eq("id", parsed.data.sectorId)
+    .maybeSingle();
+
+  if (!sector) {
+    redirectToAdminStadiumMap({
+      error: "Sectorul selectat nu mai exista.",
+    });
+  }
+
+  const { data: existingSeats } = await supabase
+    .from("seats")
+    .select("id, row_label, seat_number")
+    .eq("sector_id", parsed.data.sectorId);
+
+  const currentSeats =
+    (existingSeats ?? []) as Array<{ id: string; row_label: string; seat_number: number }>;
+
+  const desiredSeats = layout.flatMap((row) =>
+    row.cells.flatMap((cell, index) =>
+      cell.kind === "seat"
+        ? [
+            {
+              rowLabel: row.label,
+              seatNumber: index + 1,
+              seatLabel: `${row.label}-${index + 1}`,
+            },
+          ]
+        : [],
+    ),
+  );
+
+  const desiredSeatKeys = new Set(
+    desiredSeats.map((seat) => `${seat.rowLabel}::${seat.seatNumber}`),
+  );
+  const currentSeatByKey = new Map(
+    currentSeats.map((seat) => [`${seat.row_label}::${seat.seat_number}`, seat]),
+  );
+
+  const seatsToDelete = currentSeats.filter(
+    (seat) => !desiredSeatKeys.has(`${seat.row_label}::${seat.seat_number}`),
+  );
+
+  await ensureSeatsCanBeDeleted(
+    supabase,
+    seatsToDelete.map((seat) => seat.id),
+    redirectToAdminStadiumMap,
+  );
+
+  if (seatsToDelete.length) {
+    await supabase.from("seats").delete().in(
+      "id",
+      seatsToDelete.map((seat) => seat.id),
+    );
+  }
+
+  const seatsToInsert = desiredSeats.filter(
+    (seat) => !currentSeatByKey.has(`${seat.rowLabel}::${seat.seatNumber}`),
+  );
+
+  if (seatsToInsert.length) {
+    await supabase.from("seats").insert(
+      seatsToInsert.map((seat) => ({
+        sector_id: parsed.data.sectorId,
+        row_label: seat.rowLabel,
+        seat_number: seat.seatNumber,
+        seat_label: seat.seatLabel,
+        is_disabled: false,
+        is_obstructed: false,
+        is_internal_only: false,
+      })),
+    );
+  }
+
+  await supabase
+    .from("stadium_sectors")
+    .update({
+      rows_count: parsed.data.rowsCount,
+      seats_per_row: parsed.data.seatsPerRow,
+    })
+    .eq("id", parsed.data.sectorId);
+
+  await syncSectorRowConfigsInMapConfig(
+    supabase,
+    sector.stadium_id,
+    sector.code,
+    layout.map((row, rowIndex) => ({
+      id: `${sector.code.toLowerCase()}-row-${rowIndex + 1}`,
+      label: row.label,
+      sortOrder: rowIndex,
+      seats: row.cells.map((cell, seatIndex) =>
+        cell.kind === "seat"
+          ? {
+              key: `${row.label}-${seatIndex + 1}`,
+              kind: "seat" as const,
+              number: seatIndex + 1,
+              label: String(seatIndex + 1),
+            }
+          : {
+              key: `${row.label}-gap-${seatIndex + 1}`,
+              kind: "gap" as const,
+              label: "",
+            },
+      ),
+    })),
+  );
+
+  await logAudit(viewer.userId, "save_sector_layout", "stadium_sectors", parsed.data.sectorId, {
+    sectorName: sector.name,
+    rowsCount: parsed.data.rowsCount,
+    seatsPerRow: parsed.data.seatsPerRow,
+  });
+
+  revalidatePath("/admin/stadion");
+  revalidatePath("/admin/stadion/harta");
+  redirectToAdminStadiumMap({
+    notice: `Locurile pentru sectorul ${sector.name} au fost actualizate.`,
   });
 }
 

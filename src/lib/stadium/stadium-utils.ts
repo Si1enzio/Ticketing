@@ -242,6 +242,102 @@ export function createFallbackStadiumMapConfig({
   };
 }
 
+export function reconcileStadiumMapConfigWithBuilder(
+  stadium: StadiumBuilder,
+  savedConfig?: StadiumMapConfig | null,
+): StadiumMapConfig {
+  const fallbackConfig = createFallbackStadiumMapConfig({
+    mapKey: savedConfig?.mapKey ?? stadium.slug,
+    stadiumName: savedConfig?.defaultLabel ?? stadium.name,
+    sectors: convertStadiumBuilderSectorsToSeatMap(stadium),
+  });
+
+  const fallbackSectorByCode = new Map(
+    fallbackConfig.sectors.map((sector) => [sector.code, sector]),
+  );
+  const savedSectorByCode = new Map(
+    (savedConfig?.sectors ?? []).map((sector) => [sector.code, sector]),
+  );
+
+  const tribunes = stadium.stands.map((stand, index) => {
+    const existing = savedConfig?.tribunes.find((item) => item.id === stand.id);
+
+    return {
+      id: stand.id,
+      defaultLabel: existing?.defaultLabel ?? stand.name,
+      shortLabel: existing?.shortLabel ?? stand.code,
+      labels: existing?.labels,
+      color: existing?.color ?? stand.color,
+      sectorCodes: stadium.sectors
+        .filter((sector) => sector.standId === stand.id)
+        .map((sector) => sector.code),
+      tierIds: existing?.tierIds,
+      isVisible: existing?.isVisible ?? true,
+      isBookable: existing?.isBookable ?? true,
+      sortOrder: existing?.sortOrder ?? index,
+    };
+  });
+
+  const hasUnassignedSectors = stadium.sectors.some((sector) => !sector.standId);
+  const unassignedTribuneId = "__fara_tribuna__";
+
+  if (hasUnassignedSectors) {
+    const existing = savedConfig?.tribunes.find((item) => item.id === unassignedTribuneId);
+    tribunes.push({
+      id: unassignedTribuneId,
+      defaultLabel: existing?.defaultLabel ?? "Fara tribuna",
+      shortLabel: existing?.shortLabel ?? "FARA",
+      labels: existing?.labels,
+      color: existing?.color ?? "#9ca3af",
+      sectorCodes: stadium.sectors
+        .filter((sector) => !sector.standId)
+        .map((sector) => sector.code),
+      tierIds: existing?.tierIds,
+      isVisible: existing?.isVisible ?? true,
+      isBookable: existing?.isBookable ?? true,
+      sortOrder: existing?.sortOrder ?? tribunes.length,
+    });
+  }
+
+  const sectors = stadium.sectors.map((sector) => {
+    const existing = savedSectorByCode.get(sector.code);
+    const fallback = fallbackSectorByCode.get(sector.code);
+
+    return {
+      ...(fallback ?? {
+        id: sector.id,
+        code: sector.code,
+        defaultLabel: sector.name,
+        tribuneId: sector.standId ?? unassignedTribuneId,
+        shape: {
+          type: "rectangle" as const,
+          x: 100,
+          y: 100,
+          width: 180,
+          height: 120,
+          rx: 18,
+        },
+      }),
+      ...existing,
+      id: existing?.id ?? fallback?.id ?? sector.id,
+      code: sector.code,
+      defaultLabel: existing?.defaultLabel ?? sector.name,
+      tribuneId: sector.standId ?? existing?.tribuneId ?? unassignedTribuneId,
+    };
+  });
+
+  return {
+    mapKey: savedConfig?.mapKey ?? fallbackConfig.mapKey,
+    defaultLabel: savedConfig?.defaultLabel ?? stadium.name,
+    labels: savedConfig?.labels,
+    viewBox: savedConfig?.viewBox ?? fallbackConfig.viewBox,
+    tribunes,
+    tiers: savedConfig?.tiers,
+    sectors,
+    decorations: savedConfig?.decorations ?? fallbackConfig.decorations,
+  };
+}
+
 export function convertStadiumBuilderSectorsToSeatMap(
   stadium: StadiumBuilder,
 ): SeatMapSector[] {
