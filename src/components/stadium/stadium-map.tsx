@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { useI18n } from "@/components/i18n-provider";
 import { SectorSeatMap } from "@/components/stadium/sector-seat-map";
@@ -15,7 +15,9 @@ import {
   buildRenderableSectors,
   getVisibleTribunes,
   getSectorLabel,
+  getTribuneLabel,
 } from "@/lib/stadium/stadium-utils";
+import { cn } from "@/lib/utils";
 
 export function StadiumMap({
   stadiumId,
@@ -40,6 +42,7 @@ export function StadiumMap({
 }) {
   const { locale } = useI18n();
   const copy = getStadiumMapMessages(locale);
+  const seatMapRef = useRef<HTMLDivElement | null>(null);
 
   const resolvedMap = useMemo(
     () => {
@@ -111,8 +114,83 @@ export function StadiumMap({
   const selectedRenderableSector =
     renderableSectors.find((sector) => sector.config.code === effectiveSectorCode) ?? null;
 
+  function handleSelectSector(sectorCode: string) {
+    const nextSector = renderableSectors.find((sector) => sector.config.code === sectorCode);
+    if (!nextSector) {
+      return;
+    }
+
+    setSelectedSectorCode(sectorCode);
+    setSelectedTribuneId(nextSector.config.tribuneId);
+
+    if (typeof window !== "undefined" && window.innerWidth < 1280) {
+      window.setTimeout(() => {
+        seatMapRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 80);
+    }
+  }
+
+  const currentTribuneLabel = effectiveTribuneId
+    ? getTribuneLabel(
+        locale,
+        visibleTribunes.find((item) => item.id === effectiveTribuneId) ?? visibleTribunes[0],
+      )
+    : "-";
+
+  const flowSteps = [
+    {
+      title: copy.flowStepOverviewTitle,
+      description: copy.flowStepOverviewDescription,
+      isActive: Boolean(effectiveTribuneId),
+    },
+    {
+      title: copy.flowStepSectorTitle,
+      description: copy.flowStepSectorDescription,
+      isActive: Boolean(effectiveSectorCode),
+    },
+    {
+      title: copy.flowStepSeatTitle,
+      description: copy.flowStepSeatDescription,
+      isActive: selectedSeatIds.length > 0,
+    },
+    {
+      title: copy.flowStepCheckoutTitle,
+      description: copy.flowStepCheckoutDescription,
+      isActive: false,
+    },
+  ];
+
   return (
     <div className="grid gap-6">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {flowSteps.map((step, index) => (
+          <div
+            key={step.title}
+            className={cn(
+              "rounded-[24px] border px-4 py-4 transition",
+              step.isActive
+                ? "border-[#dc2626] bg-[#fff1f2] shadow-[0_18px_36px_-24px_rgba(220,38,38,0.35)]"
+                : "border-black/6 bg-neutral-50",
+            )}
+          >
+            <p className="text-xs uppercase tracking-[0.24em] text-[#b91c1c]">
+              {step.title}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-neutral-600">{step.description}</p>
+            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+              {step.isActive
+                ? copy.flowStepActive
+                : index === 3
+                  ? copy.continueAction
+                  : copy.flowStepWaiting}
+            </p>
+          </div>
+        ))}
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-[#b91c1c]">
@@ -128,15 +206,7 @@ export function StadiumMap({
         sectors={renderableSectors}
         selectedSectorCode={effectiveSectorCode}
         isFallback={resolvedMap.isFallback}
-        onSelectSector={(sectorCode) => {
-          const nextSector = renderableSectors.find((sector) => sector.config.code === sectorCode);
-          if (!nextSector) {
-            return;
-          }
-
-          setSelectedSectorCode(sectorCode);
-          setSelectedTribuneId(nextSector.config.tribuneId);
-        }}
+        onSelectSector={handleSelectSector}
       />
 
       <StadiumTierView
@@ -145,18 +215,35 @@ export function StadiumMap({
         selectedSectorCode={effectiveSectorCode}
         sectors={renderableSectors}
         onSelectTribune={(tribuneId) => setSelectedTribuneId(tribuneId)}
-        onSelectSector={(sectorCode) => {
-          const nextSector = renderableSectors.find((sector) => sector.config.code === sectorCode);
-          if (!nextSector) {
-            return;
-          }
-
-          setSelectedSectorCode(sectorCode);
-          setSelectedTribuneId(nextSector.config.tribuneId);
-        }}
+        onSelectSector={handleSelectSector}
       />
 
-      <div className="grid gap-4">
+      <div className="grid gap-3 rounded-[28px] border border-black/6 bg-neutral-50 p-5 md:grid-cols-3">
+        <div className="rounded-[22px] border border-black/6 bg-white px-4 py-4">
+          <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
+            {copy.currentTribune}
+          </p>
+          <p className="mt-2 font-semibold text-[#111111]">{currentTribuneLabel}</p>
+        </div>
+        <div className="rounded-[22px] border border-black/6 bg-white px-4 py-4">
+          <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
+            {copy.currentSector}
+          </p>
+          <p className="mt-2 font-semibold text-[#111111]">
+            {selectedRenderableSector
+              ? getSectorLabel(locale, selectedRenderableSector.config)
+              : copy.noSectorSelected}
+          </p>
+        </div>
+        <div className="rounded-[22px] border border-black/6 bg-white px-4 py-4">
+          <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
+            {copy.selectedSeatsCount}
+          </p>
+          <p className="mt-2 font-semibold text-[#111111]">{selectedSeatIds.length}</p>
+        </div>
+      </div>
+
+      <div ref={seatMapRef} className="grid gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-[#b91c1c]">
@@ -167,6 +254,7 @@ export function StadiumMap({
                 ? getSectorLabel(locale, selectedRenderableSector.config)
                 : copy.noSectorSelected}
             </p>
+            <p className="mt-1 text-xs leading-5 text-neutral-500">{copy.tapSeatHint}</p>
           </div>
           <StadiumLegend mode="seat-map" />
         </div>

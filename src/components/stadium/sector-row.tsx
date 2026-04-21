@@ -18,33 +18,35 @@ export function SectorRow({
   const copy = getStadiumMapMessages(locale);
 
   return (
-    <div className="grid grid-cols-[auto_1fr] items-center gap-3">
+    <div className="grid grid-cols-[auto_1fr] items-start gap-3">
       <div className="w-16 rounded-full bg-[#111111] px-3 py-2 text-center text-xs font-semibold text-white">
         {copy.row} {row.label}
       </div>
-      <div className="grid grid-cols-5 gap-2 sm:grid-cols-8 xl:grid-cols-10">
-        {row.cells.map((cell) => {
-          if (cell.kind !== "seat") {
+      <div className="overflow-x-auto pb-2">
+        <div className="grid min-w-max grid-flow-col auto-cols-[2.75rem] gap-2 sm:auto-cols-[3rem]">
+          {row.cells.map((cell) => {
+            if (cell.kind !== "seat") {
+              return (
+                <div
+                  key={cell.key}
+                  className="h-11 w-11 rounded-2xl border border-dashed border-black/6 bg-transparent sm:h-12 sm:w-12"
+                  aria-hidden="true"
+                />
+              );
+            }
+
             return (
-              <div
+              <SeatButton
                 key={cell.key}
-                className="aspect-square rounded-2xl border border-dashed border-black/6 bg-transparent"
-                aria-hidden="true"
+                label={cell.seat.seatNumber}
+                status={cell.status}
+                disabled={disabled || (cell.status !== "available" && cell.status !== "selected")}
+                onClick={() => onSeatClick(cell.seat.seatId)}
+                title={`${copy.row} ${cell.seat.rowLabel} - ${copy.seat} ${cell.seat.seatNumber}`}
               />
             );
-          }
-
-          return (
-            <SeatButton
-              key={cell.key}
-              label={cell.seat.seatNumber}
-              status={cell.status}
-              disabled={disabled || (cell.status !== "available" && cell.status !== "selected")}
-              onClick={() => onSeatClick(cell.seat.seatId)}
-              title={`${copy.row} ${cell.seat.rowLabel} - ${copy.seat} ${cell.seat.seatNumber}`}
-            />
-          );
-        })}
+          })}
+        </div>
       </div>
     </div>
   );

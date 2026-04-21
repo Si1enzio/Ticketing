@@ -35,7 +35,7 @@ export function SeatButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "aspect-square rounded-2xl border text-xs font-semibold transition",
+        "flex min-h-11 min-w-11 items-center justify-center rounded-2xl border text-sm font-semibold transition sm:min-h-12 sm:min-w-12",
         seatStatusClassNames[status],
         disabled && "cursor-not-allowed opacity-90",
       )}

@@ -60,6 +60,11 @@ export function SeatMapBoard({
   const [isPending, startTransition] = useTransition();
   const isPaidFlow = ticketingMode === "paid" && !viewer.isPrivileged;
   const isTicketingDisabled = Boolean(viewer.reservationBlockedUntil);
+  const hasSelection = selectedSeatIds.length > 0;
+  const canRequestHold =
+    viewer.isAuthenticated && hasSelection && !holdState && !isPending && !isTicketingDisabled;
+  const canConfirmHold =
+    viewer.isAuthenticated && Boolean(holdState) && !isPending && !isTicketingDisabled && !isPaidFlow;
 
   useEffect(() => {
     if (!holdState?.expiresAt) {
@@ -177,7 +182,7 @@ export function SeatMapBoard({
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+    <div className="grid gap-6 pb-24 xl:grid-cols-[1.2fr_0.8fr] xl:pb-0">
       <Card className="surface-panel overflow-hidden rounded-[30px] border border-white/70 bg-white/94">
         <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
         <CardHeader className="gap-4">
@@ -203,7 +208,7 @@ export function SeatMapBoard({
         </CardContent>
       </Card>
 
-      <Card className="surface-dark overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.24),transparent_34%),linear-gradient(180deg,#171717_0%,#101010_100%)] text-white">
+      <Card className="surface-dark self-start overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.24),transparent_34%),linear-gradient(180deg,#171717_0%,#101010_100%)] text-white xl:sticky xl:top-24">
         <div className="h-1.5 bg-[linear-gradient(90deg,#ffffff_0%,#fca5a5_36%,#ef4444_100%)]" />
         <CardHeader className="gap-4">
           <CardTitle className="font-heading text-4xl uppercase tracking-[0.08em]">
@@ -218,6 +223,14 @@ export function SeatMapBoard({
             {remainingLimit === null
               ? "Rol privilegiat: poti emite fara limita standard."
               : `Limita ta ramasa pentru acest meci: ${remainingLimit} bilete.`}
+          </div>
+
+          <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm leading-6 text-white/80">
+            1. Alege sectorul si locurile.
+            <br />
+            2. Blocheaza temporar selectia.
+            <br />
+            3. Confirma emiterea sau continua spre plata.
           </div>
 
           {ticketingMode === "paid" ? (
@@ -261,7 +274,10 @@ export function SeatMapBoard({
                 </div>
               ))
             ) : (
-              <p className="text-sm text-white/65">Nu ai selectat inca niciun loc.</p>
+              <p className="text-sm leading-6 text-white/65">
+                Nu ai selectat inca niciun loc. Incepe din harta stadionului, apoi atinge locurile
+                disponibile din sectorul ales.
+              </p>
             )}
           </div>
 
@@ -299,12 +315,7 @@ export function SeatMapBoard({
               <Button
                 type="button"
                 onClick={requestHold}
-                disabled={
-                  isPending ||
-                  !selectedSeatIds.length ||
-                  Boolean(holdState) ||
-                  isTicketingDisabled
-                }
+                disabled={!canRequestHold}
                 className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
               >
                 <LockKeyhole className="mr-2 h-4 w-4" />
@@ -315,7 +326,7 @@ export function SeatMapBoard({
               <Button
                 type="button"
                 onClick={confirmHold}
-                disabled={isPending || !holdState || isTicketingDisabled || isPaidFlow}
+                disabled={!canConfirmHold}
                 className="rounded-full border border-white/10 bg-white text-[#111111] hover:bg-neutral-100"
               >
                 {viewer.isPrivileged ? (
@@ -341,10 +352,58 @@ export function SeatMapBoard({
                 <ShieldAlert className="mr-2 h-4 w-4" />
                 Reseteaza selectia
               </Button>
+              {!hasSelection && !holdState ? (
+                <p className="text-xs leading-5 text-white/60">
+                  Selecteaza mai intai unul sau mai multe locuri pentru a activa continuarea.
+                </p>
+              ) : null}
             </div>
           )}
         </CardContent>
       </Card>
+
+      <div className="fixed inset-x-4 bottom-4 z-40 xl:hidden">
+        <div className="rounded-[24px] border border-black/10 bg-white/95 p-3 shadow-[0_18px_50px_-24px_rgba(17,17,17,0.4)] backdrop-blur">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">
+                Selectie curenta
+              </p>
+              <p className="mt-1 text-sm font-semibold text-[#111111]">
+                {selectedSeats.length} {selectedSeats.length === 1 ? "loc selectat" : "locuri selectate"}
+              </p>
+            </div>
+            {!viewer.isAuthenticated ? (
+              <Button
+                asChild
+                className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+              >
+                <Link href={`/autentificare?next=/meciuri/${matchSlug}/rezerva`}>
+                  Continua
+                </Link>
+              </Button>
+            ) : holdState && !isPaidFlow ? (
+              <Button
+                type="button"
+                onClick={confirmHold}
+                disabled={!canConfirmHold}
+                className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+              >
+                Confirma
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={requestHold}
+                disabled={!canRequestHold}
+                className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+              >
+                {ticketingMode === "paid" && !viewer.isPrivileged ? "Continua" : "Blocheaza"}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
