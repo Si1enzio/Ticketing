@@ -86,6 +86,7 @@ const rowConfigSchema = z.object({
   id: z.string(),
   label: z.string(),
   sortOrder: z.number(),
+  isVisible: z.boolean().optional(),
   seats: z.array(seatConfigSchema),
 });
 

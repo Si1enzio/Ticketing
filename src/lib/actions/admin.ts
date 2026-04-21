@@ -102,6 +102,7 @@ const sectorLayoutCellSchema = z.object({
 
 const sectorLayoutRowSchema = z.object({
   label: z.string().min(1),
+  isVisible: z.boolean().optional(),
   cells: z.array(sectorLayoutCellSchema).min(1),
 });
 
@@ -246,6 +247,7 @@ async function syncSectorRowConfigsInMapConfig(
     id: string;
     label: string;
     sortOrder: number;
+    isVisible?: boolean;
     seats: Array<{ key: string; kind: "seat" | "gap"; number?: number; label?: string }>;
   }>,
 ) {
@@ -825,6 +827,7 @@ export async function saveSectorSeatLayoutAction(formData: FormData) {
       id: `${sector.code.toLowerCase()}-row-${rowIndex + 1}`,
       label: row.label,
       sortOrder: rowIndex,
+      isVisible: row.isVisible !== false,
       seats: row.cells.map((cell, seatIndex) =>
         cell.kind === "seat"
           ? {

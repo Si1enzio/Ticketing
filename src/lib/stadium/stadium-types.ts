@@ -140,6 +140,7 @@ export type RowConfig = {
   id: string;
   label: string;
   sortOrder: number;
+  isVisible?: boolean;
   seats: SeatConfig[];
 };
 

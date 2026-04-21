@@ -51,6 +51,7 @@ type SeatLayoutDraft = {
   seatsPerRow: number;
   rows: Array<{
     label: string;
+    isVisible: boolean;
     cells: Array<{ kind: "seat" | "gap" }>;
   }>;
 };
@@ -74,10 +75,10 @@ function createSeatLayoutDraft(
   sector: StadiumBuilder["sectors"][number],
   configSector?: StadiumMapConfig["sectors"][number] | null,
 ): SeatLayoutDraft {
-  const rowLabels = Array.from({ length: sector.rowsCount }, (_, index) => String(index + 1));
-  const rowConfigsByLabel = new Map(
-    (configSector?.rowConfigs ?? []).map((row) => [row.label, row]),
+  const sortedRowConfigs = [...(configSector?.rowConfigs ?? [])].sort(
+    (left, right) => left.sortOrder - right.sortOrder,
   );
+  const rowsCount = Math.max(sector.rowsCount, sortedRowConfigs.length);
   const seatsByRowAndNumber = new Set(
     sector.seats.map((seat) => `${seat.rowLabel}::${seat.seatNumber}`),
   );
@@ -85,13 +86,15 @@ function createSeatLayoutDraft(
   return {
     sectorId: sector.id,
     sectorName: sector.name,
-    rowsCount: sector.rowsCount,
+    rowsCount,
     seatsPerRow: sector.seatsPerRow,
-    rows: rowLabels.map((label) => {
-      const rowConfig = rowConfigsByLabel.get(label);
+    rows: Array.from({ length: rowsCount }, (_, rowIndex) => {
+      const rowConfig = sortedRowConfigs[rowIndex];
+      const label = rowConfig?.label ?? String(rowIndex + 1);
 
       return {
         label,
+        isVisible: rowConfig?.isVisible !== false,
         cells: Array.from({ length: sector.seatsPerRow }, (_, index) => {
           if (rowConfig?.seats[index]) {
             return {
@@ -116,12 +119,14 @@ function resizeSeatLayoutDraft(
   const nextRows = Array.from({ length: rowsCount }, (_, rowIndex) => {
     const existingRow = current.rows[rowIndex];
     const label = existingRow?.label ?? String(rowIndex + 1);
+    const isVisible = existingRow?.isVisible ?? true;
     const cells = Array.from({ length: seatsPerRow }, (_, seatIndex) => {
       return existingRow?.cells[seatIndex] ?? { kind: "seat" as const };
     });
 
     return {
       label,
+      isVisible,
       cells,
     };
   });
@@ -982,6 +987,27 @@ export function StadiumMapAdminEditor({
                             }
                             className="max-w-32 rounded-2xl bg-white"
                           />
+                          <label className="flex items-center gap-2 text-sm text-neutral-700">
+                            <input
+                              type="checkbox"
+                              checked={row.isVisible}
+                              onChange={(event) =>
+                                setSeatLayoutDraft((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        rows: current.rows.map((item, itemIndex) =>
+                                          itemIndex === rowIndex
+                                            ? { ...item, isVisible: event.target.checked }
+                                            : item,
+                                        ),
+                                      }
+                                    : current,
+                                )
+                              }
+                            />
+                            Afiseaza randul
+                          </label>
                           <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
                             Click pe celula pentru toggle
                           </p>

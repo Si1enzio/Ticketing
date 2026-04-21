@@ -427,55 +427,62 @@ export function buildSeatRows(
     return acc;
   }, {});
 
+  if (rowConfigs?.length) {
+    return [...rowConfigs]
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .filter((row) => row.isVisible !== false)
+      .map((layout) => {
+        const rowSeats = [...(rows[layout.label] ?? [])].sort(
+          (left, right) => left.seatNumber - right.seatNumber,
+        );
+        const seatsByNumber = new Map(rowSeats.map((seat) => [seat.seatNumber, seat]));
+        const cells = layout.seats
+          .filter((seat) => seat.isVisible !== false)
+          .map<StadiumSeatLayoutCell>((seatConfig) => {
+            if (seatConfig.kind !== "seat" || !seatConfig.number) {
+              const fallbackKind =
+                seatConfig.kind === "aisle" || seatConfig.kind === "stair"
+                  ? seatConfig.kind
+                  : "gap";
+
+              return {
+                key: `${layout.id}-${seatConfig.key}`,
+                kind: fallbackKind,
+                label: seatConfig.label,
+              };
+            }
+
+            const seat = seatsByNumber.get(seatConfig.number);
+
+            if (!seat) {
+              return {
+                key: `${layout.id}-${seatConfig.key}`,
+                kind: "gap",
+                label: seatConfig.label,
+              };
+            }
+
+            return {
+              key: seat.seatId,
+              kind: "seat",
+              seat,
+              isSelected: selectedSeatIds.includes(seat.seatId),
+              status: getSeatStatus(seat, selectedSeatIds),
+            };
+          });
+
+        return {
+          id: layout.id,
+          label: layout.label,
+          cells,
+        };
+      });
+  }
+
   const rowOrder = Object.keys(rows).sort((left, right) => Number(left) - Number(right));
 
   return rowOrder.map((rowLabel, index) => {
     const rowSeats = [...rows[rowLabel]].sort((left, right) => left.seatNumber - right.seatNumber);
-    const layout = rowConfigs?.find((item) => item.label === rowLabel);
-
-    if (layout) {
-      const seatsByNumber = new Map(rowSeats.map((seat) => [seat.seatNumber, seat]));
-      const cells = layout.seats
-        .filter((seat) => seat.isVisible !== false)
-        .map<StadiumSeatLayoutCell>((seatConfig) => {
-          if (seatConfig.kind !== "seat" || !seatConfig.number) {
-            const fallbackKind =
-              seatConfig.kind === "aisle" || seatConfig.kind === "stair"
-                ? seatConfig.kind
-                : "gap";
-
-            return {
-              key: `${layout.id}-${seatConfig.key}`,
-              kind: fallbackKind,
-              label: seatConfig.label,
-            };
-          }
-
-          const seat = seatsByNumber.get(seatConfig.number);
-
-          if (!seat) {
-            return {
-              key: `${layout.id}-${seatConfig.key}`,
-              kind: "gap",
-              label: seatConfig.label,
-            };
-          }
-
-          return {
-            key: seat.seatId,
-            kind: "seat",
-            seat,
-            isSelected: selectedSeatIds.includes(seat.seatId),
-            status: getSeatStatus(seat, selectedSeatIds),
-          };
-        });
-
-      return {
-        id: layout.id,
-        label: layout.label,
-        cells,
-      };
-    }
 
     const maxSeat = Math.max(...rowSeats.map((seat) => seat.seatNumber));
     const cells: StadiumSeatLayoutCell[] = [];
