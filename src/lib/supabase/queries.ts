@@ -191,15 +191,31 @@ export async function getSeatMapForMatch(
       return mockSeatMap;
     }
 
-    const { data, error } = await supabase.rpc("get_match_seat_status", {
-      p_match_id: matchId,
-    });
+    const pageSize = 1000;
+    const rows: Record<string, unknown>[] = [];
+    let from = 0;
 
-    if (error) {
-      throw error;
+    while (true) {
+      const { data, error } = await supabase
+        .rpc("get_match_seat_status", {
+          p_match_id: matchId,
+        })
+        .range(from, from + pageSize - 1);
+
+      if (error) {
+        throw error;
+      }
+
+      const chunk = (data ?? []) as Record<string, unknown>[];
+      rows.push(...chunk);
+
+      if (chunk.length < pageSize) {
+        break;
+      }
+
+      from += pageSize;
     }
 
-    const rows = (data ?? []) as Record<string, unknown>[];
     rows.sort((left, right) => {
       const sectorOrder = Number(left.sector_sort_order ?? 0) - Number(right.sector_sort_order ?? 0);
       if (sectorOrder !== 0) {
