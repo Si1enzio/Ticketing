@@ -85,6 +85,10 @@ const matchUpdateSchema = matchSchema.extend({
   matchId: z.string(),
 });
 
+const matchDeleteSchema = z.object({
+  matchId: z.string(),
+});
+
 const userBlockSchema = z.object({
   userId: z.string(),
   type: z.enum(["warning", "block", "temp_ban"]),
@@ -157,6 +161,11 @@ async function logAudit(actorUserId: string, action: string, entityType: string,
 function redirectToAdminStadium(params: Record<string, string>): never {
   const query = new URLSearchParams(params);
   redirect(`/admin/stadion?${query.toString()}`);
+}
+
+function redirectToAdminMatches(params: Record<string, string>): never {
+  const query = new URLSearchParams(params);
+  redirect(`/admin/meciuri?${query.toString()}`);
 }
 
 export async function createStadiumAction(formData: FormData) {
@@ -758,6 +767,106 @@ export async function updateMatchAction(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/admin/meciuri");
+}
+
+export async function deleteMatchAction(formData: FormData) {
+  const parsed = matchDeleteSchema.safeParse({
+    matchId: formData.get("matchId"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    redirectToAdminMatches({
+      error: "Cererea de stergere a meciului este invalida.",
+    });
+  }
+
+  const input = parsed.data;
+  const viewer = await ensureAdmin();
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    redirectToAdminMatches({
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
+
+  const { data: match } = await supabase
+    .from("matches")
+    .select("id, title")
+    .eq("id", input.matchId)
+    .maybeSingle();
+
+  if (!match) {
+    redirectToAdminMatches({
+      error: "Meciul nu mai exista sau a fost deja sters.",
+    });
+  }
+
+  const [
+    { count: reservationCount },
+    { count: paymentCount },
+    { count: scanCount },
+    { count: activeHoldCount },
+  ] = await Promise.all([
+    supabase
+      .from("reservations")
+      .select("id", { count: "exact", head: true })
+      .eq("match_id", input.matchId),
+    supabase
+      .from("payments")
+      .select("id", { count: "exact", head: true })
+      .eq("match_id", input.matchId),
+    supabase
+      .from("ticket_scans")
+      .select("id", { count: "exact", head: true })
+      .eq("match_id", input.matchId),
+    supabase
+      .from("seat_holds")
+      .select("id", { count: "exact", head: true })
+      .eq("match_id", input.matchId)
+      .eq("status", "active")
+      .gt("expires_at", new Date().toISOString()),
+  ]);
+
+  if ((reservationCount ?? 0) > 0) {
+    redirectToAdminMatches({
+      error:
+        "Meciul nu poate fi sters deoarece are deja rezervari sau bilete emise. Pentru siguranta datelor istorice, il poti inchide sau anula, nu sterge.",
+    });
+  }
+
+  if ((paymentCount ?? 0) > 0) {
+    redirectToAdminMatches({
+      error:
+        "Meciul nu poate fi sters deoarece are plati asociate. Pastreaza-l pentru evidenta financiara si operationala.",
+    });
+  }
+
+  if ((scanCount ?? 0) > 0) {
+    redirectToAdminMatches({
+      error:
+        "Meciul nu poate fi sters deoarece are scanari inregistrate. Pastreaza-l pentru audit si raportare.",
+    });
+  }
+
+  if ((activeHoldCount ?? 0) > 0) {
+    redirectToAdminMatches({
+      error:
+        "Meciul nu poate fi sters cat timp exista locuri blocate temporar. Asteapta expirarea hold-urilor active.",
+    });
+  }
+
+  await supabase.from("matches").delete().eq("id", input.matchId);
+
+  await logAudit(viewer.userId, "delete_match", "matches", input.matchId, {
+    matchTitle: match.title,
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/meciuri");
+  redirectToAdminMatches({
+    notice: `Meciul ${match.title} a fost sters.`,
+  });
 }
 
 export async function createUserBlockAction(formData: FormData) {

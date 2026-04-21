@@ -2,15 +2,21 @@ import type { Route } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 
-import { createMatchAction, updateMatchAction } from "@/lib/actions/admin";
+import { createMatchAction, deleteMatchAction, updateMatchAction } from "@/lib/actions/admin";
 import { getAdminMatchOverview, getStadiumBuilderData } from "@/lib/supabase/queries";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default async function AdminMatchesPage() {
+export default async function AdminMatchesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string; notice?: string }>;
+}) {
   await connection();
+  const resolvedSearchParams = (await searchParams) ?? {};
   const [matches, stadiums] = await Promise.all([
     getAdminMatchOverview(),
     getStadiumBuilderData(),
@@ -20,6 +26,27 @@ export default async function AdminMatchesPage() {
 
   return (
     <div className="grid gap-8">
+      {resolvedSearchParams.error ? (
+        <Alert
+          variant="destructive"
+          className="rounded-[24px] border border-[#fecaca] bg-[#fff1f2] px-5 py-4 text-[#b91c1c]"
+        >
+          <AlertTitle className="text-base font-semibold">Stergerea a fost blocata</AlertTitle>
+          <AlertDescription className="text-sm text-[#b91c1c]">
+            {resolvedSearchParams.error}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {resolvedSearchParams.notice ? (
+        <Alert className="rounded-[24px] border border-[#d1fae5] bg-[#ecfdf5] px-5 py-4 text-[#166534]">
+          <AlertTitle className="text-base font-semibold">Operatiune reusita</AlertTitle>
+          <AlertDescription className="text-sm text-[#166534]">
+            {resolvedSearchParams.notice}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#b91c1c]">
           Management meciuri
@@ -114,110 +141,123 @@ export default async function AdminMatchesPage() {
                 </div>
               </div>
 
-              <form action={updateMatchAction} className="grid gap-4 lg:grid-cols-4">
-                <input type="hidden" name="matchId" value={match.id} />
-                <SelectField
-                  name="stadiumId"
-                  label="Stadion"
-                  options={stadiums.map((stadium) => ({
-                    value: stadium.id,
-                    label: stadium.name,
-                  }))}
-                  defaultValue={match.stadiumId}
-                />
-                <Field
-                  name={`title-${match.id}`}
-                  htmlName="title"
-                  label="Titlu meci"
-                  defaultValue={match.title}
-                />
-                <Field
-                  name={`slug-${match.id}`}
-                  htmlName="slug"
-                  label="Slug"
-                  defaultValue={match.slug}
-                />
-                <Field
-                  name={`competition-${match.id}`}
-                  htmlName="competitionName"
-                  label="Competitie"
-                  defaultValue={match.competitionName}
-                />
-                <Field
-                  name={`opponent-${match.id}`}
-                  htmlName="opponentName"
-                  label="Adversar"
-                  defaultValue={match.opponentName}
-                />
-                <Field
-                  name={`starts-${match.id}`}
-                  htmlName="startsAt"
-                  label="Start"
-                  type="datetime-local"
-                  defaultValue={toDateTimeLocalValue(match.startsAt)}
-                />
-                <Field
-                  name={`limit-${match.id}`}
-                  htmlName="maxTicketsPerUser"
-                  label="Limita / user"
-                  type="number"
-                  defaultValue={String(match.maxTicketsPerUser)}
-                />
-                <Field
-                  name={`status-${match.id}`}
-                  htmlName="status"
-                  label="Status"
-                  defaultValue={match.status}
-                />
-                <Field
-                  name={`open-${match.id}`}
-                  htmlName="reservationOpensAt"
-                  label="Deschidere ticketing"
-                  type="datetime-local"
-                  defaultValue={toDateTimeLocalValue(match.reservationOpensAt ?? "")}
-                />
-                <Field
-                  name={`close-${match.id}`}
-                  htmlName="reservationClosesAt"
-                  label="Inchidere ticketing"
-                  type="datetime-local"
-                  defaultValue={toDateTimeLocalValue(match.reservationClosesAt ?? "")}
-                />
-                <SelectField
-                  name="ticketingMode"
-                  label="Tip ticketing"
-                  options={[
-                    { value: "free", label: "Gratuit" },
-                    { value: "paid", label: "Platit" },
-                  ]}
-                  defaultValue={match.ticketingMode}
-                />
-                <Field
-                  name={`price-${match.id}`}
-                  htmlName="ticketPriceCents"
-                  label="Pret (bani)"
-                  type="number"
-                  defaultValue={String(match.ticketPriceCents)}
-                />
-                <Field
-                  name={`currency-${match.id}`}
-                  htmlName="currency"
-                  label="Moneda"
-                  defaultValue={match.currency}
-                />
-                <label className="flex items-center gap-3 rounded-[22px] border border-black/6 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 lg:col-span-2">
-                  <input type="checkbox" name="scannerEnabled" defaultChecked={match.scannerEnabled} />
-                  Scanner activ pentru acest meci
-                </label>
-                <div className="flex items-end lg:col-span-2">
+              <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+                <form action={updateMatchAction} className="grid gap-4 lg:grid-cols-4">
+                  <input type="hidden" name="matchId" value={match.id} />
+                  <SelectField
+                    name="stadiumId"
+                    label="Stadion"
+                    options={stadiums.map((stadium) => ({
+                      value: stadium.id,
+                      label: stadium.name,
+                    }))}
+                    defaultValue={match.stadiumId}
+                  />
+                  <Field
+                    name={`title-${match.id}`}
+                    htmlName="title"
+                    label="Titlu meci"
+                    defaultValue={match.title}
+                  />
+                  <Field
+                    name={`slug-${match.id}`}
+                    htmlName="slug"
+                    label="Slug"
+                    defaultValue={match.slug}
+                  />
+                  <Field
+                    name={`competition-${match.id}`}
+                    htmlName="competitionName"
+                    label="Competitie"
+                    defaultValue={match.competitionName}
+                  />
+                  <Field
+                    name={`opponent-${match.id}`}
+                    htmlName="opponentName"
+                    label="Adversar"
+                    defaultValue={match.opponentName}
+                  />
+                  <Field
+                    name={`starts-${match.id}`}
+                    htmlName="startsAt"
+                    label="Start"
+                    type="datetime-local"
+                    defaultValue={toDateTimeLocalValue(match.startsAt)}
+                  />
+                  <Field
+                    name={`limit-${match.id}`}
+                    htmlName="maxTicketsPerUser"
+                    label="Limita / user"
+                    type="number"
+                    defaultValue={String(match.maxTicketsPerUser)}
+                  />
+                  <Field
+                    name={`status-${match.id}`}
+                    htmlName="status"
+                    label="Status"
+                    defaultValue={match.status}
+                  />
+                  <Field
+                    name={`open-${match.id}`}
+                    htmlName="reservationOpensAt"
+                    label="Deschidere ticketing"
+                    type="datetime-local"
+                    defaultValue={toDateTimeLocalValue(match.reservationOpensAt ?? "")}
+                  />
+                  <Field
+                    name={`close-${match.id}`}
+                    htmlName="reservationClosesAt"
+                    label="Inchidere ticketing"
+                    type="datetime-local"
+                    defaultValue={toDateTimeLocalValue(match.reservationClosesAt ?? "")}
+                  />
+                  <SelectField
+                    name="ticketingMode"
+                    label="Tip ticketing"
+                    options={[
+                      { value: "free", label: "Gratuit" },
+                      { value: "paid", label: "Platit" },
+                    ]}
+                    defaultValue={match.ticketingMode}
+                  />
+                  <Field
+                    name={`price-${match.id}`}
+                    htmlName="ticketPriceCents"
+                    label="Pret (bani)"
+                    type="number"
+                    defaultValue={String(match.ticketPriceCents)}
+                  />
+                  <Field
+                    name={`currency-${match.id}`}
+                    htmlName="currency"
+                    label="Moneda"
+                    defaultValue={match.currency}
+                  />
+                  <label className="flex items-center gap-3 rounded-[22px] border border-black/6 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 lg:col-span-2">
+                    <input type="checkbox" name="scannerEnabled" defaultChecked={match.scannerEnabled} />
+                    Scanner activ pentru acest meci
+                  </label>
+                  <div className="flex items-end lg:col-span-2">
+                    <Button
+                      type="submit"
+                      className="w-full rounded-full border border-[#111111] bg-[#111111] text-white hover:bg-black"
+                    >
+                      Salveaza modificarile
+                    </Button>
+                  </div>
+                </form>
+
+                <form action={deleteMatchAction} className="flex items-end">
+                  <input type="hidden" name="matchId" value={match.id} />
                   <Button
                     type="submit"
-                    className="w-full rounded-full border border-[#111111] bg-[#111111] text-white hover:bg-black"
+                    variant="destructive"
+                    className="rounded-full border border-[#b91c1c] bg-[#fff1f2] px-5 text-[#b91c1c] hover:bg-[#ffe4e6]"
                   >
-                    Salveaza modificarile
+                    Sterge meciul
                   </Button>
-                </div>
-              </form>
+                </form>
+              </div>
             </CardContent>
           </Card>
         ))}
