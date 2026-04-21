@@ -2,14 +2,28 @@ import type { Route } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 
-import { createMatchAction, deleteMatchAction, updateMatchAction } from "@/lib/actions/admin";
-import { getAdminMatchOverview, getStadiumBuilderData } from "@/lib/supabase/queries";
+import { AdminMatchDerivedFields } from "@/components/admin/admin-match-derived-fields";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { createMatchAction, deleteMatchAction, updateMatchAction } from "@/lib/actions/admin";
+import { getAdminMatchOverview, getStadiumBuilderData } from "@/lib/supabase/queries";
+
+const matchStatusOptions = [
+  { value: "draft", label: "Ciornă" },
+  { value: "published", label: "Publicat" },
+  { value: "closed", label: "Închis" },
+  { value: "completed", label: "Finalizat" },
+  { value: "canceled", label: "Anulat" },
+];
+
+const ticketingModeOptions = [
+  { value: "free", label: "Gratuit" },
+  { value: "paid", label: "Cu plată" },
+];
 
 export default async function AdminMatchesPage({
   searchParams,
@@ -24,6 +38,7 @@ export default async function AdminMatchesPage({
   ]);
 
   const defaultStadium = stadiums[0];
+  const defaultHomeTeam = "FC Milsami Orhei";
 
   return (
     <div className="grid gap-8">
@@ -32,7 +47,7 @@ export default async function AdminMatchesPage({
           variant="destructive"
           className="rounded-[24px] border border-[#fecaca] bg-[#fff1f2] px-5 py-4 text-[#b91c1c]"
         >
-          <AlertTitle className="text-base font-semibold">Stergerea a fost blocata</AlertTitle>
+          <AlertTitle className="text-base font-semibold">Operațiunea a fost blocată</AlertTitle>
           <AlertDescription className="text-sm text-[#b91c1c]">
             {resolvedSearchParams.error}
           </AlertDescription>
@@ -41,7 +56,7 @@ export default async function AdminMatchesPage({
 
       {resolvedSearchParams.notice ? (
         <Alert className="rounded-[24px] border border-[#d1fae5] bg-[#ecfdf5] px-5 py-4 text-[#166534]">
-          <AlertTitle className="text-base font-semibold">Operatiune reusita</AlertTitle>
+          <AlertTitle className="text-base font-semibold">Operațiune reușită</AlertTitle>
           <AlertDescription className="text-sm text-[#166534]">
             {resolvedSearchParams.notice}
           </AlertDescription>
@@ -53,7 +68,7 @@ export default async function AdminMatchesPage({
           Management meciuri
         </p>
         <h1 className="mt-2 font-heading text-5xl uppercase tracking-[0.08em] text-[#111111]">
-          Creeaza, editeaza si publica meciuri
+          Creează, editează și publică meciuri
         </h1>
       </div>
 
@@ -70,26 +85,27 @@ export default async function AdminMatchesPage({
               }))}
               defaultValue={defaultStadium?.id}
             />
-            <Field name="title" label="Titlu meci" />
-            <Field name="slug" label="Slug" />
-            <Field name="competitionName" label="Competitie" />
-            <Field name="opponentName" label="Adversar" />
-            <Field name="startsAt" label="Start" type="datetime-local" />
-            <Field name="maxTicketsPerUser" label="Limita / user" type="number" defaultValue="4" />
-            <Field name="status" label="Status" defaultValue="published" />
-            <Field name="reservationOpensAt" label="Deschidere ticketing" type="datetime-local" />
-            <Field name="reservationClosesAt" label="Inchidere ticketing" type="datetime-local" />
+            <AdminMatchDerivedFields
+              formId="match-create"
+              defaultHomeTeam={defaultHomeTeam}
+              defaultAwayTeam=""
+            />
+            <Field name="competitionName" label="Competiție" />
+            <Field name="maxTicketsPerUser" label="Limită / user" type="number" defaultValue="4" />
+            <SelectField
+              name="status"
+              label="Status"
+              options={matchStatusOptions}
+              defaultValue="published"
+            />
             <SelectField
               name="ticketingMode"
               label="Tip ticketing"
-              options={[
-                { value: "free", label: "Gratuit" },
-                { value: "paid", label: "Platit" },
-              ]}
+              options={ticketingModeOptions}
               defaultValue="free"
             />
-            <Field name="ticketPriceCents" label="Pret (bani)" type="number" defaultValue="0" />
-            <Field name="currency" label="Moneda" defaultValue="MDL" />
+            <Field name="ticketPriceCents" label="Preț (bani)" type="number" defaultValue="0" />
+            <Field name="currency" label="Monedă" defaultValue="MDL" />
             <label className="flex items-center gap-3 rounded-[22px] border border-black/6 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 lg:col-span-2">
               <input type="checkbox" name="scannerEnabled" defaultChecked />
               Scanner activ pentru acest meci
@@ -99,7 +115,7 @@ export default async function AdminMatchesPage({
                 type="submit"
                 className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
               >
-                Creeaza meciul
+                Creează meciul
               </Button>
             </div>
           </form>
@@ -120,9 +136,12 @@ export default async function AdminMatchesPage({
                   <p className="text-sm text-neutral-500">{match.competitionName}</p>
                 </div>
                 <NumberCell label="Status" value={match.status} />
-                <NumberCell label="Mod" value={match.ticketingMode === "paid" ? "Platit" : "Gratuit"} />
                 <NumberCell
-                  label="Pret"
+                  label="Mod"
+                  value={match.ticketingMode === "paid" ? "Cu plată" : "Gratuit"}
+                />
+                <NumberCell
+                  label="Preț"
                   value={
                     match.ticketingMode === "paid"
                       ? `${(match.ticketPriceCents / 100).toFixed(2)} ${match.currency}`
@@ -154,88 +173,58 @@ export default async function AdminMatchesPage({
                     }))}
                     defaultValue={match.stadiumId}
                   />
-                  <Field
-                    name={`title-${match.id}`}
-                    htmlName="title"
-                    label="Titlu meci"
-                    defaultValue={match.title}
-                  />
-                  <Field
-                    name={`slug-${match.id}`}
-                    htmlName="slug"
-                    label="Slug"
-                    defaultValue={match.slug}
+                  <AdminMatchDerivedFields
+                    formId={`match-${match.id}`}
+                    defaultHomeTeam={deriveHomeTeam(match.title, match.opponentName)}
+                    defaultAwayTeam={match.opponentName}
+                    defaultStartsAt={match.startsAt}
+                    defaultReservationOpensAt={match.reservationOpensAt}
+                    defaultReservationClosesAt={match.reservationClosesAt}
                   />
                   <Field
                     name={`competition-${match.id}`}
                     htmlName="competitionName"
-                    label="Competitie"
+                    label="Competiție"
                     defaultValue={match.competitionName}
-                  />
-                  <Field
-                    name={`opponent-${match.id}`}
-                    htmlName="opponentName"
-                    label="Adversar"
-                    defaultValue={match.opponentName}
-                  />
-                  <Field
-                    name={`starts-${match.id}`}
-                    htmlName="startsAt"
-                    label="Start"
-                    type="datetime-local"
-                    defaultValue={toDateTimeLocalValue(match.startsAt)}
                   />
                   <Field
                     name={`limit-${match.id}`}
                     htmlName="maxTicketsPerUser"
-                    label="Limita / user"
+                    label="Limită / user"
                     type="number"
                     defaultValue={String(match.maxTicketsPerUser)}
                   />
-                  <Field
-                    name={`status-${match.id}`}
-                    htmlName="status"
+                  <SelectField
+                    name="status"
                     label="Status"
+                    options={matchStatusOptions}
                     defaultValue={match.status}
-                  />
-                  <Field
-                    name={`open-${match.id}`}
-                    htmlName="reservationOpensAt"
-                    label="Deschidere ticketing"
-                    type="datetime-local"
-                    defaultValue={toDateTimeLocalValue(match.reservationOpensAt ?? "")}
-                  />
-                  <Field
-                    name={`close-${match.id}`}
-                    htmlName="reservationClosesAt"
-                    label="Inchidere ticketing"
-                    type="datetime-local"
-                    defaultValue={toDateTimeLocalValue(match.reservationClosesAt ?? "")}
                   />
                   <SelectField
                     name="ticketingMode"
                     label="Tip ticketing"
-                    options={[
-                      { value: "free", label: "Gratuit" },
-                      { value: "paid", label: "Platit" },
-                    ]}
+                    options={ticketingModeOptions}
                     defaultValue={match.ticketingMode}
                   />
                   <Field
                     name={`price-${match.id}`}
                     htmlName="ticketPriceCents"
-                    label="Pret (bani)"
+                    label="Preț (bani)"
                     type="number"
                     defaultValue={String(match.ticketPriceCents)}
                   />
                   <Field
                     name={`currency-${match.id}`}
                     htmlName="currency"
-                    label="Moneda"
+                    label="Monedă"
                     defaultValue={match.currency}
                   />
                   <label className="flex items-center gap-3 rounded-[22px] border border-black/6 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 lg:col-span-2">
-                    <input type="checkbox" name="scannerEnabled" defaultChecked={match.scannerEnabled} />
+                    <input
+                      type="checkbox"
+                      name="scannerEnabled"
+                      defaultChecked={match.scannerEnabled}
+                    />
                     Scanner activ pentru acest meci
                   </label>
                   <div className="flex items-end lg:col-span-2">
@@ -243,7 +232,7 @@ export default async function AdminMatchesPage({
                       type="submit"
                       className="w-full rounded-full border border-[#111111] bg-[#111111] text-white hover:bg-black"
                     >
-                      Salveaza modificarile
+                      Salvează modificările
                     </Button>
                   </div>
                 </form>
@@ -252,10 +241,10 @@ export default async function AdminMatchesPage({
                   <input type="hidden" name="matchId" value={match.id} />
                   <ConfirmButton
                     submitForm
-                    triggerLabel="Sterge meciul"
-                    title="Confirmi stergerea meciului?"
-                    description={`Meciul „${match.title}” va fi sters definitiv impreuna cu rezervarile, biletele, scanarile, platile si istoricul operational legat direct de el. Actiunea nu poate fi anulata.`}
-                    confirmLabel="Sterge definitiv"
+                    triggerLabel="Șterge meciul"
+                    title="Confirmi ștergerea meciului?"
+                    description={`Meciul „${match.title}” va fi șters definitiv împreună cu rezervările, biletele, scanările, plățile și istoricul operațional legat direct de el. Acțiunea nu poate fi anulată.`}
+                    confirmLabel="Șterge definitiv"
                     variant="destructive"
                     confirmVariant="destructive"
                     className="rounded-full border border-[#b91c1c] bg-[#fff1f2] px-5 text-[#b91c1c] hover:bg-[#ffe4e6]"
@@ -268,6 +257,16 @@ export default async function AdminMatchesPage({
       </div>
     </div>
   );
+}
+
+function deriveHomeTeam(title: string, opponentName: string) {
+  const suffix = ` vs ${opponentName}`;
+
+  if (opponentName && title.endsWith(suffix)) {
+    return title.slice(0, -suffix.length);
+  }
+
+  return title;
 }
 
 function Field({
@@ -291,7 +290,7 @@ function Field({
         name={htmlName ?? name}
         type={type}
         defaultValue={defaultValue}
-        required={type !== "datetime-local" || Boolean(defaultValue)}
+        required
         className="rounded-2xl bg-white"
       />
     </div>
@@ -335,19 +334,4 @@ function NumberCell({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-[#111111]">{value}</p>
     </div>
   );
-}
-
-function toDateTimeLocalValue(value: string) {
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  const offset = date.getTimezoneOffset();
-  const localDate = new Date(date.getTime() - offset * 60_000);
-  return localDate.toISOString().slice(0, 16);
 }
