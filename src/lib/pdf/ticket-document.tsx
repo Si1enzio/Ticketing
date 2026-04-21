@@ -1,7 +1,31 @@
 /* eslint-disable jsx-a11y/alt-text */
-import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import path from "node:path";
+
+import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 import type { StadiumSponsor, TicketCard } from "@/lib/domain/types";
+
+const pdfFontFamily = "GeistPdf";
+const geistPdfFontPath = path.join(
+  process.cwd(),
+  "node_modules",
+  "next",
+  "dist",
+  "compiled",
+  "@vercel",
+  "og",
+  "Geist-Regular.ttf",
+);
+
+Font.register({
+  family: pdfFontFamily,
+  fonts: [
+    { src: geistPdfFontPath, fontWeight: 400 },
+    { src: geistPdfFontPath, fontWeight: 500 },
+    { src: geistPdfFontPath, fontWeight: 600 },
+    { src: geistPdfFontPath, fontWeight: 700 },
+  ],
+});
 
 const styles = StyleSheet.create({
   page: {
@@ -9,6 +33,7 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingHorizontal: 18,
     paddingBottom: 18,
+    fontFamily: pdfFontFamily,
     fontSize: 9,
     color: "#111111",
   },
