@@ -109,6 +109,7 @@ const decorativeElementSchema = z.discriminatedUnion("kind", [
     width: z.number(),
     height: z.number(),
     rx: z.number().optional(),
+    preset: z.enum(["football-pitch"]).optional(),
     fill: z.string().optional(),
     opacity: z.number().optional(),
   }),

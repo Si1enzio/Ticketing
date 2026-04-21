@@ -102,6 +102,7 @@ export type DecorativeElement =
       width: number;
       height: number;
       rx?: number;
+      preset?: "football-pitch";
       fill?: string;
       opacity?: number;
     }

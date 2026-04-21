@@ -18,6 +18,110 @@ import type {
 } from "@/lib/stadium/stadium-types";
 import { getSectorAvailabilityState } from "@/lib/stadium/stadium-utils";
 
+function FootballPitchLines({
+  x,
+  y,
+  width,
+  height,
+  rx = 0,
+}: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rx?: number;
+}) {
+  const padding = Math.max(10, Math.min(width, height) * 0.055);
+  const left = x + padding;
+  const right = x + width - padding;
+  const top = y + padding;
+  const bottom = y + height - padding;
+  const innerWidth = right - left;
+  const innerHeight = bottom - top;
+  const midX = left + innerWidth / 2;
+  const midY = top + innerHeight / 2;
+  const centerCircleRadius = Math.min(innerWidth, innerHeight) * 0.12;
+  const penaltyBoxDepth = innerWidth * 0.16;
+  const penaltyBoxHeight = innerHeight * 0.5;
+  const goalAreaDepth = innerWidth * 0.06;
+  const goalAreaHeight = innerHeight * 0.22;
+  const penaltySpotOffset = innerWidth * 0.11;
+  const stroke = "rgba(21,128,61,0.22)";
+  const strokeWidth = Math.max(1.5, Math.min(width, height) * 0.006);
+
+  return (
+    <g pointerEvents="none">
+      <rect
+        x={left}
+        y={top}
+        width={innerWidth}
+        height={innerHeight}
+        rx={Math.max(0, rx - padding * 0.35)}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+      />
+      <line
+        x1={midX}
+        y1={top}
+        x2={midX}
+        y2={bottom}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+      />
+      <circle
+        cx={midX}
+        cy={midY}
+        r={centerCircleRadius}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+      />
+      <circle cx={midX} cy={midY} r={strokeWidth * 0.75} fill={stroke} />
+
+      <rect
+        x={left}
+        y={midY - penaltyBoxHeight / 2}
+        width={penaltyBoxDepth}
+        height={penaltyBoxHeight}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+      />
+      <rect
+        x={left}
+        y={midY - goalAreaHeight / 2}
+        width={goalAreaDepth}
+        height={goalAreaHeight}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+      />
+      <circle cx={left + penaltySpotOffset} cy={midY} r={strokeWidth * 0.75} fill={stroke} />
+
+      <rect
+        x={right - penaltyBoxDepth}
+        y={midY - penaltyBoxHeight / 2}
+        width={penaltyBoxDepth}
+        height={penaltyBoxHeight}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+      />
+      <rect
+        x={right - goalAreaDepth}
+        y={midY - goalAreaHeight / 2}
+        width={goalAreaDepth}
+        height={goalAreaHeight}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+      />
+      <circle cx={right - penaltySpotOffset} cy={midY} r={strokeWidth * 0.75} fill={stroke} />
+    </g>
+  );
+}
+
 export function StadiumMapRenderer({
   config,
   sectors,
@@ -276,6 +380,9 @@ export function StadiumMapRenderer({
           {config.decorations?.map((element) => {
             const decoration = getDecorationProps(element);
             const isSelectedDecoration = selectedDecorationId === element.id;
+            const isFootballPitch =
+              element.kind === "rect" &&
+              (element.preset === "football-pitch" || /pitch|teren/i.test(element.id));
 
             if (!decoration) {
               return null;
@@ -314,6 +421,15 @@ export function StadiumMapRenderer({
                     className={editable ? "cursor-move" : undefined}
                     onPointerDown={(event) => handleDecorationPointerDown(element, event)}
                   />
+                  {isFootballPitch ? (
+                    <FootballPitchLines
+                      x={element.x}
+                      y={element.y}
+                      width={element.width}
+                      height={element.height}
+                      rx={element.rx}
+                    />
+                  ) : null}
                   {editable ? (
                     <>
                       <rect

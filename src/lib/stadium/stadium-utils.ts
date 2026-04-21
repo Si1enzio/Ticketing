@@ -236,6 +236,7 @@ export function createFallbackStadiumMapConfig({
         width: 360,
         height: 280,
         rx: 28,
+        preset: "football-pitch",
         fill: "rgba(22,163,74,0.08)",
       },
     ],
