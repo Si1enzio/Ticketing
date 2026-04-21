@@ -1,7 +1,4 @@
-import type {
-  DecorativeElement,
-  SectorShapeConfig,
-} from "@/lib/stadium/stadium-types";
+import type { DecorativeElement, SectorShapeConfig } from "@/lib/stadium/stadium-types";
 
 function polarToCartesian(cx: number, cy: number, radius: number, angleDegrees: number) {
   const angleRadians = (Math.PI / 180) * angleDegrees;
@@ -243,4 +240,49 @@ export function translateSectorShape(
     default:
       return shape;
   }
+}
+
+export function translateDecoration(
+  decoration: DecorativeElement,
+  deltaX: number,
+  deltaY: number,
+): DecorativeElement {
+  switch (decoration.kind) {
+    case "rect":
+      return {
+        ...decoration,
+        x: decoration.x + deltaX,
+        y: decoration.y + deltaY,
+      };
+    case "line":
+      return {
+        ...decoration,
+        x1: decoration.x1 + deltaX,
+        y1: decoration.y1 + deltaY,
+        x2: decoration.x2 + deltaX,
+        y2: decoration.y2 + deltaY,
+      };
+    case "path":
+      return decoration;
+    case "text":
+      return {
+        ...decoration,
+        x: decoration.x + deltaX,
+        y: decoration.y + deltaY,
+      };
+    default:
+      return decoration;
+  }
+}
+
+export function resizeRectDecoration(
+  decoration: Extract<DecorativeElement, { kind: "rect" }>,
+  deltaX: number,
+  deltaY: number,
+) {
+  return {
+    ...decoration,
+    width: Math.max(40, decoration.width + deltaX),
+    height: Math.max(40, decoration.height + deltaY),
+  };
 }

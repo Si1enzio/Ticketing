@@ -6,7 +6,11 @@ import { useI18n } from "@/components/i18n-provider";
 import { StadiumSector } from "@/components/stadium/stadium-sector";
 import { getDecorationProps } from "@/lib/stadium/stadium-geometry";
 import { getStadiumMapMessages } from "@/lib/stadium/stadium-localization";
-import type { StadiumMapConfig, StadiumRenderableSector } from "@/lib/stadium/stadium-types";
+import type {
+  DecorativeElement,
+  StadiumMapConfig,
+  StadiumRenderableSector,
+} from "@/lib/stadium/stadium-types";
 import { getSectorAvailabilityState } from "@/lib/stadium/stadium-utils";
 
 export function StadiumMapRenderer({
@@ -17,6 +21,10 @@ export function StadiumMapRenderer({
   onSelectSector,
   editable,
   onSectorDrag,
+  selectedDecorationId,
+  onSelectDecoration,
+  onDecorationDrag,
+  onDecorationResize,
 }: {
   config: StadiumMapConfig;
   sectors: StadiumRenderableSector[];
@@ -25,18 +33,23 @@ export function StadiumMapRenderer({
   onSelectSector: (sectorCode: string) => void;
   editable?: boolean;
   onSectorDrag?: (sectorCode: string, deltaX: number, deltaY: number) => void;
+  selectedDecorationId?: string | null;
+  onSelectDecoration?: (decorationId: string | null) => void;
+  onDecorationDrag?: (decorationId: string, deltaX: number, deltaY: number) => void;
+  onDecorationResize?: (decorationId: string, deltaX: number, deltaY: number) => void;
 }) {
   const { locale } = useI18n();
   const copy = getStadiumMapMessages(locale);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [dragState, setDragState] = useState<{
     pointerId: number;
-    sectorCode: string;
+    targetId: string;
+    targetType: "sector" | "decoration-move" | "decoration-resize";
     lastX: number;
     lastY: number;
   } | null>(null);
 
-  function toSvgCoordinates(event: ReactPointerEvent<SVGSVGElement | SVGGElement>) {
+  function toSvgCoordinates(event: ReactPointerEvent<Element>) {
     const svg = svgRef.current;
     if (!svg) {
       return null;
@@ -73,14 +86,67 @@ export function StadiumMapRenderer({
     svgRef.current?.setPointerCapture(event.pointerId);
     setDragState({
       pointerId: event.pointerId,
-      sectorCode,
+      targetId: sectorCode,
+      targetType: "sector",
+      lastX: point.x,
+      lastY: point.y,
+    });
+  }
+
+  function handleDecorationPointerDown(
+    decoration: DecorativeElement,
+    event: ReactPointerEvent<SVGElement>,
+  ) {
+    if (!editable || !onDecorationDrag) {
+      return;
+    }
+
+    const point = toSvgCoordinates(event);
+    if (!point) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    onSelectDecoration?.(decoration.id);
+    svgRef.current?.setPointerCapture(event.pointerId);
+    setDragState({
+      pointerId: event.pointerId,
+      targetId: decoration.id,
+      targetType: "decoration-move",
+      lastX: point.x,
+      lastY: point.y,
+    });
+  }
+
+  function handleDecorationResizePointerDown(
+    decorationId: string,
+    event: ReactPointerEvent<SVGCircleElement>,
+  ) {
+    if (!editable || !onDecorationResize) {
+      return;
+    }
+
+    const point = toSvgCoordinates(event);
+    if (!point) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    onSelectDecoration?.(decorationId);
+    svgRef.current?.setPointerCapture(event.pointerId);
+    setDragState({
+      pointerId: event.pointerId,
+      targetId: decorationId,
+      targetType: "decoration-resize",
       lastX: point.x,
       lastY: point.y,
     });
   }
 
   function handlePointerMove(event: ReactPointerEvent<SVGSVGElement>) {
-    if (!dragState || dragState.pointerId !== event.pointerId || !onSectorDrag) {
+    if (!dragState || dragState.pointerId !== event.pointerId) {
       return;
     }
 
@@ -96,7 +162,18 @@ export function StadiumMapRenderer({
       return;
     }
 
-    onSectorDrag(dragState.sectorCode, deltaX, deltaY);
+    if (dragState.targetType === "sector") {
+      onSectorDrag?.(dragState.targetId, deltaX, deltaY);
+    }
+
+    if (dragState.targetType === "decoration-move") {
+      onDecorationDrag?.(dragState.targetId, deltaX, deltaY);
+    }
+
+    if (dragState.targetType === "decoration-resize") {
+      onDecorationResize?.(dragState.targetId, deltaX, deltaY);
+    }
+
     setDragState((current) =>
       current
         ? {
@@ -158,6 +235,7 @@ export function StadiumMapRenderer({
         >
           {config.decorations?.map((element) => {
             const decoration = getDecorationProps(element);
+            const isSelectedDecoration = selectedDecorationId === element.id;
 
             if (!decoration) {
               return null;
@@ -165,21 +243,77 @@ export function StadiumMapRenderer({
 
             if (decoration.type === "text") {
               return (
-                <text key={element.id} {...decoration.props}>
-                  {decoration.props.value}
-                </text>
+                <g key={element.id}>
+                  <text
+                    {...decoration.props}
+                    className={editable ? "cursor-move" : undefined}
+                    onPointerDown={(event) => handleDecorationPointerDown(element, event)}
+                  >
+                    {decoration.props.value}
+                  </text>
+                </g>
               );
             }
 
             if (decoration.type === "line") {
-              return <line key={element.id} {...decoration.props} />;
+              return (
+                <line
+                  key={element.id}
+                  {...decoration.props}
+                  className={editable ? "cursor-move" : undefined}
+                  onPointerDown={(event) => handleDecorationPointerDown(element, event)}
+                />
+              );
             }
 
-            if (decoration.type === "rect") {
-              return <rect key={element.id} {...decoration.props} />;
+            if (decoration.type === "rect" && element.kind === "rect") {
+              return (
+                <g key={element.id}>
+                  <rect
+                    {...decoration.props}
+                    className={editable ? "cursor-move" : undefined}
+                    onPointerDown={(event) => handleDecorationPointerDown(element, event)}
+                  />
+                  {editable ? (
+                    <>
+                      <rect
+                        x={element.x}
+                        y={element.y}
+                        width={element.width}
+                        height={element.height}
+                        rx={element.rx ?? 0}
+                        fill="transparent"
+                        stroke={isSelectedDecoration ? "#dc2626" : "rgba(220,38,38,0.38)"}
+                        strokeWidth={isSelectedDecoration ? 4 : 2}
+                        strokeDasharray="10 8"
+                        pointerEvents="none"
+                      />
+                      <circle
+                        cx={element.x + element.width}
+                        cy={element.y + element.height}
+                        r={10}
+                        fill={isSelectedDecoration ? "#dc2626" : "#ffffff"}
+                        stroke="#dc2626"
+                        strokeWidth={3}
+                        className="cursor-se-resize"
+                        onPointerDown={(event) =>
+                          handleDecorationResizePointerDown(element.id, event)
+                        }
+                      />
+                    </>
+                  ) : null}
+                </g>
+              );
             }
 
-            return <path key={element.id} {...decoration.props} />;
+            return (
+              <path
+                key={element.id}
+                {...decoration.props}
+                className={editable ? "cursor-move" : undefined}
+                onPointerDown={(event) => handleDecorationPointerDown(element, event)}
+              />
+            );
           })}
 
           {sectors.map((sector) => (

@@ -4,7 +4,11 @@ import { useMemo, useState } from "react";
 
 import { saveStadiumMapConfigAction } from "@/lib/actions/admin";
 import type { StadiumBuilder } from "@/lib/domain/types";
-import { translateSectorShape } from "@/lib/stadium/stadium-geometry";
+import {
+  resizeRectDecoration,
+  translateDecoration,
+  translateSectorShape,
+} from "@/lib/stadium/stadium-geometry";
 import { stadiumMapConfigSchema } from "@/lib/stadium/stadium-schema";
 import type { StadiumMapConfig } from "@/lib/stadium/stadium-types";
 import { buildRenderableSectors, convertStadiumBuilderSectorsToSeatMap, createFallbackStadiumMapConfig } from "@/lib/stadium/stadium-utils";
@@ -72,6 +76,7 @@ export function StadiumMapAdminEditor({
     ),
   );
   const [selectedPreviewSectorCode, setSelectedPreviewSectorCode] = useState<string | null>(null);
+  const [selectedDecorationId, setSelectedDecorationId] = useState<string | null>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const config = selectedStadium ? configByStadium[selectedStadium.id] ?? buildInitialConfig(selectedStadium, savedConfig) : null;
   const rawJson = selectedStadium ? rawJsonByStadium[selectedStadium.id] ?? (config ? JSON.stringify(config, null, 2) : "") : "";
@@ -250,8 +255,9 @@ export function StadiumMapAdminEditor({
               </p>
               <p className="mt-1 text-xs leading-5 text-neutral-500">
                 Poti trage cu cursorul sectoarele de tip `rectangle`, `trapezoid`, `curve`,
-                `polygon` sau `arc`. Pentru `custom-path`, ajustezi path-ul sau label-ul din
-                configuratie.
+                `polygon` sau `arc`. Terenul si alte elemente decorative `rect` pot fi mutate,
+                iar terenul poate fi si redimensionat din handle-ul rosu din colt. Pentru
+                `custom-path`, ajustezi path-ul sau label-ul din configuratie.
               </p>
             </div>
             <StadiumLegend mode="overview" />
@@ -263,6 +269,8 @@ export function StadiumMapAdminEditor({
               sectors={renderableSectors}
               selectedSectorCode={effectivePreviewSectorCode}
               onSelectSector={(sectorCode) => setSelectedPreviewSectorCode(sectorCode)}
+              selectedDecorationId={selectedDecorationId}
+              onSelectDecoration={setSelectedDecorationId}
               editable
               onSectorDrag={(sectorCode, deltaX, deltaY) => {
                 setSelectedPreviewSectorCode(sectorCode);
@@ -278,10 +286,147 @@ export function StadiumMapAdminEditor({
                   ),
                 }));
               }}
+              onDecorationDrag={(decorationId, deltaX, deltaY) => {
+                setSelectedDecorationId(decorationId);
+                patchConfig((current) => ({
+                  ...current,
+                  decorations: current.decorations?.map((item) =>
+                    item.id === decorationId
+                      ? translateDecoration(item, deltaX, deltaY)
+                      : item,
+                  ),
+                }));
+              }}
+              onDecorationResize={(decorationId, deltaX, deltaY) => {
+                setSelectedDecorationId(decorationId);
+                patchConfig((current) => ({
+                  ...current,
+                  decorations: current.decorations?.map((item) =>
+                    item.id === decorationId && item.kind === "rect"
+                      ? resizeRectDecoration(item, deltaX, deltaY)
+                      : item,
+                  ),
+                }));
+              }}
             />
           </div>
         </div>
       </div>
+
+      {selectedDecorationId && config.decorations?.some((item) => item.id === selectedDecorationId) ? (
+        <div className="grid gap-4 rounded-[28px] border border-black/6 bg-white p-5">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-[#b91c1c]">
+              Element decorativ selectat
+            </p>
+            <p className="mt-2 text-sm leading-6 text-neutral-600">
+              Poti ajusta rapid terenul sau alte decoratiuni direct din preview si din campurile de mai jos.
+            </p>
+          </div>
+
+          {config.decorations
+            .filter((item) => item.id === selectedDecorationId)
+            .map((item) => (
+              <div key={item.id} className="grid gap-4">
+                <div className="grid gap-2 md:grid-cols-3">
+                  <div className="grid gap-2">
+                    <Label>ID</Label>
+                    <Input value={item.id} readOnly className="rounded-2xl bg-neutral-50" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Tip</Label>
+                    <Input value={item.kind} readOnly className="rounded-2xl bg-neutral-50" />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-full border-[#111111] bg-white text-[#111111]"
+                      onClick={() => setSelectedDecorationId(null)}
+                    >
+                      Deselecteaza
+                    </Button>
+                  </div>
+                </div>
+
+                {item.kind === "rect" ? (
+                  <div className="grid gap-3 md:grid-cols-5">
+                    <NumberField
+                      label="x"
+                      value={item.x}
+                      onChange={(value) =>
+                        patchConfig((current) => ({
+                          ...current,
+                          decorations: current.decorations?.map((decoration) =>
+                            decoration.id === item.id && decoration.kind === "rect"
+                              ? { ...decoration, x: value }
+                              : decoration,
+                          ),
+                        }))
+                      }
+                    />
+                    <NumberField
+                      label="y"
+                      value={item.y}
+                      onChange={(value) =>
+                        patchConfig((current) => ({
+                          ...current,
+                          decorations: current.decorations?.map((decoration) =>
+                            decoration.id === item.id && decoration.kind === "rect"
+                              ? { ...decoration, y: value }
+                              : decoration,
+                          ),
+                        }))
+                      }
+                    />
+                    <NumberField
+                      label="width"
+                      value={item.width}
+                      onChange={(value) =>
+                        patchConfig((current) => ({
+                          ...current,
+                          decorations: current.decorations?.map((decoration) =>
+                            decoration.id === item.id && decoration.kind === "rect"
+                              ? { ...decoration, width: value }
+                              : decoration,
+                          ),
+                        }))
+                      }
+                    />
+                    <NumberField
+                      label="height"
+                      value={item.height}
+                      onChange={(value) =>
+                        patchConfig((current) => ({
+                          ...current,
+                          decorations: current.decorations?.map((decoration) =>
+                            decoration.id === item.id && decoration.kind === "rect"
+                              ? { ...decoration, height: value }
+                              : decoration,
+                          ),
+                        }))
+                      }
+                    />
+                    <NumberField
+                      label="rx"
+                      value={item.rx ?? 0}
+                      onChange={(value) =>
+                        patchConfig((current) => ({
+                          ...current,
+                          decorations: current.decorations?.map((decoration) =>
+                            decoration.id === item.id && decoration.kind === "rect"
+                              ? { ...decoration, rx: value }
+                              : decoration,
+                          ),
+                        }))
+                      }
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ))}
+        </div>
+      ) : null}
 
       <div className="grid gap-4">
         {config.sectors.map((sector, index) => (
