@@ -82,7 +82,7 @@ export default async function AdminMatchDetailsPage({
         <MetricCard label="Scanări invalide" value={report.invalidScanCount} />
         <MetricCard label="Bilete active" value={report.activeCount} />
         <MetricCard label="Bilete anulate" value={report.canceledCount} />
-        <MetricCard label="Surse interne" value={report.internalCount} />
+        <MetricCard label="Bilete administrative / interne" value={report.internalCount} />
       </div>
 
       <MatchSeatOverridesManager
