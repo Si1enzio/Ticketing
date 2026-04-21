@@ -66,6 +66,12 @@ const sectorDeleteSchema = z.object({
   sectorId: z.string(),
 });
 
+const sectorMoveSchema = z.object({
+  sectorId: z.string(),
+  direction: z.enum(["up", "down"]),
+  source: z.enum(["stadion", "builder"]).default("stadion"),
+});
+
 const matchSchema = z.object({
   stadiumId: z.string(),
   title: z.string().min(4),
@@ -198,6 +204,17 @@ function redirectToAdminMatches(params: Record<string, string>): never {
 function redirectToAdminStadiumMap(params: Record<string, string>): never {
   const query = new URLSearchParams(params);
   redirect(`/admin/stadion/harta?${query.toString()}`);
+}
+
+function redirectToSectorSource(
+  source: z.infer<typeof sectorMoveSchema>["source"],
+  params: Record<string, string>,
+): never {
+  if (source === "builder") {
+    return redirectToAdminStadiumMap(params);
+  }
+
+  return redirectToAdminStadium(params);
 }
 
 async function ensureSeatsCanBeDeleted(
@@ -883,6 +900,121 @@ export async function saveSectorSeatLayoutAction(formData: FormData) {
   revalidatePath("/admin/stadion/harta");
   redirectToAdminStadiumMap({
     notice: `Locurile pentru sectorul ${sector.name} au fost actualizate.`,
+  });
+}
+
+export async function moveSectorOrderAction(formData: FormData) {
+  const parsed = sectorMoveSchema.safeParse({
+    sectorId: formData.get("sectorId"),
+    direction: formData.get("direction"),
+    source: formData.get("source") || "stadion",
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    redirectToSectorSource(parsed.success ? parsed.data.source : "stadion", {
+      error: "Cererea de reordonare a sectorului este invalida.",
+    });
+  }
+
+  const viewer = await ensureAdmin();
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    redirectToSectorSource(parsed.data.source, {
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
+
+  const { data: sector } = await supabase
+    .from("stadium_sectors")
+    .select("id, stadium_id, stand_id, sort_order, name, code")
+    .eq("id", parsed.data.sectorId)
+    .maybeSingle();
+
+  if (!sector) {
+    redirectToSectorSource(parsed.data.source, {
+      error: "Sectorul selectat nu mai exista.",
+    });
+  }
+
+  let siblingsQuery = supabase
+    .from("stadium_sectors")
+    .select("id, sort_order, code")
+    .eq("stadium_id", sector.stadium_id)
+    .order("sort_order")
+    .order("code");
+
+  siblingsQuery = sector.stand_id
+    ? siblingsQuery.eq("stand_id", sector.stand_id)
+    : siblingsQuery.is("stand_id", null);
+
+  const { data: siblings, error: siblingsError } = await siblingsQuery;
+
+  if (siblingsError) {
+    console.error("Nu am putut incarca ordinea sectoarelor.", siblingsError);
+    redirectToSectorSource(parsed.data.source, {
+      error: "Ordinea sectoarelor nu a putut fi incarcata.",
+    });
+  }
+
+  const orderedSectors = [...((siblings ?? []) as Array<{
+    id: string;
+    sort_order: number | null;
+    code: string;
+  }>)].sort((left, right) => {
+    const leftOrder = Number(left.sort_order ?? 0);
+    const rightOrder = Number(right.sort_order ?? 0);
+    if (leftOrder !== rightOrder) {
+      return leftOrder - rightOrder;
+    }
+
+    return left.code.localeCompare(right.code);
+  });
+
+  const currentIndex = orderedSectors.findIndex((item) => item.id === parsed.data.sectorId);
+
+  if (currentIndex === -1) {
+    redirectToSectorSource(parsed.data.source, {
+      error: "Sectorul selectat nu a fost gasit in ordinea curenta.",
+    });
+  }
+
+  const targetIndex =
+    parsed.data.direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+  if (targetIndex < 0 || targetIndex >= orderedSectors.length) {
+    redirectToSectorSource(parsed.data.source, {
+      error:
+        parsed.data.direction === "up"
+          ? "Sectorul este deja primul din lista."
+          : "Sectorul este deja ultimul din lista.",
+    });
+  }
+
+  const reordered = [...orderedSectors];
+  const [movedSector] = reordered.splice(currentIndex, 1);
+  reordered.splice(targetIndex, 0, movedSector);
+
+  await Promise.all(
+    reordered.map((item, index) =>
+      supabase
+        .from("stadium_sectors")
+        .update({ sort_order: (index + 1) * 10 })
+        .eq("id", item.id),
+    ),
+  );
+
+  await logAudit(viewer.userId, "move_sector_order", "stadium_sectors", parsed.data.sectorId, {
+    direction: parsed.data.direction,
+    source: parsed.data.source,
+    sectorName: sector.name,
+    standId: sector.stand_id,
+  });
+
+  revalidatePath("/admin/stadion");
+  revalidatePath("/admin/stadion/harta");
+  redirectToSectorSource(parsed.data.source, {
+    notice: `Ordinea pentru sectorul ${sector.name} a fost actualizata.`,
   });
 }
 

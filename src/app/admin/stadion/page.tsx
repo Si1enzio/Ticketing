@@ -7,15 +7,13 @@ import {
   createSectorAction,
   createStadiumAction,
   createStandAction,
-  deleteSectorAction,
   deleteStandAction,
   updateSponsorAction,
-  updateSectorAction,
   updateStadiumAction,
   updateStandAction,
 } from "@/lib/actions/admin";
 import { getStadiumBuilderData } from "@/lib/supabase/queries";
-import { SeatFlagEditor } from "@/components/seat-flag-editor";
+import { StadiumAdminSectorCard } from "@/components/stadium/stadium-admin-sector-card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -423,7 +421,7 @@ export default async function AdminStadiumPage({
 
                       <div className="grid gap-5">
                         {standSectors.map((sector) => (
-                          <SectorEditor
+                          <StadiumAdminSectorCard
                             key={sector.id}
                             sector={sector}
                             stadiumId={stadium.id}
@@ -455,7 +453,7 @@ export default async function AdminStadiumPage({
 
                     <div className="grid gap-5">
                       {unassignedSectors.map((sector) => (
-                        <SectorEditor
+                        <StadiumAdminSectorCard
                           key={sector.id}
                           sector={sector}
                           stadiumId={stadium.id}
@@ -479,132 +477,6 @@ export default async function AdminStadiumPage({
           </Card>
         );
       })}
-    </div>
-  );
-}
-
-function SectorEditor({
-  sector,
-  stadiumId,
-  standOptions,
-  gateOptions,
-}: {
-  sector: {
-    id: string;
-    standId: string | null;
-    gateId: string | null;
-    gateName: string | null;
-    name: string;
-    code: string;
-    color: string;
-    rowsCount: number;
-    seatsPerRow: number;
-    seats: Array<{
-      id: string;
-      rowLabel: string;
-      seatNumber: number;
-      seatLabel: string;
-      isDisabled: boolean;
-      isObstructed: boolean;
-      isInternalOnly: boolean;
-    }>;
-  };
-  stadiumId: string;
-  standOptions: Array<{ value: string; label: string }>;
-  gateOptions: Array<{ value: string; label: string }>;
-}) {
-  return (
-    <div className="grid gap-5 rounded-[24px] border border-black/6 bg-white/90 p-5">
-      <div className="flex items-center gap-3">
-        <div className="h-4 w-4 rounded-full" style={{ backgroundColor: sector.color }} />
-        <div>
-          <p className="font-semibold text-[#111111]">{sector.name}</p>
-          <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
-            {sector.code} - {sector.rowsCount} randuri - {sector.seatsPerRow} locuri/rand
-          </p>
-          <p className="mt-1 text-xs text-neutral-500">
-            Poarta implicita: {sector.gateName ?? "Fara poarta alocata"}
-          </p>
-        </div>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[1fr_auto]">
-        <form action={updateSectorAction} className="grid gap-4 md:grid-cols-2 xl:grid-cols-8">
-          <input type="hidden" name="sectorId" value={sector.id} />
-          <input type="hidden" name="stadiumId" value={stadiumId} />
-          <SelectField
-            name="standId"
-            label="Tribuna"
-            allowEmpty
-            emptyLabel="Fara tribuna"
-            options={standOptions}
-            defaultValue={sector.standId ?? ""}
-          />
-          <SelectField
-            name="gateId"
-            label="Poarta implicita"
-            allowEmpty
-            emptyLabel="Fara poarta alocata"
-            options={gateOptions}
-            defaultValue={sector.gateId ?? ""}
-          />
-          <Field
-            name={`sector-name-${sector.id}`}
-            htmlName="name"
-            label="Nume sector"
-            defaultValue={sector.name}
-          />
-          <Field
-            name={`sector-code-${sector.id}`}
-            htmlName="code"
-            label="Cod"
-            defaultValue={sector.code}
-          />
-          <Field
-            name={`sector-color-${sector.id}`}
-            htmlName="color"
-            label="Culoare"
-            defaultValue={sector.color}
-          />
-          <Field
-            name={`sector-rows-${sector.id}`}
-            htmlName="rowsCount"
-            label="Numar randuri"
-            type="number"
-            defaultValue={String(sector.rowsCount)}
-          />
-          <Field
-            name={`sector-seats-${sector.id}`}
-            htmlName="seatsPerRow"
-            label="Locuri / rand"
-            type="number"
-            defaultValue={String(sector.seatsPerRow)}
-          />
-          <div className="flex items-end xl:col-span-1">
-            <Button
-              type="submit"
-              className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
-            >
-              Salveaza sectorul
-            </Button>
-          </div>
-        </form>
-
-        <form action={deleteSectorAction} className="flex items-end">
-          <input type="hidden" name="sectorId" value={sector.id} />
-          <Button
-            type="submit"
-            variant="destructive"
-            className="rounded-full border border-[#b91c1c] bg-[#fff1f2] px-5 text-[#b91c1c] hover:bg-[#ffe4e6]"
-          >
-            Sterge sectorul
-          </Button>
-        </form>
-      </div>
-
-      <div className="rounded-[24px] border border-dashed border-black/10 bg-neutral-50 p-4">
-        <SeatFlagEditor seats={sector.seats} sectorName={sector.name} />
-      </div>
     </div>
   );
 }

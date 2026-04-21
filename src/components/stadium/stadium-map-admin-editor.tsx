@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import {
   createBuilderSectorAction,
   deleteBuilderSectorAction,
+  moveSectorOrderAction,
   saveSectorSeatLayoutAction,
   saveStadiumMapConfigAction,
 } from "@/lib/actions/admin";
@@ -49,6 +50,7 @@ type SeatLayoutDraft = {
   sectorName: string;
   rowsCount: number;
   seatsPerRow: number;
+  rowNumberStart: number;
   rows: Array<{
     label: string;
     isVisible: boolean;
@@ -79,6 +81,8 @@ function createSeatLayoutDraft(
     (left, right) => left.sortOrder - right.sortOrder,
   );
   const rowsCount = Math.max(sector.rowsCount, sortedRowConfigs.length);
+  const detectedRowStart = Number.parseInt(sortedRowConfigs[0]?.label ?? "1", 10);
+  const rowNumberStart = Number.isFinite(detectedRowStart) ? detectedRowStart : 1;
   const seatsByRowAndNumber = new Set(
     sector.seats.map((seat) => `${seat.rowLabel}::${seat.seatNumber}`),
   );
@@ -88,9 +92,10 @@ function createSeatLayoutDraft(
     sectorName: sector.name,
     rowsCount,
     seatsPerRow: sector.seatsPerRow,
+    rowNumberStart,
     rows: Array.from({ length: rowsCount }, (_, rowIndex) => {
       const rowConfig = sortedRowConfigs[rowIndex];
-      const label = rowConfig?.label ?? String(rowIndex + 1);
+      const label = rowConfig?.label ?? String(rowNumberStart + rowIndex);
 
       return {
         label,
@@ -118,7 +123,7 @@ function resizeSeatLayoutDraft(
 ): SeatLayoutDraft {
   const nextRows = Array.from({ length: rowsCount }, (_, rowIndex) => {
     const existingRow = current.rows[rowIndex];
-    const label = existingRow?.label ?? String(rowIndex + 1);
+    const label = existingRow?.label ?? String(current.rowNumberStart + rowIndex);
     const isVisible = existingRow?.isVisible ?? true;
     const cells = Array.from({ length: seatsPerRow }, (_, seatIndex) => {
       return existingRow?.cells[seatIndex] ?? { kind: "seat" as const };
@@ -136,6 +141,17 @@ function resizeSeatLayoutDraft(
     rowsCount,
     seatsPerRow,
     rows: nextRows,
+  };
+}
+
+function renumberSeatLayoutRows(current: SeatLayoutDraft, rowNumberStart: number): SeatLayoutDraft {
+  return {
+    ...current,
+    rowNumberStart,
+    rows: current.rows.map((row, rowIndex) => ({
+      ...row,
+      label: String(rowNumberStart + rowIndex),
+    })),
   };
 }
 
@@ -179,6 +195,7 @@ export function StadiumMapAdminEditor({
   const [selectedPreviewSectorCode, setSelectedPreviewSectorCode] = useState<string | null>(null);
   const [selectedDecorationId, setSelectedDecorationId] = useState<string | null>(null);
   const [seatLayoutDraft, setSeatLayoutDraft] = useState<SeatLayoutDraft | null>(null);
+  const [expandedSectorKeys, setExpandedSectorKeys] = useState<string[]>([]);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const config = selectedStadium ? configByStadium[selectedStadium.id] ?? buildInitialConfig(selectedStadium, savedConfig) : null;
   const rawJson = selectedStadium ? rawJsonByStadium[selectedStadium.id] ?? (config ? JSON.stringify(config, null, 2) : "") : "";
@@ -237,6 +254,14 @@ export function StadiumMapAdminEditor({
         "JSON invalid. Verifica viewBox, sectoarele si shape-urile inainte de salvare.",
       );
     }
+  }
+
+  function toggleSectorExpansion(sectorKey: string) {
+    setExpandedSectorKeys((current) =>
+      current.includes(sectorKey)
+        ? current.filter((item) => item !== sectorKey)
+        : [...current, sectorKey],
+    );
   }
 
   if (!selectedStadium || !config) {
@@ -638,6 +663,8 @@ export function StadiumMapAdminEditor({
       <div className="grid gap-4">
         {config.sectors.map((sector, index) => {
           const actualSector = actualSectorsByCode.get(sector.code) ?? null;
+          const sectorKey = actualSector?.id ?? sector.code;
+          const isExpanded = expandedSectorKeys.includes(sectorKey);
 
           return (
             <div
@@ -655,6 +682,34 @@ export function StadiumMapAdminEditor({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {actualSector ? (
+                    <div className="flex items-center gap-2">
+                      <form action={moveSectorOrderAction}>
+                        <input type="hidden" name="sectorId" value={actualSector.id} />
+                        <input type="hidden" name="direction" value="up" />
+                        <input type="hidden" name="source" value="builder" />
+                        <Button
+                          type="submit"
+                          variant="outline"
+                          className="rounded-full border-black/10 bg-white text-[#111111]"
+                        >
+                          Sus
+                        </Button>
+                      </form>
+                      <form action={moveSectorOrderAction}>
+                        <input type="hidden" name="sectorId" value={actualSector.id} />
+                        <input type="hidden" name="direction" value="down" />
+                        <input type="hidden" name="source" value="builder" />
+                        <Button
+                          type="submit"
+                          variant="outline"
+                          className="rounded-full border-black/10 bg-white text-[#111111]"
+                        >
+                          Jos
+                        </Button>
+                      </form>
+                    </div>
+                  ) : null}
+                  {actualSector ? (
                     <Button
                       type="button"
                       variant="outline"
@@ -662,6 +717,9 @@ export function StadiumMapAdminEditor({
                       onClick={() => {
                         setSeatLayoutDraft(createSeatLayoutDraft(actualSector, sector));
                         setSelectedPreviewSectorCode(sector.code);
+                        setExpandedSectorKeys((current) =>
+                          current.includes(sectorKey) ? current : [...current, sectorKey],
+                        );
                       }}
                     >
                       Setare / editare locuri
@@ -679,10 +737,20 @@ export function StadiumMapAdminEditor({
                       </Button>
                     </form>
                   ) : null}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full border-black/10 bg-white text-[#111111]"
+                    onClick={() => toggleSectorExpansion(sectorKey)}
+                  >
+                    {isExpanded ? "Detalii ^" : "Detalii v"}
+                  </Button>
                 </div>
               </div>
 
-              <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr_1fr_1fr]">
+              {isExpanded ? (
+                <>
+              <div className="grid gap-4 border-t border-black/6 pt-4 xl:grid-cols-[1.1fr_1fr_1fr_1fr]">
               <div className="grid gap-2">
                 <Label>Cod sector</Label>
                 <Input
@@ -915,6 +983,8 @@ export function StadiumMapAdminEditor({
                 Bookabil
               </label>
             </div>
+                </>
+              ) : null}
           </div>
           );
         })}
@@ -928,10 +998,10 @@ export function StadiumMapAdminEditor({
           }
         }}
       >
-        <DialogContent className="max-w-[min(1000px,calc(100%-2rem))] rounded-[28px] p-0">
+        <DialogContent className="max-h-[92vh] w-[min(90vw,1440px)] max-w-none overflow-hidden rounded-[28px] p-0">
           {seatLayoutDraft ? (
-            <>
-              <DialogHeader className="border-b border-black/6 px-6 py-5">
+            <div className="flex max-h-[92vh] flex-col">
+              <DialogHeader className="shrink-0 border-b border-black/6 px-6 py-5">
                 <DialogTitle className="text-2xl uppercase tracking-[0.08em] text-[#111111]">
                   Setare / editare locuri
                 </DialogTitle>
@@ -941,8 +1011,9 @@ export function StadiumMapAdminEditor({
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="grid gap-5 px-6 py-5">
-                <div className="grid gap-3 md:grid-cols-3">
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+                <div className="grid gap-5">
+                <div className="grid gap-3 lg:grid-cols-4">
                   <NumberField
                     label="Numar randuri"
                     value={seatLayoutDraft.rowsCount}
@@ -973,12 +1044,23 @@ export function StadiumMapAdminEditor({
                       )
                     }
                   />
+                  <NumberField
+                    label="Primul rand incepe de la"
+                    value={seatLayoutDraft.rowNumberStart}
+                    onChange={(value) =>
+                      setSeatLayoutDraft((current) =>
+                        current
+                          ? renumberSeatLayoutRows(current, Math.max(1, value))
+                          : current,
+                      )
+                    }
+                  />
                   <div className="rounded-[24px] border border-dashed border-black/10 bg-neutral-50 px-4 py-3 text-sm leading-6 text-neutral-600">
-                    `Shift` + sageti ramane pentru mutarea sectorului; aici configurezi structura interna a locurilor.
+                    Dialogul foloseste acum aproape toata latimea utila pe desktop si ramane complet in viewport.
                   </div>
                 </div>
 
-                <div className="max-h-[55vh] overflow-auto rounded-[24px] border border-black/6 bg-neutral-50 p-4">
+                <div className="overflow-auto rounded-[24px] border border-black/6 bg-neutral-50 p-4">
                   <div className="grid gap-4">
                     {seatLayoutDraft.rows.map((row, rowIndex) => (
                       <div
@@ -996,7 +1078,12 @@ export function StadiumMapAdminEditor({
                                       ...current,
                                       rows: current.rows.map((item, itemIndex) =>
                                         itemIndex === rowIndex
-                                          ? { ...item, label: event.target.value || String(rowIndex + 1) }
+                                          ? {
+                                              ...item,
+                                              label:
+                                                event.target.value ||
+                                                String(current.rowNumberStart + rowIndex),
+                                            }
                                           : item,
                                       ),
                                     }
@@ -1075,8 +1162,9 @@ export function StadiumMapAdminEditor({
                   </div>
                 </div>
               </div>
+              </div>
 
-              <DialogFooter className="px-6">
+              <DialogFooter className="shrink-0 border-t border-black/6 px-6 py-5">
                 <form action={saveSectorSeatLayoutAction} className="flex w-full flex-wrap items-center justify-end gap-3">
                   <input type="hidden" name="sectorId" value={seatLayoutDraft.sectorId} />
                   <input type="hidden" name="rowsCount" value={seatLayoutDraft.rowsCount} />
@@ -1102,7 +1190,7 @@ export function StadiumMapAdminEditor({
                   </Button>
                 </form>
               </DialogFooter>
-            </>
+            </div>
           ) : null}
         </DialogContent>
       </Dialog>
