@@ -375,7 +375,10 @@ export function StadiumMapAdminEditor({
             </p>
           </div>
 
-          <form action={createBuilderSectorAction} className="grid gap-3 rounded-[24px] border border-black/6 bg-white p-4">
+          <form
+            action={createBuilderSectorAction}
+            className="grid gap-4 rounded-[24px] border border-black/6 bg-white p-4"
+          >
             <input type="hidden" name="stadiumId" value={selectedStadium.id} />
             <p className="text-xs uppercase tracking-[0.24em] text-[#b91c1c]">
               Sector nou in builder
@@ -400,10 +403,10 @@ export function StadiumMapAdminEditor({
                 />
               </div>
             </div>
-              <div className="grid gap-3 md:grid-cols-5">
-                <div className="grid gap-2">
-                  <Label htmlFor="builder-sector-stand">Tribuna</Label>
-                  <select
+            <div className="grid gap-3 lg:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="builder-sector-stand">Tribuna</Label>
+                <select
                   id="builder-sector-stand"
                   name="standId"
                   className="h-10 rounded-2xl border border-black/8 bg-white px-3 text-sm text-[#111111] outline-none focus:border-[#dc2626]"
@@ -414,35 +417,37 @@ export function StadiumMapAdminEditor({
                     <option key={stand.id} value={stand.id}>
                       {stand.name}
                     </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="builder-sector-gate">Poarta implicita</Label>
+                <select
+                  id="builder-sector-gate"
+                  name="gateId"
+                  className="h-10 rounded-2xl border border-black/8 bg-white px-3 text-sm text-[#111111] outline-none focus:border-[#dc2626]"
+                  defaultValue=""
+                >
+                  <option value="">Fara poarta alocata</option>
+                  {selectedStadium.gates
+                    .filter((gate) => gate.isActive)
+                    .map((gate) => (
+                      <option key={gate.id} value={gate.id}>
+                        {gate.name} ({gate.code})
+                      </option>
                     ))}
-                  </select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="builder-sector-gate">Poarta implicita</Label>
-                  <select
-                    id="builder-sector-gate"
-                    name="gateId"
-                    className="h-10 rounded-2xl border border-black/8 bg-white px-3 text-sm text-[#111111] outline-none focus:border-[#dc2626]"
-                    defaultValue=""
-                  >
-                    <option value="">Fara poarta alocata</option>
-                    {selectedStadium.gates
-                      .filter((gate) => gate.isActive)
-                      .map((gate) => (
-                        <option key={gate.id} value={gate.id}>
-                          {gate.name} ({gate.code})
-                        </option>
-                      ))}
-                  </select>
-                </div>
-                <div className="grid gap-2">
+                </select>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-2">
                   <Label htmlFor="builder-sector-color">Culoare</Label>
                   <Input
-                  id="builder-sector-color"
-                  name="color"
-                  defaultValue="#dc2626"
-                  className="rounded-2xl bg-white"
-                />
+                    id="builder-sector-color"
+                    name="color"
+                    defaultValue="#dc2626"
+                    className="rounded-2xl bg-white"
+                  />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="builder-sector-rows">Randuri</Label>
