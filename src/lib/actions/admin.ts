@@ -1432,7 +1432,7 @@ export async function deleteMatchAction(formData: FormData) {
   }
 
   const input = parsed.data;
-  const viewer = await ensureAdmin();
+  await ensureAdmin();
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
@@ -1453,70 +1453,22 @@ export async function deleteMatchAction(formData: FormData) {
     });
   }
 
-  const [
-    { count: reservationCount },
-    { count: paymentCount },
-    { count: scanCount },
-    { count: activeHoldCount },
-  ] = await Promise.all([
-    supabase
-      .from("reservations")
-      .select("id", { count: "exact", head: true })
-      .eq("match_id", input.matchId),
-    supabase
-      .from("payments")
-      .select("id", { count: "exact", head: true })
-      .eq("match_id", input.matchId),
-    supabase
-      .from("ticket_scans")
-      .select("id", { count: "exact", head: true })
-      .eq("match_id", input.matchId),
-    supabase
-      .from("seat_holds")
-      .select("id", { count: "exact", head: true })
-      .eq("match_id", input.matchId)
-      .eq("status", "active")
-      .gt("expires_at", new Date().toISOString()),
-  ]);
-
-  if ((reservationCount ?? 0) > 0) {
-    redirectToAdminMatches({
-      error:
-        "Meciul nu poate fi sters deoarece are deja rezervari sau bilete emise. Pentru siguranta datelor istorice, il poti inchide sau anula, nu sterge.",
-    });
-  }
-
-  if ((paymentCount ?? 0) > 0) {
-    redirectToAdminMatches({
-      error:
-        "Meciul nu poate fi sters deoarece are plati asociate. Pastreaza-l pentru evidenta financiara si operationala.",
-    });
-  }
-
-  if ((scanCount ?? 0) > 0) {
-    redirectToAdminMatches({
-      error:
-        "Meciul nu poate fi sters deoarece are scanari inregistrate. Pastreaza-l pentru audit si raportare.",
-    });
-  }
-
-  if ((activeHoldCount ?? 0) > 0) {
-    redirectToAdminMatches({
-      error:
-        "Meciul nu poate fi sters cat timp exista locuri blocate temporar. Asteapta expirarea hold-urilor active.",
-    });
-  }
-
-  await supabase.from("matches").delete().eq("id", input.matchId);
-
-  await logAudit(viewer.userId, "delete_match", "matches", input.matchId, {
-    matchTitle: match.title,
+  const { data: deleteSummary, error } = await supabase.rpc("admin_delete_match_cascade", {
+    p_match_id: input.matchId,
   });
+
+  if (error) {
+    console.error("Stergerea extinsa a meciului a esuat.", error);
+    redirectToAdminMatches({
+      error:
+        "Meciul nu a putut fi sters complet. Verifica dependintele lui sau incearca din nou.",
+    });
+  }
 
   revalidatePath("/admin");
   revalidatePath("/admin/meciuri");
   redirectToAdminMatches({
-    notice: `Meciul ${match.title} a fost sters.`,
+    notice: `Meciul ${match.title} a fost sters. Au fost eliminate ${Number((deleteSummary as { deletedReservations?: number } | null)?.deletedReservations ?? 0)} rezervari, ${Number((deleteSummary as { deletedTickets?: number } | null)?.deletedTickets ?? 0)} bilete, ${Number((deleteSummary as { deletedScans?: number } | null)?.deletedScans ?? 0)} scanari si ${Number((deleteSummary as { deletedPayments?: number } | null)?.deletedPayments ?? 0)} plati asociate.`,
   });
 }
 

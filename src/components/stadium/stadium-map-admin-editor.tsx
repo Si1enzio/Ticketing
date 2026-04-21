@@ -34,6 +34,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -151,6 +152,23 @@ function renumberSeatLayoutRows(current: SeatLayoutDraft, rowNumberStart: number
     rows: current.rows.map((row, rowIndex) => ({
       ...row,
       label: String(rowNumberStart + rowIndex),
+    })),
+  };
+}
+
+function removeSeatLayoutRow(current: SeatLayoutDraft, rowIndex: number): SeatLayoutDraft {
+  if (current.rows.length <= 1) {
+    return current;
+  }
+
+  const nextRows = current.rows.filter((_, currentIndex) => currentIndex !== rowIndex);
+
+  return {
+    ...current,
+    rowsCount: nextRows.length,
+    rows: nextRows.map((row, nextIndex) => ({
+      ...row,
+      label: String(current.rowNumberStart + nextIndex),
     })),
   };
 }
@@ -733,13 +751,16 @@ export function StadiumMapAdminEditor({
                   {actualSector ? (
                     <form action={deleteBuilderSectorAction}>
                       <input type="hidden" name="sectorId" value={actualSector.id} />
-                      <Button
-                        type="submit"
+                      <ConfirmButton
+                        submitForm
+                        triggerLabel="Sterge sectorul"
+                        title="Confirmi stergerea sectorului din builder?"
+                        description={`Sectorul „${actualSector.name}” va fi eliminat din structura stadionului si din configuratia hartii. Daca are bilete, rezervari sau hold-uri active, stergerea va fi blocata.`}
+                        confirmLabel="Sterge sectorul"
                         variant="destructive"
+                        confirmVariant="destructive"
                         className="rounded-full border border-[#b91c1c] bg-[#fff1f2] text-[#b91c1c] hover:bg-[#ffe4e6]"
-                      >
-                        Sterge sectorul
-                      </Button>
+                      />
                     </form>
                   ) : null}
                   <Button
@@ -1122,6 +1143,21 @@ export function StadiumMapAdminEditor({
                           <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
                             Click pe celula pentru toggle
                           </p>
+                          <ConfirmButton
+                            triggerLabel="Sterge randul"
+                            title="Confirmi stergerea randului?"
+                            description={`Randul ${row.label} va fi scos din layout-ul sectorului ${seatLayoutDraft.sectorName}. Locurile eliminate din acest rand vor fi sterse la salvare daca nu au deja rezervari sau bilete.`}
+                            confirmLabel="Sterge randul"
+                            variant="destructive"
+                            confirmVariant="destructive"
+                            disabled={seatLayoutDraft.rows.length <= 1}
+                            className="rounded-full border border-[#b91c1c] bg-[#fff1f2] px-4 text-[#b91c1c] hover:bg-[#ffe4e6] disabled:cursor-not-allowed"
+                            onConfirm={() =>
+                              setSeatLayoutDraft((current) =>
+                                current ? removeSeatLayoutRow(current, rowIndex) : current,
+                              )
+                            }
+                          />
                         </div>
 
                         <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${seatLayoutDraft.seatsPerRow}, minmax(0, 1fr))` }}>

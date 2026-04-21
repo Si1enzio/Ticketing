@@ -10,6 +10,7 @@ import {
 import type { StadiumSeat } from "@/lib/domain/types";
 import { SeatFlagEditor } from "@/components/seat-flag-editor";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -72,13 +73,16 @@ export function StadiumAdminSectorCard({
           </Button>
           <form action={deleteSectorAction}>
             <input type="hidden" name="sectorId" value={sector.id} />
-            <Button
-              type="submit"
+            <ConfirmButton
+              submitForm
+              triggerLabel="Sterge sectorul"
+              title="Confirmi stergerea sectorului?"
+              description={`Sectorul „${sector.name}” va fi sters definitiv. Daca are bilete, rezervari sau hold-uri active, operatiunea va fi blocata pentru siguranta datelor.`}
+              confirmLabel="Sterge sectorul"
               variant="destructive"
+              confirmVariant="destructive"
               className="rounded-full border border-[#b91c1c] bg-[#fff1f2] px-5 text-[#b91c1c] hover:bg-[#ffe4e6]"
-            >
-              Sterge sectorul
-            </Button>
+            />
           </form>
           <Button
             type="button"

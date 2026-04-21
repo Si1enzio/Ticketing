@@ -6,6 +6,7 @@ import { createMatchAction, deleteMatchAction, updateMatchAction } from "@/lib/a
 import { getAdminMatchOverview, getStadiumBuilderData } from "@/lib/supabase/queries";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -249,13 +250,16 @@ export default async function AdminMatchesPage({
 
                 <form action={deleteMatchAction} className="flex items-end">
                   <input type="hidden" name="matchId" value={match.id} />
-                  <Button
-                    type="submit"
+                  <ConfirmButton
+                    submitForm
+                    triggerLabel="Sterge meciul"
+                    title="Confirmi stergerea meciului?"
+                    description={`Meciul „${match.title}” va fi sters definitiv impreuna cu rezervarile, biletele, scanarile, platile si istoricul operational legat direct de el. Actiunea nu poate fi anulata.`}
+                    confirmLabel="Sterge definitiv"
                     variant="destructive"
+                    confirmVariant="destructive"
                     className="rounded-full border border-[#b91c1c] bg-[#fff1f2] px-5 text-[#b91c1c] hover:bg-[#ffe4e6]"
-                  >
-                    Sterge meciul
-                  </Button>
+                  />
                 </form>
               </div>
             </CardContent>
