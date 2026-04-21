@@ -30,6 +30,9 @@ export default async function CabinetPage() {
   const archived = tickets.filter(
     (ticket) => ticket.status !== "active" || new Date(ticket.startsAt) < now,
   );
+  const hasMultiTicketUpcomingMatch = upcoming.some(
+    (ticket, index) => upcoming.findIndex((item) => item.matchId === ticket.matchId) !== index,
+  );
   const activeSubscriptions = subscriptions.filter((item) => item.status === "active");
 
   return (
@@ -118,6 +121,15 @@ export default async function CabinetPage() {
           title={messages.cabinet.sections.upcomingTitle}
           subtitle={messages.cabinet.sections.upcomingSubtitle}
         />
+        {hasMultiTicketUpcomingMatch ? (
+          <Card className="rounded-[28px] border border-[#dc2626]/12 bg-[#fff7f7]">
+            <CardContent className="p-5 text-sm leading-7 text-neutral-700">
+              {locale === "ru"
+                ? "Если на один матч у тебя есть несколько билетов, открой первый и проведи влево или вправо на странице билета, чтобы быстро переключать QR-коды."
+                : "Daca ai mai multe bilete pentru acelasi meci, deschide primul bilet si gliseaza stanga-dreapta in pagina lui pentru a trece rapid intre QR-uri."}
+            </CardContent>
+          </Card>
+        ) : null}
         {upcoming.length ? (
           <div className="grid gap-4">
             {upcoming.map((ticket) => (

@@ -155,6 +155,14 @@ export const messages = {
       },
       subscriptionValidUntil: "Valabil pana la",
       months: "luni",
+      carousel: {
+        title: "Mai multe bilete pentru acelasi meci",
+        subtitle:
+          "Gliseaza stanga-dreapta pentru a trece rapid la urmatorul QR din acest meci.",
+        previous: "Biletul anterior",
+        next: "Biletul urmator",
+        counter: "Biletul {current} din {total}",
+      },
     },
     confirmation: {
       badge: "Emitere confirmata",

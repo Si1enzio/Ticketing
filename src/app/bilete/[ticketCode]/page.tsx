@@ -9,10 +9,13 @@ import { cancelTicketAction, reissueTicketAction } from "@/lib/actions/admin";
 import { PrintTicketButton } from "@/components/print-ticket-button";
 import { ShareActions } from "@/components/share-actions";
 import { TicketQr } from "@/components/ticket-qr";
+import { TicketSwipeShell } from "@/components/ticket-swipe-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { env } from "@/lib/env";
-import { getTicketByCode, getViewerContext } from "@/lib/supabase/queries";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { TicketCard } from "@/lib/domain/types";
+import { getTicketByCode, getViewerContext, getViewerTickets } from "@/lib/supabase/queries";
 
 const ticketStatusMap = {
   active: "Activ",
@@ -29,17 +32,51 @@ export default async function TicketPage({
   await connection();
   const { ticketCode } = await params;
   const viewer = await getViewerContext();
-  const ticket = await getTicketByCode(ticketCode, viewer);
+  const { locale } = await getServerI18n();
+  const viewerTickets = viewer.userId ? await getViewerTickets(viewer) : [];
+  const ownTicket = viewerTickets.find((item) => item.ticketCode === ticketCode) ?? null;
+  const ticket = ownTicket ?? (await getTicketByCode(ticketCode, viewer));
 
   if (!ticket) {
     notFound();
   }
 
+  const sameMatchTickets = ownTicket
+    ? viewerTickets
+        .filter((item) => item.matchId === ticket.matchId)
+        .sort(sortTicketsForMatchNavigation)
+    : [];
+  const currentTicketIndex = sameMatchTickets.findIndex((item) => item.ticketCode === ticket.ticketCode);
+  const previousTicket =
+    currentTicketIndex > 0 ? sameMatchTickets[currentTicketIndex - 1] : null;
+  const nextTicket =
+    currentTicketIndex >= 0 && currentTicketIndex < sameMatchTickets.length - 1
+      ? sameMatchTickets[currentTicketIndex + 1]
+      : null;
+  const swipeLabels =
+    locale === "ru"
+      ? {
+          title: "Несколько билетов на этот матч",
+          subtitle:
+            "Проведи влево или вправо, чтобы быстро переключаться между QR-кодами этого матча.",
+          previous: "Предыдущий билет",
+          next: "Следующий билет",
+          counter: "Билет {current} из {total}",
+        }
+      : {
+          title: "Mai multe bilete pentru acelasi meci",
+          subtitle:
+            "Gliseaza stanga-dreapta pentru a trece rapid la urmatorul QR al acestui meci.",
+          previous: "Biletul anterior",
+          next: "Biletul urmator",
+          counter: "Biletul {current} din {total}",
+        };
+
   const ticketUrl = `${env.siteUrl}/bilete/${ticket.ticketCode}`;
   const pdfUrl = `${env.siteUrl}/bilete/${ticket.ticketCode}/pdf`;
   const pdfDownloadUrl = `${pdfUrl}?download=1`;
 
-  return (
+  const ticketContent = (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <Card className="surface-dark overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.26),transparent_34%),linear-gradient(180deg,#171717_0%,#101010_100%)] text-white">
@@ -190,6 +227,42 @@ export default async function TicketPage({
       </div>
     </section>
   );
+
+  if (sameMatchTickets.length > 1 && currentTicketIndex >= 0) {
+    return (
+      <TicketSwipeShell
+        previousHref={previousTicket ? `/bilete/${previousTicket.ticketCode}` : null}
+        nextHref={nextTicket ? `/bilete/${nextTicket.ticketCode}` : null}
+        currentIndex={currentTicketIndex}
+        total={sameMatchTickets.length}
+        labels={swipeLabels}
+      >
+        {ticketContent}
+      </TicketSwipeShell>
+    );
+  }
+
+  return ticketContent;
+}
+
+function sortTicketsForMatchNavigation(a: TicketCard, b: TicketCard) {
+  const sectorComparison = a.sectorCode.localeCompare(b.sectorCode, "ro");
+  if (sectorComparison !== 0) {
+    return sectorComparison;
+  }
+
+  const rowA = Number.parseInt(a.rowLabel, 10);
+  const rowB = Number.parseInt(b.rowLabel, 10);
+
+  if (!Number.isNaN(rowA) && !Number.isNaN(rowB) && rowA !== rowB) {
+    return rowA - rowB;
+  }
+
+  if (a.rowLabel !== b.rowLabel) {
+    return a.rowLabel.localeCompare(b.rowLabel, "ro");
+  }
+
+  return a.seatNumber - b.seatNumber;
 }
 
 function Info({ title, value }: { title: string; value: string }) {
