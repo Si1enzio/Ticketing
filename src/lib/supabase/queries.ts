@@ -19,6 +19,8 @@ import {
   type ViewerContext,
   checkoutSummarySchema,
 } from "@/lib/domain/types";
+import { stadiumMapConfigSchema } from "@/lib/stadium/stadium-schema";
+import type { StadiumMapConfig } from "@/lib/stadium/stadium-types";
 import {
   mockAdminMatches,
   mockAdminUsers,
@@ -843,6 +845,91 @@ export async function getStadiumSponsors(stadiumId: string): Promise<StadiumSpon
     }));
   } catch (error) {
     console.error("Nu am putut încărca sponsorii stadionului.", error);
+    return [];
+  }
+}
+
+export async function getStadiumMapConfigByStadiumId(
+  stadiumId: string,
+): Promise<StadiumMapConfig | null> {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  try {
+    const supabase = createSupabasePublicServerClient();
+
+    if (!supabase) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from("stadium_map_configs")
+      .select("config")
+      .eq("stadium_id", stadiumId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    const row = data as { config?: unknown } | null;
+
+    if (error || !row?.config) {
+      return null;
+    }
+
+    return stadiumMapConfigSchema.parse(row.config);
+  } catch (error) {
+    console.error("Nu am putut incarca configuratia de harta pentru stadion.", error);
+    return null;
+  }
+}
+
+export async function getAdminStadiumMapConfigs(): Promise<
+  Array<{
+    stadiumId: string;
+    mapKey: string;
+    isActive: boolean;
+    config: StadiumMapConfig;
+  }>
+> {
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    if (!supabase) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from("stadium_map_configs")
+      .select("stadium_id, map_key, is_active, config")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    const rows = (data ?? []) as Record<string, unknown>[];
+
+    return rows.flatMap((row) => {
+      try {
+        return [
+          {
+            stadiumId: String(row.stadium_id),
+            mapKey: String(row.map_key),
+            isActive: Boolean(row.is_active),
+            config: stadiumMapConfigSchema.parse(row.config),
+          },
+        ];
+      } catch (parseError) {
+        console.error("Configuratie de harta invalida pentru stadion.", parseError);
+        return [];
+      }
+    });
+  } catch (error) {
+    console.error("Nu am putut incarca configurarile admin pentru hartile stadionului.", error);
     return [];
   }
 }

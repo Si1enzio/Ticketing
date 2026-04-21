@@ -1,5 +1,5 @@
 import type { AppLocale } from "@/lib/i18n/config";
-import type { SeatMapSeat, SeatMapSector } from "@/lib/domain/types";
+import type { SeatMapSeat, SeatMapSector, StadiumBuilder } from "@/lib/domain/types";
 import { getLocalizedLabel } from "@/lib/stadium/stadium-localization";
 import type {
   RowConfig,
@@ -240,6 +240,37 @@ export function createFallbackStadiumMapConfig({
       },
     ],
   };
+}
+
+export function convertStadiumBuilderSectorsToSeatMap(
+  stadium: StadiumBuilder,
+): SeatMapSector[] {
+  return stadium.sectors.map((sector) => ({
+    sectorId: sector.id,
+    code: sector.code,
+    name: sector.name,
+    color: sector.color,
+    seats: sector.seats.map((seat) => ({
+      seatId: seat.id,
+      sectorId: sector.id,
+      sectorCode: sector.code,
+      sectorName: sector.name,
+      sectorColor: sector.color,
+      rowLabel: seat.rowLabel,
+      seatNumber: seat.seatNumber,
+      seatLabel: seat.seatLabel,
+      availability: seat.isDisabled
+        ? "disabled"
+        : seat.isObstructed
+          ? "obstructed"
+          : seat.isInternalOnly
+            ? "internal"
+            : "available",
+      holdExpiresAt: null,
+      heldByCurrentUser: false,
+      gateName: null,
+    })),
+  }));
 }
 
 export function buildRenderableSectors(

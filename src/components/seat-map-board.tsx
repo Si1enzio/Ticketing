@@ -15,6 +15,7 @@ import { toast } from "sonner";
 
 import { confirmSeatHoldAction, holdSeatsAction } from "@/lib/actions/reservations";
 import type { SeatMapSector, ViewerContext } from "@/lib/domain/types";
+import type { StadiumMapConfig } from "@/lib/stadium/stadium-types";
 import { formatCurrencyFromCents } from "@/lib/utils";
 import { StadiumMap } from "@/components/stadium/stadium-map";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ export function SeatMapBoard({
   matchTitle,
   stadiumId,
   stadiumName,
+  stadiumMapConfig,
   sectors,
   viewer,
   remainingLimit,
@@ -43,6 +45,7 @@ export function SeatMapBoard({
   matchTitle: string;
   stadiumId: string;
   stadiumName: string;
+  stadiumMapConfig?: StadiumMapConfig | null;
   sectors: SeatMapSector[];
   viewer: ViewerContext;
   remainingLimit: number | null;
@@ -191,6 +194,7 @@ export function SeatMapBoard({
           <StadiumMap
             stadiumId={stadiumId}
             stadiumName={stadiumName}
+            overrideConfig={stadiumMapConfig}
             sectors={sectors}
             selectedSeatIds={selectedSeatIds}
             disabled={isPending || isTicketingDisabled}

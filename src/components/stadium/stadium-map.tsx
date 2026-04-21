@@ -10,6 +10,7 @@ import { StadiumTierView } from "@/components/stadium/stadium-tier-view";
 import type { SeatMapSector } from "@/lib/domain/types";
 import { resolveStadiumMapConfig } from "@/lib/stadium/stadium-config-registry";
 import { getStadiumMapMessages } from "@/lib/stadium/stadium-localization";
+import type { StadiumMapConfig } from "@/lib/stadium/stadium-types";
 import {
   buildRenderableSectors,
   getVisibleTribunes,
@@ -21,6 +22,7 @@ export function StadiumMap({
   stadiumName,
   stadiumSlug,
   mapKey,
+  overrideConfig,
   sectors,
   selectedSeatIds,
   disabled,
@@ -30,6 +32,7 @@ export function StadiumMap({
   stadiumName: string;
   stadiumSlug?: string | null;
   mapKey?: string | null;
+  overrideConfig?: StadiumMapConfig | null;
   sectors: SeatMapSector[];
   selectedSeatIds: string[];
   disabled?: boolean;
@@ -39,8 +42,16 @@ export function StadiumMap({
   const copy = getStadiumMapMessages(locale);
 
   const resolvedMap = useMemo(
-    () =>
-      resolveStadiumMapConfig(
+    () => {
+      if (overrideConfig) {
+        return {
+          mapKey: overrideConfig.mapKey,
+          config: overrideConfig,
+          isFallback: false,
+        };
+      }
+
+      return resolveStadiumMapConfig(
         {
           stadiumId,
           stadiumName,
@@ -48,8 +59,9 @@ export function StadiumMap({
           mapKey,
         },
         sectors,
-      ),
-    [mapKey, sectors, stadiumId, stadiumName, stadiumSlug],
+      );
+    },
+    [mapKey, sectors, stadiumId, stadiumName, stadiumSlug, overrideConfig],
   );
 
   const visibleTribunes = useMemo(

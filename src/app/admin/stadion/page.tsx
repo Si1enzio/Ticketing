@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { connection } from "next/server";
+import Link from "next/link";
 
 import {
   createSponsorAction,
@@ -61,6 +62,15 @@ export default async function AdminStadiumPage({
         <h1 className="mt-2 font-heading text-5xl uppercase tracking-[0.08em] text-[#111111]">
           Tribune, sectoare, randuri si locuri
         </h1>
+        <div className="mt-4">
+          <Button
+            asChild
+            variant="outline"
+            className="rounded-full border-[#111111] bg-white text-[#111111] hover:bg-neutral-100"
+          >
+            <Link href="/admin/stadion/harta">Deschide builderul pentru harta SVG</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">

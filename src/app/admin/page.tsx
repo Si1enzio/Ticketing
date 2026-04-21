@@ -58,6 +58,11 @@ export default async function AdminDashboardPage() {
                 label="Abuz"
                 description="Vezi no-show si restrictii"
               />
+              <QuickLink
+                href="/admin/stadion/harta"
+                label="Harta stadion"
+                description="Configureaza overview SVG reutilizabil"
+              />
             </div>
           </CardContent>
         </Card>

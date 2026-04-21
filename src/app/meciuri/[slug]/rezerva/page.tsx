@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { SeatMapBoard } from "@/components/seat-map-board";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
+  getStadiumMapConfigByStadiumId,
   getPublicMatchBySlug,
   getSeatMapForMatch,
   getViewerContext,
@@ -24,9 +25,10 @@ export default async function ReserveSeatPage({
     notFound();
   }
 
-  const [sectors, tickets] = await Promise.all([
+  const [sectors, tickets, stadiumMapConfig] = await Promise.all([
     getSeatMapForMatch(match.id, viewer),
     getViewerTickets(viewer),
+    getStadiumMapConfigByStadiumId(match.stadiumId),
   ]);
 
   const activeTicketsForMatch = tickets.filter(
@@ -69,6 +71,7 @@ export default async function ReserveSeatPage({
         matchTitle={match.title}
         stadiumId={match.stadiumId}
         stadiumName={match.stadiumName}
+        stadiumMapConfig={stadiumMapConfig}
         sectors={sectors}
         viewer={viewer}
         remainingLimit={remainingLimit}

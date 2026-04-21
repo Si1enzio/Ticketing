@@ -239,11 +239,17 @@ Daca nu exista configuratie custom, modulul foloseste automat un fallback genera
 - pentru administrare structurala:
   - `Admin -> Stadion`
   - editezi tribune, sectoare, culori si numarul de randuri / locuri
+- pentru builder-ul overview SVG reutilizabil:
+  - `Admin -> Harta stadion`
+  - sau butonul `Deschide builderul pentru harta SVG` din `Admin -> Stadion`
+  - configurezi `mapKey`, `viewBox`, shape-urile sectoarelor si preview-ul overview
+  - salvarile sunt persistate in `public.stadium_map_configs` si sunt folosite direct in fluxul public al meciului
 - pentru editare de status loc:
   - `SeatFlagEditor` din `src/components/seat-flag-editor.tsx`
   - poti marca `dezactivat`, `obstructionat`, `intern`
 - pentru geometria overview-ului:
-  - modifici doar config-ul din `src/data/stadiums/...`
+  - poti folosi builder-ul admin pentru configuratii persistate in baza de date
+  - sau, pentru seed/configuri versionate, modifici config-ul din `src/data/stadiums/...`
   - harta mare este separata de seat map-ul operational
 
 Aceasta separare este intentionata:
@@ -295,6 +301,7 @@ Cand scorul depaseste pragul, functia `sync_abuse_flags_for_user` creeaza sau ac
 - `/admin` - dashboard admin
 - `/admin/meciuri` - management meciuri
 - `/admin/stadion` - builder stadion si editare locuri
+- `/admin/stadion/harta` - builder pentru overview SVG si configuratia reutilizabila a hartii stadionului
 - `/admin/utilizatori` - moderare si roluri
 - `/admin/abuz` - utilizatori suspecti
 - `/admin/export?kind=tickets|scans|users` - export CSV

@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { hasAnyRole } from "@/lib/auth/roles";
 import { isSupabaseConfigured } from "@/lib/env";
+import { stadiumMapConfigSchema } from "@/lib/stadium/stadium-schema";
 import { getViewerContext } from "@/lib/supabase/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -89,6 +90,12 @@ const matchDeleteSchema = z.object({
   matchId: z.string(),
 });
 
+const stadiumMapConfigSaveSchema = z.object({
+  stadiumId: z.string(),
+  mapKey: z.string().min(1),
+  configJson: z.string().min(2),
+});
+
 const userBlockSchema = z.object({
   userId: z.string(),
   type: z.enum(["warning", "block", "temp_ban"]),
@@ -166,6 +173,11 @@ function redirectToAdminStadium(params: Record<string, string>): never {
 function redirectToAdminMatches(params: Record<string, string>): never {
   const query = new URLSearchParams(params);
   redirect(`/admin/meciuri?${query.toString()}`);
+}
+
+function redirectToAdminStadiumMap(params: Record<string, string>): never {
+  const query = new URLSearchParams(params);
+  redirect(`/admin/stadion/harta?${query.toString()}`);
 }
 
 export async function createStadiumAction(formData: FormData) {
@@ -707,6 +719,71 @@ export async function deleteStandAction(formData: FormData) {
   revalidatePath("/admin/stadion");
   redirectToAdminStadium({
     notice: `Tribuna ${stand.name} a fost stearsa.`,
+  });
+}
+
+export async function saveStadiumMapConfigAction(formData: FormData) {
+  const parsed = stadiumMapConfigSaveSchema.safeParse({
+    stadiumId: formData.get("stadiumId"),
+    mapKey: formData.get("mapKey"),
+    configJson: formData.get("configJson"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    redirectToAdminStadiumMap({
+      error: "Cererea de salvare a hartii stadionului este invalida.",
+    });
+  }
+
+  const input = parsed.data;
+  const viewer = await ensureAdmin();
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    redirectToAdminStadiumMap({
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
+
+  let parsedConfig: z.infer<typeof stadiumMapConfigSchema>;
+
+  try {
+    parsedConfig = stadiumMapConfigSchema.parse(JSON.parse(input.configJson));
+  } catch (error) {
+    console.error("Configuratia JSON pentru harta stadionului este invalida.", error);
+    redirectToAdminStadiumMap({
+      error:
+        "Configuratia JSON pentru harta stadionului este invalida. Verifica structura shape-urilor si viewBox-ul.",
+    });
+  }
+
+  if (parsedConfig.mapKey !== input.mapKey) {
+    parsedConfig = {
+      ...parsedConfig,
+      mapKey: input.mapKey,
+    };
+  }
+
+  await supabase.from("stadium_map_configs").upsert(
+    {
+      stadium_id: input.stadiumId,
+      map_key: input.mapKey,
+      config: parsedConfig,
+      is_active: true,
+    },
+    {
+      onConflict: "stadium_id",
+    },
+  );
+
+  await logAudit(viewer.userId, "save_stadium_map_config", "stadium_map_configs", input.stadiumId, {
+    mapKey: input.mapKey,
+  });
+
+  revalidatePath("/admin/stadion");
+  revalidatePath("/admin/stadion/harta");
+  redirectToAdminStadiumMap({
+    notice: `Configuratia hartii ${parsedConfig.defaultLabel} a fost salvata.`,
   });
 }
 
