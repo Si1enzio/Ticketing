@@ -127,7 +127,7 @@ export default async function MatchCheckoutPage({
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-[#111111]">
-                        {formatCurrencyFromCents(summary.ticketPriceCents, summary.currency)}
+                        {formatCurrencyFromCents(item.priceCents, item.currency)}
                       </p>
                       <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
                         {item.gateName ?? "Poarta standard"}
@@ -152,7 +152,7 @@ export default async function MatchCheckoutPage({
 
               <div className="grid gap-3 rounded-[26px] border border-white/10 bg-white/5 p-5">
                 <div className="flex items-center justify-between text-sm text-white/72">
-                  <span>Pret / loc</span>
+                  <span>Pret de baza / loc</span>
                   <span>{formatCurrencyFromCents(summary.ticketPriceCents, summary.currency)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm text-white/72">

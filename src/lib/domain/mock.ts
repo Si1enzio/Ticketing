@@ -44,6 +44,8 @@ function buildSeats(
         holdExpiresAt: null,
         heldByCurrentUser: false,
         gateName: sectorCode.startsWith("V") ? "Poarta Vest" : "Poarta Est",
+        ticketPriceCents: 0,
+        currency: "MDL",
       };
     }),
   );

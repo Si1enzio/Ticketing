@@ -111,6 +111,20 @@ const matchSeatOverrideReleaseSchema = z.object({
   seatIds: z.array(z.string().uuid()).min(1),
 });
 
+const matchSectorPricingSaveSchema = z.object({
+  matchId: z.string().uuid(),
+  pricing: z.array(
+    z.object({
+      sectorId: z.string().uuid(),
+      ticketPriceCentsOverride: z.coerce
+        .number()
+        .int()
+        .nonnegative()
+        .nullable(),
+    }),
+  ),
+});
+
 const stadiumMapConfigSaveSchema = z.object({
   stadiumId: z.string(),
   mapKey: z.string().min(1),
@@ -1796,6 +1810,141 @@ export async function releaseMatchSeatOverrideAction(
       count && count > 0
         ? `Ai eliberat ${count} override-uri pentru acest meci.`
         : "Nu existau override-uri active pe locurile selectate.",
+  };
+}
+
+export async function saveMatchSectorPricingAction(
+  input: z.input<typeof matchSectorPricingSaveSchema>,
+) {
+  const viewer = await ensureAdmin();
+  const parsed = matchSectorPricingSaveSchema.safeParse(input);
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return {
+      ok: false,
+      message: "Date invalide pentru configurarea preturilor pe sectoare.",
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return {
+      ok: false,
+      message: "Conexiunea la baza de date nu este disponibila.",
+    };
+  }
+
+  const { data: match } = await supabase
+    .from("matches")
+    .select("id, slug, stadium_id")
+    .eq("id", parsed.data.matchId)
+    .maybeSingle();
+
+  if (!match) {
+    return {
+      ok: false,
+      message: "Meciul nu mai exista.",
+    };
+  }
+
+  const sectorIds = Array.from(new Set(parsed.data.pricing.map((item) => item.sectorId)));
+
+  const { data: sectors, error: sectorError } = await supabase
+    .from("stadium_sectors")
+    .select("id")
+    .eq("stadium_id", match.stadium_id)
+    .in("id", sectorIds);
+
+  if (sectorError) {
+    console.error("Nu am putut verifica sectoarele meciului.", sectorError);
+    return {
+      ok: false,
+      message: "Sectoarele nu au putut fi validate.",
+    };
+  }
+
+  const allowedSectorIds = new Set((sectors ?? []).map((sector) => String(sector.id)));
+
+  if (allowedSectorIds.size !== sectorIds.length) {
+    return {
+      ok: false,
+      message: "Unele sectoare nu apartin stadionului asociat acestui meci.",
+    };
+  }
+
+  const { data: existingRows, error: existingError } = await supabase
+    .from("match_sector_overrides")
+    .select("id, sector_id")
+    .eq("match_id", parsed.data.matchId)
+    .in("sector_id", sectorIds);
+
+  if (existingError) {
+    console.error("Nu am putut incarca override-urile existente pe sectoare.", existingError);
+    return {
+      ok: false,
+      message: "Preturile existente pe sectoare nu au putut fi incarcate.",
+    };
+  }
+
+  const existingBySector = new Map(
+    (existingRows ?? []).map((row) => [String(row.sector_id), String(row.id)]),
+  );
+
+  for (const item of parsed.data.pricing) {
+    const existingId = existingBySector.get(item.sectorId);
+
+    if (existingId) {
+      const { error } = await supabase
+        .from("match_sector_overrides")
+        .update({
+          ticket_price_cents_override: item.ticketPriceCentsOverride,
+        })
+        .eq("id", existingId);
+
+      if (error) {
+        console.error("Nu am putut actualiza pretul pe sector.", error);
+        return {
+          ok: false,
+          message: "Unul dintre preturile pe sector nu a putut fi actualizat.",
+        };
+      }
+
+      continue;
+    }
+
+    if (item.ticketPriceCentsOverride === null) {
+      continue;
+    }
+
+    const { error } = await supabase.from("match_sector_overrides").insert({
+      match_id: parsed.data.matchId,
+      sector_id: item.sectorId,
+      ticket_price_cents_override: item.ticketPriceCentsOverride,
+    });
+
+    if (error) {
+      console.error("Nu am putut salva pretul pe sector.", error);
+      return {
+        ok: false,
+        message: "Unul dintre preturile pe sector nu a putut fi salvat.",
+      };
+    }
+  }
+
+  await logAudit(viewer.userId, "save_match_sector_pricing", "matches", parsed.data.matchId, {
+    pricing: parsed.data.pricing,
+  });
+
+  revalidatePath(`/admin/meciuri/${parsed.data.matchId}`);
+  revalidatePath("/admin/meciuri");
+  revalidatePath(`/meciuri/${match.slug}`);
+  revalidatePath(`/meciuri/${match.slug}/rezerva`);
+  revalidatePath(`/meciuri/${match.slug}/checkout`);
+
+  return {
+    ok: true,
+    message: "Preturile pe sectoare au fost salvate.",
   };
 }
 

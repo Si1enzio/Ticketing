@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
 
+import { MatchSectorPricingManager } from "@/components/admin/match-sector-pricing-manager";
 import { MatchSeatOverridesManager } from "@/components/admin/match-seat-overrides-manager";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { getAdminMatchOverview, getSeatMapForMatch, getStadiumMapConfigByStadium
 import {
   getMatchReport,
   getMatchScanLogs,
+  getMatchSectorPricingOverrides,
   getMatchSeatOverrides,
 } from "@/lib/supabase/reports";
 
@@ -34,10 +36,11 @@ export default async function AdminMatchDetailsPage({
     notFound();
   }
 
-  const [seatMap, stadiumMapConfig, seatOverrides] = await Promise.all([
+  const [seatMap, stadiumMapConfig, seatOverrides, sectorPricingOverrides] = await Promise.all([
     getSeatMapForMatch(matchId),
     getStadiumMapConfigByStadiumId(matchOverview.stadiumId),
     getMatchSeatOverrides(matchId),
+    getMatchSectorPricingOverrides(matchId),
   ]);
 
   return (
@@ -84,6 +87,15 @@ export default async function AdminMatchDetailsPage({
         <MetricCard label="Bilete anulate" value={report.canceledCount} />
         <MetricCard label="Bilete administrative / interne" value={report.internalCount} />
       </div>
+
+      <MatchSectorPricingManager
+        matchId={report.matchId}
+        ticketingMode={matchOverview.ticketingMode}
+        baseTicketPriceCents={matchOverview.ticketPriceCents}
+        currency={matchOverview.currency}
+        sectors={seatMap}
+        pricingOverrides={sectorPricingOverrides}
+      />
 
       <MatchSeatOverridesManager
         matchId={report.matchId}

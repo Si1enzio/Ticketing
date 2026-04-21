@@ -4,10 +4,12 @@ import {
   adminUserStatsSchema,
   matchReportSchema,
   matchSeatOverrideSchema,
+  matchSectorPricingOverrideSchema,
   scanLogEntrySchema,
   subscriptionProductSchema,
   type AdminUserStats,
   type MatchSeatOverride,
+  type MatchSectorPricingOverride,
   type MatchReport,
   type ScanLogEntry,
   type SubscriptionProduct,
@@ -204,6 +206,42 @@ export async function getMatchSeatOverrides(matchId: string): Promise<MatchSeatO
       );
   } catch (error) {
     console.error("Nu am putut incarca override-urile de loc pentru meci.", error);
+    return [];
+  }
+}
+
+export async function getMatchSectorPricingOverrides(
+  matchId: string,
+): Promise<MatchSectorPricingOverride[]> {
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    if (!supabase) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from("match_sector_overrides")
+      .select("sector_id, ticket_price_cents_override")
+      .eq("match_id", matchId)
+      .not("ticket_price_cents_override", "is", null);
+
+    if (error) {
+      throw error;
+    }
+
+    return ((data ?? []) as Record<string, unknown>[]).map((row) =>
+      matchSectorPricingOverrideSchema.parse({
+        sectorId: row.sector_id,
+        ticketPriceCentsOverride: row.ticket_price_cents_override,
+      }),
+    );
+  } catch (error) {
+    console.error("Nu am putut incarca preturile pe sectoare pentru meci.", error);
     return [];
   }
 }

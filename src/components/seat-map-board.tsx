@@ -85,6 +85,10 @@ export function SeatMapBoard({
         .filter((seat) => selectedSeatIds.includes(seat.seatId)),
     [selectedSeatIds, sectors],
   );
+  const estimatedTotal = useMemo(
+    () => selectedSeats.reduce((sum, seat) => sum + seat.ticketPriceCents, 0),
+    [selectedSeats],
+  );
 
   const countdown = useMemo(() => {
     if (!holdState?.expiresAt) {
@@ -191,7 +195,7 @@ export function SeatMapBoard({
           </CardTitle>
           <p className="max-w-3xl text-sm leading-6 text-neutral-600">
             {ticketingMode === "paid"
-              ? `Acest meci foloseste procurare cu plata. Selectezi locurile, le blochezi temporar, apoi continui spre checkout pentru emiterea biletelor QR. Pretul curent este ${formatCurrencyFromCents(ticketPriceCents, currency)} pe loc.`
+              ? `Acest meci foloseste procurare cu plata. Selectezi locurile, le blochezi temporar, apoi continui spre checkout pentru emiterea biletelor QR. Preturile pot diferi in functie de sector, iar totalul se actualizeaza pe baza locurilor selectate.`
               : "Acest meci foloseste emitere gratuita. Selectezi locurile, le blochezi temporar pentru cateva minute, apoi confirmi emiterea biletelor QR."}
           </p>
         </CardHeader>
@@ -235,8 +239,12 @@ export function SeatMapBoard({
 
           {ticketingMode === "paid" ? (
             <div className="rounded-[26px] border border-[#fecaca]/20 bg-[#dc2626]/12 p-4 text-sm leading-6 text-white/85">
-              Pret pe loc: <span className="font-semibold">{formatCurrencyFromCents(ticketPriceCents, currency)}</span>
-              . Totalul final se calculeaza automat la checkout.
+              Pretul de baza este{" "}
+              <span className="font-semibold">
+                {formatCurrencyFromCents(ticketPriceCents, currency)}
+              </span>
+              . Unele sectoare pot avea override de pret, iar totalul final se calculeaza automat
+              dupa locurile alese.
             </div>
           ) : null}
 
@@ -268,7 +276,7 @@ export function SeatMapBoard({
                   </span>
                   <span className="text-right text-white/55">
                     {ticketingMode === "paid"
-                      ? formatCurrencyFromCents(ticketPriceCents, currency)
+                      ? formatCurrencyFromCents(seat.ticketPriceCents, seat.currency)
                       : "Acces gratuit"}
                   </span>
                 </div>
@@ -285,7 +293,7 @@ export function SeatMapBoard({
             <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm text-white/80">
               Total estimat:{" "}
               <span className="font-semibold text-white">
-                {formatCurrencyFromCents(ticketPriceCents * selectedSeats.length, currency)}
+                {formatCurrencyFromCents(estimatedTotal, currency)}
               </span>
             </div>
           ) : null}

@@ -118,6 +118,8 @@ export const seatMapSeatSchema = z.object({
   holdExpiresAt: z.string().nullable().default(null),
   heldByCurrentUser: z.boolean().default(false),
   gateName: z.string().nullable().default(null),
+  ticketPriceCents: z.coerce.number().int().nonnegative().default(0),
+  currency: z.string().default("MDL"),
 });
 
 export type SeatMapSeat = z.infer<typeof seatMapSeatSchema>;
@@ -143,6 +145,13 @@ export const matchSeatOverrideSchema = z.object({
 });
 
 export type MatchSeatOverride = z.infer<typeof matchSeatOverrideSchema>;
+
+export const matchSectorPricingOverrideSchema = z.object({
+  sectorId: z.string(),
+  ticketPriceCentsOverride: z.coerce.number().int().nonnegative().nullable().default(null),
+});
+
+export type MatchSectorPricingOverride = z.infer<typeof matchSectorPricingOverrideSchema>;
 
 export const ticketCardSchema = z.object({
   ticketId: z.string(),
@@ -304,6 +313,8 @@ export const checkoutItemSchema = z.object({
   rowLabel: z.string(),
   seatNumber: z.coerce.number().int().nonnegative(),
   gateName: z.string().nullable().default(null),
+  priceCents: z.coerce.number().int().nonnegative(),
+  currency: z.string().default("MDL"),
 });
 
 export type CheckoutItem = z.infer<typeof checkoutItemSchema>;

@@ -246,6 +246,8 @@ export async function getSeatMapForMatch(
         holdExpiresAt: item.hold_expires_at,
         heldByCurrentUser: Boolean(item.held_by_current_user),
         gateName: item.gate_name,
+        ticketPriceCents: item.effective_ticket_price_cents,
+        currency: item.currency,
       }),
     );
 
@@ -1150,12 +1152,17 @@ export async function getCheckoutSummary(
               ticketing_mode,
               ticket_price_cents,
               currency
+            ),
+            match_sector_overrides (
+              sector_id,
+              ticket_price_cents_override
             )
           ),
           seats!inner (
             id,
             row_label,
             seat_number,
+            sector_id,
             stadium_sectors!inner (name),
             gates (name)
           )
@@ -1194,6 +1201,16 @@ export async function getCheckoutSummary(
                   currency?: string | null;
                 }>
               | null;
+            match_sector_overrides?:
+              | Array<{
+                  sector_id?: string | null;
+                  ticket_price_cents_override?: number | null;
+                }>
+              | {
+                  sector_id?: string | null;
+                  ticket_price_cents_override?: number | null;
+                }
+              | null;
           }
         | Array<{
             id: string;
@@ -1213,10 +1230,21 @@ export async function getCheckoutSummary(
                   currency?: string | null;
                 }>
               | null;
+            match_sector_overrides?:
+              | Array<{
+                  sector_id?: string | null;
+                  ticket_price_cents_override?: number | null;
+                }>
+              | {
+                  sector_id?: string | null;
+                  ticket_price_cents_override?: number | null;
+                }
+              | null;
           }>;
       seats:
         | {
             id: string;
+            sector_id: string;
             row_label: string;
             seat_number: number;
             stadium_sectors?:
@@ -1227,6 +1255,7 @@ export async function getCheckoutSummary(
           }
         | Array<{
             id: string;
+            sector_id: string;
             row_label: string;
             seat_number: number;
             stadium_sectors?:
@@ -1263,12 +1292,59 @@ export async function getCheckoutSummary(
 
       return {
         seatId: seatRecord.id,
+        sectorId: String(seatRecord.sector_id),
         sectorName: sectorRecord?.name ?? "Sector",
         rowLabel: seatRecord.row_label,
         seatNumber: seatRecord.seat_number,
         gateName: gateRecord?.name ?? null,
       };
     });
+
+    const sectorOverridesRaw = (matchRecord as { match_sector_overrides?: unknown })
+      ?.match_sector_overrides;
+    const sectorOverrides = Array.isArray(sectorOverridesRaw)
+      ? sectorOverridesRaw
+      : sectorOverridesRaw
+        ? [sectorOverridesRaw]
+        : [];
+    const sectorPriceMap = new Map<string, number>(
+      sectorOverrides
+        .map((item): [string, number] | null => {
+          const sectorId =
+            typeof item === "object" && item && "sector_id" in item
+              ? String((item as { sector_id?: string | null }).sector_id ?? "")
+              : "";
+
+          if (!sectorId) {
+            return null;
+          }
+
+          const price =
+            typeof item === "object" && item && "ticket_price_cents_override" in item
+              ? Number(
+                  (item as { ticket_price_cents_override?: number | null })
+                    .ticket_price_cents_override ?? 0,
+                )
+              : 0;
+
+          return [sectorId, price];
+        })
+        .filter((item): item is [string, number] => Boolean(item)),
+    );
+    const normalizedItems = items.map((item) => ({
+      ...item,
+      priceCents: sectorPriceMap.get(item.sectorId) ?? ticketPriceCents,
+      currency: settingsRecord?.currency ?? "MDL",
+    }));
+    const finalItems = normalizedItems.map((item) => ({
+      seatId: item.seatId,
+      sectorName: item.sectorName,
+      rowLabel: item.rowLabel,
+      seatNumber: item.seatNumber,
+      gateName: item.gateName,
+      priceCents: item.priceCents,
+      currency: item.currency,
+    }));
 
     return checkoutSummarySchema.parse({
       holdToken,
@@ -1280,9 +1356,9 @@ export async function getCheckoutSummary(
       ticketingMode: settingsRecord?.ticketing_mode ?? "free",
       ticketPriceCents,
       currency: settingsRecord?.currency ?? "MDL",
-      totalAmountCents: ticketPriceCents * items.length,
+      totalAmountCents: finalItems.reduce((sum, item) => sum + item.priceCents, 0),
       expiresAt: rows[0].expires_at,
-      items,
+      items: finalItems,
     });
   } catch (error) {
     console.error("Nu am putut încărca sumarul pentru checkout.", error);

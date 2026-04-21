@@ -366,6 +366,8 @@ export function convertStadiumBuilderSectorsToSeatMap(
       holdExpiresAt: null,
       heldByCurrentUser: false,
       gateName: null,
+      ticketPriceCents: 0,
+      currency: "MDL",
     })),
   }));
 }
