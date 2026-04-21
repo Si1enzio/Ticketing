@@ -6,6 +6,7 @@ import { ro } from "date-fns/locale";
 import { BadgeCheck, DownloadCloud, ShieldCheck, Sparkles } from "lucide-react";
 
 import { cancelTicketAction, reissueTicketAction } from "@/lib/actions/admin";
+import { DownloadTicketImageButton } from "@/components/download-ticket-image-button";
 import { PrintTicketButton } from "@/components/print-ticket-button";
 import { ShareActions } from "@/components/share-actions";
 import { TicketQr } from "@/components/ticket-qr";
@@ -74,6 +75,7 @@ export default async function TicketPage({
 
   const ticketUrl = `${env.siteUrl}/bilete/${ticket.ticketCode}`;
   const pdfUrl = `${env.siteUrl}/bilete/${ticket.ticketCode}/pdf`;
+  const imageUrl = `${env.siteUrl}/bilete/${ticket.ticketCode}/image`;
   const pdfDownloadUrl = `${pdfUrl}?download=1`;
 
   const ticketContent = (
@@ -124,6 +126,7 @@ export default async function TicketPage({
                     <DownloadCloud className="mr-2 h-4 w-4" />
                     Descarca PDF
                   </Link>
+                  <DownloadTicketImageButton imageUrl={imageUrl} />
                   <PrintTicketButton pdfUrl={pdfUrl} />
                 </div>
               </div>
@@ -158,10 +161,16 @@ export default async function TicketPage({
                   Actiuni rapide
                 </h2>
               </div>
-              <ShareActions title={ticket.matchTitle} ticketUrl={ticketUrl} pdfUrl={pdfUrl} />
+              <ShareActions
+                title={ticket.matchTitle}
+                ticketUrl={ticketUrl}
+                pdfUrl={pdfUrl}
+                imageUrl={imageUrl}
+              />
               <div className="rounded-[26px] border border-black/6 bg-neutral-50 p-4 text-sm leading-7 text-neutral-600">
-                Poti partaja pagina biletului, PDF-ul sau folosi print din browser.
-                Pentru steward este suficient QR-ul semnat.
+                Poti partaja pagina biletului, descarca PDF-ul sau salva varianta verticala ca
+                imagine in telefon pentru acces rapid la stadion. Pentru steward este suficient
+                QR-ul semnat.
               </div>
             </CardContent>
           </Card>
