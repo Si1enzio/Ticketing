@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { saveStadiumMapConfigAction } from "@/lib/actions/admin";
 import type { StadiumBuilder } from "@/lib/domain/types";
+import { translateSectorShape } from "@/lib/stadium/stadium-geometry";
 import { stadiumMapConfigSchema } from "@/lib/stadium/stadium-schema";
 import type { StadiumMapConfig } from "@/lib/stadium/stadium-types";
 import { buildRenderableSectors, convertStadiumBuilderSectorsToSeatMap, createFallbackStadiumMapConfig } from "@/lib/stadium/stadium-utils";
@@ -247,6 +248,11 @@ export function StadiumMapAdminEditor({
               <p className="mt-2 text-sm leading-6 text-neutral-600">
                 Harta SVG folosita in fluxul public al meciului.
               </p>
+              <p className="mt-1 text-xs leading-5 text-neutral-500">
+                Poti trage cu cursorul sectoarele de tip `rectangle`, `trapezoid`, `curve`,
+                `polygon` sau `arc`. Pentru `custom-path`, ajustezi path-ul sau label-ul din
+                configuratie.
+              </p>
             </div>
             <StadiumLegend mode="overview" />
           </div>
@@ -257,6 +263,21 @@ export function StadiumMapAdminEditor({
               sectors={renderableSectors}
               selectedSectorCode={effectivePreviewSectorCode}
               onSelectSector={(sectorCode) => setSelectedPreviewSectorCode(sectorCode)}
+              editable
+              onSectorDrag={(sectorCode, deltaX, deltaY) => {
+                setSelectedPreviewSectorCode(sectorCode);
+                patchConfig((current) => ({
+                  ...current,
+                  sectors: current.sectors.map((item) =>
+                    item.code === sectorCode
+                      ? {
+                          ...item,
+                          shape: translateSectorShape(item.shape, deltaX, deltaY),
+                        }
+                      : item,
+                  ),
+                }));
+              }}
             />
           </div>
         </div>

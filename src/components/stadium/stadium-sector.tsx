@@ -1,5 +1,7 @@
 "use client";
 
+import type { PointerEvent as ReactPointerEvent } from "react";
+
 import type { StadiumRenderableSector } from "@/lib/stadium/stadium-types";
 import { getSectorLabel } from "@/lib/stadium/stadium-utils";
 import { getSectorLabelPosition, getSectorPath } from "@/lib/stadium/stadium-geometry";
@@ -11,11 +13,13 @@ export function StadiumSector({
   state,
   isSelected,
   onClick,
+  onPointerDown,
 }: {
   sector: StadiumRenderableSector;
   state: "available" | "limited" | "unavailable";
   isSelected?: boolean;
   onClick?: () => void;
+  onPointerDown?: (event: ReactPointerEvent<SVGGElement>) => void;
 }) {
   const { locale } = useI18n();
   const label = getSectorLabel(locale, sector.config);
@@ -40,6 +44,7 @@ export function StadiumSector({
       role="button"
       tabIndex={0}
       onClick={onClick}
+      onPointerDown={onPointerDown}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();

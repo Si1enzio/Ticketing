@@ -183,3 +183,64 @@ export function getDecorationProps(element: DecorativeElement) {
       return null;
   }
 }
+
+export function translateSectorShape(
+  shape: SectorShapeConfig,
+  deltaX: number,
+  deltaY: number,
+): SectorShapeConfig {
+  const labelPosition = shape.labelPosition
+    ? {
+        x: shape.labelPosition.x + deltaX,
+        y: shape.labelPosition.y + deltaY,
+      }
+    : undefined;
+
+  switch (shape.type) {
+    case "rectangle":
+      return {
+        ...shape,
+        x: shape.x + deltaX,
+        y: shape.y + deltaY,
+        labelPosition,
+      };
+    case "trapezoid":
+      return {
+        ...shape,
+        x: shape.x + deltaX,
+        y: shape.y + deltaY,
+        labelPosition,
+      };
+    case "curve-left":
+    case "curve-right":
+      return {
+        ...shape,
+        x: shape.x + deltaX,
+        y: shape.y + deltaY,
+        labelPosition,
+      };
+    case "arc":
+      return {
+        ...shape,
+        cx: shape.cx + deltaX,
+        cy: shape.cy + deltaY,
+        labelPosition,
+      };
+    case "polygon":
+      return {
+        ...shape,
+        points: shape.points.map((point) => ({
+          x: point.x + deltaX,
+          y: point.y + deltaY,
+        })),
+        labelPosition,
+      };
+    case "custom-path":
+      return {
+        ...shape,
+        labelPosition,
+      };
+    default:
+      return shape;
+  }
+}
