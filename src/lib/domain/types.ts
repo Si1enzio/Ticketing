@@ -44,6 +44,7 @@ export const scanResultSchema = z.enum([
   "blocked",
   "not_found",
 ]);
+export const matchSeatOverrideStatusSchema = z.enum(["blocked", "admin_hold"]);
 
 export const viewerContextSchema = z.object({
   userId: z.string().uuid().nullable(),
@@ -130,6 +131,18 @@ export const seatMapSectorSchema = z.object({
 });
 
 export type SeatMapSector = z.infer<typeof seatMapSectorSchema>;
+
+export const matchSeatOverrideSchema = z.object({
+  id: z.string(),
+  matchId: z.string(),
+  seatId: z.string(),
+  status: matchSeatOverrideStatusSchema,
+  expiresAt: z.string().nullable().default(null),
+  note: z.string().nullable().default(null),
+  createdAt: z.string(),
+});
+
+export type MatchSeatOverride = z.infer<typeof matchSeatOverrideSchema>;
 
 export const ticketCardSchema = z.object({
   ticketId: z.string(),

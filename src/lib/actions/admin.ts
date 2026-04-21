@@ -97,6 +97,19 @@ const matchDeleteSchema = z.object({
   matchId: z.string(),
 });
 
+const matchSeatOverrideApplySchema = z.object({
+  matchId: z.string().uuid(),
+  seatIds: z.array(z.string().uuid()).min(1),
+  status: z.enum(["blocked", "admin_hold"]),
+  expiresAt: z.string().optional(),
+  note: z.string().max(500).optional(),
+});
+
+const matchSeatOverrideReleaseSchema = z.object({
+  matchId: z.string().uuid(),
+  seatIds: z.array(z.string().uuid()).min(1),
+});
+
 const stadiumMapConfigSaveSchema = z.object({
   stadiumId: z.string(),
   mapKey: z.string().min(1),
@@ -1470,6 +1483,266 @@ export async function deleteMatchAction(formData: FormData) {
   redirectToAdminMatches({
     notice: `Meciul ${match.title} a fost sters. Au fost eliminate ${Number((deleteSummary as { deletedReservations?: number } | null)?.deletedReservations ?? 0)} rezervari, ${Number((deleteSummary as { deletedTickets?: number } | null)?.deletedTickets ?? 0)} bilete, ${Number((deleteSummary as { deletedScans?: number } | null)?.deletedScans ?? 0)} scanari si ${Number((deleteSummary as { deletedPayments?: number } | null)?.deletedPayments ?? 0)} plati asociate.`,
   });
+}
+
+export async function applyMatchSeatOverrideAction(
+  input: z.input<typeof matchSeatOverrideApplySchema>,
+) {
+  const viewer = await ensureAdmin();
+  const parsed = matchSeatOverrideApplySchema.safeParse(input);
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return {
+      ok: false,
+      message: "Date invalide pentru override-ul de loc.",
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return {
+      ok: false,
+      message: "Conexiunea la baza de date nu este disponibila.",
+    };
+  }
+
+  const seatIds = Array.from(new Set(parsed.data.seatIds));
+  const expiresAt =
+    parsed.data.status === "admin_hold"
+      ? parsed.data.expiresAt?.trim()
+      : undefined;
+
+  if (parsed.data.status === "admin_hold" && !expiresAt) {
+    return {
+      ok: false,
+      message: "Alege pana cand ramane activ hold-ul administrativ.",
+    };
+  }
+
+  const expiresAtIso =
+    parsed.data.status === "admin_hold" && expiresAt
+      ? new Date(expiresAt).toISOString()
+      : null;
+
+  if (
+    parsed.data.status === "admin_hold" &&
+    (!expiresAtIso || Number.isNaN(new Date(expiresAtIso).getTime()) || new Date(expiresAtIso) <= new Date())
+  ) {
+    return {
+      ok: false,
+      message: "Data de expirare pentru hold trebuie sa fie in viitor.",
+    };
+  }
+
+  const { data: match } = await supabase
+    .from("matches")
+    .select("id, slug, title, stadium_id")
+    .eq("id", parsed.data.matchId)
+    .maybeSingle();
+
+  if (!match) {
+    return {
+      ok: false,
+      message: "Meciul nu mai exista.",
+    };
+  }
+
+  const { data: seatRows } = await supabase
+    .from("seats")
+    .select(
+      `
+        id,
+        seat_label,
+        row_label,
+        seat_number,
+        stadium_sectors!inner (
+          id,
+          stadium_id,
+          name,
+          code
+        )
+      `,
+    )
+    .in("id", seatIds);
+
+  const seats = (seatRows ?? []) as Array<{
+    id: string;
+    seat_label?: string | null;
+    row_label?: string | null;
+    seat_number?: number | null;
+    stadium_sectors?:
+      | {
+          id?: string | null;
+          stadium_id?: string | null;
+          name?: string | null;
+          code?: string | null;
+        }
+      | Array<{
+          id?: string | null;
+          stadium_id?: string | null;
+          name?: string | null;
+          code?: string | null;
+        }>
+      | null;
+  }>;
+
+  const normalizedSeats = seats.filter((seat) => {
+    const sector = Array.isArray(seat.stadium_sectors)
+      ? seat.stadium_sectors[0]
+      : seat.stadium_sectors;
+
+    return sector?.stadium_id === match.stadium_id;
+  });
+
+  if (normalizedSeats.length !== seatIds.length) {
+    return {
+      ok: false,
+      message:
+        "Unele locuri selectate nu apartin stadionului acestui meci sau nu mai exista.",
+    };
+  }
+
+  const nowIso = new Date().toISOString();
+  const [{ count: activeTicketCount }, { count: activeUserHoldCount }] = await Promise.all([
+    supabase
+      .from("tickets")
+      .select("id", { count: "exact", head: true })
+      .eq("match_id", parsed.data.matchId)
+      .in("seat_id", seatIds)
+      .in("status", ["active", "used", "blocked"]),
+    supabase
+      .from("seat_holds")
+      .select("id", { count: "exact", head: true })
+      .eq("match_id", parsed.data.matchId)
+      .in("seat_id", seatIds)
+      .eq("status", "active")
+      .gt("expires_at", nowIso),
+  ]);
+
+  if ((activeTicketCount ?? 0) > 0) {
+    return {
+      ok: false,
+      message:
+        "Unele locuri au deja bilete emise sau validate pentru acest meci si nu mai pot fi suprascrise.",
+    };
+  }
+
+  if ((activeUserHoldCount ?? 0) > 0) {
+    return {
+      ok: false,
+      message:
+        "Unele locuri au hold-uri active. Elibereaza-le sau asteapta expirarea lor inainte de override.",
+    };
+  }
+
+  const payload = seatIds.map((seatId) => ({
+    match_id: parsed.data.matchId,
+    seat_id: seatId,
+    status: parsed.data.status,
+    expires_at: expiresAtIso,
+    note: parsed.data.note?.trim() || null,
+    created_by: viewer.userId,
+  }));
+
+  const { error } = await supabase.from("match_seat_overrides").upsert(payload, {
+    onConflict: "match_id,seat_id",
+  });
+
+  if (error) {
+    console.error("Nu am putut salva override-urile per meci.", error);
+    return {
+      ok: false,
+      message: "Override-ul nu a putut fi salvat. Incearca din nou.",
+    };
+  }
+
+  await logAudit(viewer.userId, "apply_match_seat_override", "matches", parsed.data.matchId, {
+    seatIds,
+    status: parsed.data.status,
+    expiresAt: expiresAtIso,
+    note: parsed.data.note?.trim() || null,
+  });
+
+  revalidatePath(`/admin/meciuri/${parsed.data.matchId}`);
+  revalidatePath(`/meciuri/${match.slug}`);
+  revalidatePath(`/meciuri/${match.slug}/rezerva`);
+
+  return {
+    ok: true,
+    message:
+      parsed.data.status === "blocked"
+        ? `Ai blocat ${seatIds.length} locuri pentru acest meci.`
+        : `Ai pus hold administrativ pe ${seatIds.length} locuri pana la ${new Date(expiresAtIso ?? nowIso).toLocaleString("ro-RO")}.`,
+  };
+}
+
+export async function releaseMatchSeatOverrideAction(
+  input: z.input<typeof matchSeatOverrideReleaseSchema>,
+) {
+  const viewer = await ensureAdmin();
+  const parsed = matchSeatOverrideReleaseSchema.safeParse(input);
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    return {
+      ok: false,
+      message: "Date invalide pentru eliberarea override-ului.",
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return {
+      ok: false,
+      message: "Conexiunea la baza de date nu este disponibila.",
+    };
+  }
+
+  const seatIds = Array.from(new Set(parsed.data.seatIds));
+  const { data: match } = await supabase
+    .from("matches")
+    .select("id, slug")
+    .eq("id", parsed.data.matchId)
+    .maybeSingle();
+
+  if (!match) {
+    return {
+      ok: false,
+      message: "Meciul nu mai exista.",
+    };
+  }
+
+  const { error, count } = await supabase
+    .from("match_seat_overrides")
+    .delete({ count: "exact" })
+    .eq("match_id", parsed.data.matchId)
+    .in("seat_id", seatIds);
+
+  if (error) {
+    console.error("Nu am putut elibera override-urile per meci.", error);
+    return {
+      ok: false,
+      message: "Locurile nu au putut fi eliberate. Incearca din nou.",
+    };
+  }
+
+  await logAudit(viewer.userId, "release_match_seat_override", "matches", parsed.data.matchId, {
+    seatIds,
+    releasedCount: count ?? 0,
+  });
+
+  revalidatePath(`/admin/meciuri/${parsed.data.matchId}`);
+  revalidatePath(`/meciuri/${match.slug}`);
+  revalidatePath(`/meciuri/${match.slug}/rezerva`);
+
+  return {
+    ok: true,
+    message:
+      count && count > 0
+        ? `Ai eliberat ${count} override-uri pentru acest meci.`
+        : "Nu existau override-uri active pe locurile selectate.",
+  };
 }
 
 export async function createUserBlockAction(formData: FormData) {

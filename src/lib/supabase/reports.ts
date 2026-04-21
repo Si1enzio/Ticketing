@@ -3,9 +3,11 @@ import "server-only";
 import {
   adminUserStatsSchema,
   matchReportSchema,
+  matchSeatOverrideSchema,
   scanLogEntrySchema,
   subscriptionProductSchema,
   type AdminUserStats,
+  type MatchSeatOverride,
   type MatchReport,
   type ScanLogEntry,
   type SubscriptionProduct,
@@ -145,6 +147,63 @@ export async function getMatchScanLogs(matchId: string): Promise<ScanLogEntry[]>
     );
   } catch (error) {
     console.error("Nu am putut incarca logurile de scanare.", error);
+    return [];
+  }
+}
+
+export async function getMatchSeatOverrides(matchId: string): Promise<MatchSeatOverride[]> {
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    if (!supabase) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from("match_seat_overrides")
+      .select("id, match_id, seat_id, status, expires_at, note, created_at")
+      .eq("match_id", matchId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    const now = Date.now();
+
+    return ((data ?? []) as Record<string, unknown>[])
+      .filter((row) => {
+        if (row.status === "blocked") {
+          return true;
+        }
+
+        if (row.status !== "admin_hold") {
+          return false;
+        }
+
+        if (!row.expires_at) {
+          return true;
+        }
+
+        return new Date(String(row.expires_at)).getTime() > now;
+      })
+      .map((row) =>
+        matchSeatOverrideSchema.parse({
+          id: row.id,
+          matchId: row.match_id,
+          seatId: row.seat_id,
+          status: row.status,
+          expiresAt: row.expires_at,
+          note: row.note,
+          createdAt: row.created_at,
+        }),
+      );
+  } catch (error) {
+    console.error("Nu am putut incarca override-urile de loc pentru meci.", error);
     return [];
   }
 }

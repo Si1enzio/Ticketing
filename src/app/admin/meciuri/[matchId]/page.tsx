@@ -4,9 +4,15 @@ import { connection } from "next/server";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
 
+import { MatchSeatOverridesManager } from "@/components/admin/match-seat-overrides-manager";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getMatchReport, getMatchScanLogs } from "@/lib/supabase/reports";
+import { getAdminMatchOverview, getSeatMapForMatch, getStadiumMapConfigByStadiumId } from "@/lib/supabase/queries";
+import {
+  getMatchReport,
+  getMatchScanLogs,
+  getMatchSeatOverrides,
+} from "@/lib/supabase/reports";
 
 export default async function AdminMatchDetailsPage({
   params,
@@ -15,14 +21,24 @@ export default async function AdminMatchDetailsPage({
 }) {
   await connection();
   const { matchId } = await params;
-  const [report, scans] = await Promise.all([
+
+  const [report, scans, matches] = await Promise.all([
     getMatchReport(matchId),
     getMatchScanLogs(matchId),
+    getAdminMatchOverview(),
   ]);
 
-  if (!report) {
+  const matchOverview = matches.find((item) => item.id === matchId) ?? null;
+
+  if (!report || !matchOverview) {
     notFound();
   }
+
+  const [seatMap, stadiumMapConfig, seatOverrides] = await Promise.all([
+    getSeatMapForMatch(matchId),
+    getStadiumMapConfigByStadiumId(matchOverview.stadiumId),
+    getMatchSeatOverrides(matchId),
+  ]);
 
   return (
     <div className="grid gap-8">
@@ -45,29 +61,38 @@ export default async function AdminMatchDetailsPage({
             variant="outline"
             className="rounded-full border-[#111111] bg-white text-[#111111] hover:bg-neutral-100"
           >
-            <Link href={`/admin/export?kind=scans&matchId=${report.matchId}`}>Export scanari CSV</Link>
+            <Link href={`/admin/export?kind=scans&matchId=${report.matchId}`}>Export scanări CSV</Link>
           </Button>
           <Button
             asChild
             className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
           >
-            <Link href="/admin/meciuri">Inapoi la meciuri</Link>
+            <Link href="/admin/meciuri">Înapoi la meciuri</Link>
           </Button>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <MetricCard label="Bilete emise" value={report.issuedCount} />
-        <MetricCard label="Bilete platite" value={report.purchasedCount} />
-        <MetricCard label="Intrari validate" value={report.enteredCount} />
+        <MetricCard label="Bilete plătite" value={report.purchasedCount} />
+        <MetricCard label="Intrări validate" value={report.enteredCount} />
         <MetricCard label="Bilete blocate" value={report.blockedCount} />
-        <MetricCard label="Scanari repetate" value={report.repeatedCount} />
-        <MetricCard label="Scanari valide" value={report.validScanCount} />
-        <MetricCard label="Scanari invalide" value={report.invalidScanCount} />
+        <MetricCard label="Scanări repetate" value={report.repeatedCount} />
+        <MetricCard label="Scanări valide" value={report.validScanCount} />
+        <MetricCard label="Scanări invalide" value={report.invalidScanCount} />
         <MetricCard label="Bilete active" value={report.activeCount} />
         <MetricCard label="Bilete anulate" value={report.canceledCount} />
         <MetricCard label="Surse interne" value={report.internalCount} />
       </div>
+
+      <MatchSeatOverridesManager
+        matchId={report.matchId}
+        stadiumId={matchOverview.stadiumId}
+        stadiumName={report.stadiumName}
+        sectors={seatMap}
+        overrides={seatOverrides}
+        stadiumMapConfig={stadiumMapConfig}
+      />
 
       <Card className="surface-panel overflow-hidden rounded-[30px] border border-white/70 bg-white/94">
         <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
@@ -77,7 +102,7 @@ export default async function AdminMatchDetailsPage({
               Log scanare
             </h2>
             <p className="mt-2 text-sm leading-6 text-neutral-600">
-              Ore, coduri, steward, poarta si rezultat pentru fiecare scanare.
+              Ore, coduri, steward, poartă și rezultat pentru fiecare scanare.
             </p>
           </div>
 
@@ -105,20 +130,22 @@ export default async function AdminMatchDetailsPage({
                   </div>
 
                   <div className="mt-3 grid gap-2 text-sm text-neutral-600 sm:grid-cols-2 xl:grid-cols-4">
-                    <p>Loc: {scan.sectorName ?? "-"} · {scan.rowLabel ?? "-"} / {scan.seatNumber ?? "-"}</p>
-                    <p>Tribuna: {scan.standName ?? "Nedefinita"}</p>
-                    <p>Poarta: {scan.gateName ?? "Nedefinita"}</p>
+                    <p>
+                      Loc: {scan.sectorName ?? "-"} · {scan.rowLabel ?? "-"} / {scan.seatNumber ?? "-"}
+                    </p>
+                    <p>Tribună: {scan.standName ?? "Nedefinită"}</p>
+                    <p>Poartă: {scan.gateName ?? "Nedefinită"}</p>
                     <p>Dispozitiv: {scan.deviceLabel ?? "Necunoscut"}</p>
                     <p>Steward: {scan.stewardName ?? scan.stewardEmail ?? "Necunoscut"}</p>
                     <p>Holder: {scan.holderName ?? scan.holderEmail ?? "Necunoscut"}</p>
-                    <p>Sursa bilet: {scan.ticketSource ?? "-"}</p>
+                    <p>Sursă bilet: {scan.ticketSource ?? "-"}</p>
                     <p>Fingerprint: {scan.tokenFingerprint ?? "-"}</p>
                   </div>
                 </div>
               ))
             ) : (
               <div className="rounded-[24px] border border-dashed border-black/10 bg-white/75 p-5 text-sm text-neutral-600">
-                Nu exista scanari inregistrate pentru acest meci.
+                Nu există scanări înregistrate pentru acest meci.
               </div>
             )}
           </div>
