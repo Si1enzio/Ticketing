@@ -147,6 +147,10 @@ export type SectorConfig = {
   code: string;
   defaultLabel: string;
   labels?: LocalizedLabel;
+  mapTitle?: string;
+  mapTitleLabels?: LocalizedLabel;
+  mapSubtitle?: string;
+  mapSubtitleLabels?: LocalizedLabel;
   tribuneId: string;
   tierId?: string | null;
   shape: SectorShapeConfig;

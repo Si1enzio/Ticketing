@@ -308,6 +308,18 @@ export function getSectorLabel(locale: AppLocale, sector: SectorConfig) {
   return getLocalizedLabel(locale, sector.defaultLabel, sector.labels);
 }
 
+export function getSectorMapTitle(locale: AppLocale, sector: SectorConfig) {
+  return getLocalizedLabel(locale, sector.mapTitle ?? sector.code, sector.mapTitleLabels);
+}
+
+export function getSectorMapSubtitle(locale: AppLocale, sector: SectorConfig) {
+  return getLocalizedLabel(
+    locale,
+    sector.mapSubtitle ?? sector.defaultLabel,
+    sector.mapSubtitleLabels,
+  );
+}
+
 export function buildSeatRows(
   sector: SeatMapSector,
   selectedSeatIds: string[],

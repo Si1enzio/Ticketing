@@ -3,7 +3,10 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
 
 import type { StadiumRenderableSector } from "@/lib/stadium/stadium-types";
-import { getSectorLabel } from "@/lib/stadium/stadium-utils";
+import {
+  getSectorMapSubtitle,
+  getSectorMapTitle,
+} from "@/lib/stadium/stadium-utils";
 import { getSectorLabelPosition, getSectorPath } from "@/lib/stadium/stadium-geometry";
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
@@ -22,7 +25,8 @@ export function StadiumSector({
   onPointerDown?: (event: ReactPointerEvent<SVGGElement>) => void;
 }) {
   const { locale } = useI18n();
-  const label = getSectorLabel(locale, sector.config);
+  const title = getSectorMapTitle(locale, sector.config);
+  const subtitle = getSectorMapSubtitle(locale, sector.config);
   const path = getSectorPath(sector.config.shape);
   const labelPosition = getSectorLabelPosition(sector.config.shape);
 
@@ -69,7 +73,7 @@ export function StadiumSector({
         className={textClassName}
         style={{ fontSize: 16 }}
       >
-        {sector.config.code}
+        {title}
       </text>
       <text
         x={labelPosition.x}
@@ -79,7 +83,7 @@ export function StadiumSector({
         className={textClassName}
         style={{ fontSize: 10, letterSpacing: "0.18em", opacity: 0.84 }}
       >
-        {label}
+        {subtitle}
       </text>
     </g>
   );

@@ -468,6 +468,45 @@ export function StadiumMapAdminEditor({
                 />
               </div>
               <div className="grid gap-2">
+                <Label>Text principal in sector</Label>
+                <Input
+                  value={sector.mapTitle ?? ""}
+                  onChange={(event) =>
+                    patchConfig((current) => ({
+                      ...current,
+                      sectors: current.sectors.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, mapTitle: event.target.value || undefined }
+                          : item,
+                      ),
+                    }))
+                  }
+                  placeholder="Ex: 7 sau VIP"
+                  className="rounded-2xl bg-white"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Text secundar in sector</Label>
+                <Input
+                  value={sector.mapSubtitle ?? ""}
+                  onChange={(event) =>
+                    patchConfig((current) => ({
+                      ...current,
+                      sectors: current.sectors.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, mapSubtitle: event.target.value || undefined }
+                          : item,
+                      ),
+                    }))
+                  }
+                  placeholder="Ex: Sector familii"
+                  className="rounded-2xl bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+              <div className="grid gap-2">
                 <Label>Tribuna</Label>
                 <select
                   value={sector.tribuneId}
