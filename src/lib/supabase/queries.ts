@@ -15,9 +15,11 @@ import {
   type SeatMapSector,
   type StadiumBuilder,
   type StadiumSponsor,
+  type TeamOption,
   type TicketCard,
   type ViewerContext,
   checkoutSummarySchema,
+  teamOptionSchema,
 } from "@/lib/domain/types";
 import { stadiumMapConfigSchema } from "@/lib/stadium/stadium-schema";
 import type { StadiumMapConfig } from "@/lib/stadium/stadium-types";
@@ -566,6 +568,96 @@ export async function getAdminUsersOverview(): Promise<AdminUserOverview[]> {
   } catch (error) {
     console.error("Nu am putut încărca lista de utilizatori pentru admin.", error);
     return mockAdminUsers;
+  }
+}
+
+export async function getTeamCatalog(): Promise<TeamOption[]> {
+  const fallbackNames = Array.from(
+    new Set(
+      [
+        "FC Milsami Orhei",
+        ...mockMatches.flatMap((match) => {
+          const homeTeam = match.title.endsWith(` vs ${match.opponentName}`)
+            ? match.title.slice(0, -(` vs ${match.opponentName}`).length)
+            : match.title;
+
+          return [homeTeam, match.opponentName];
+        }),
+      ]
+        .map((name) => name.trim())
+        .filter(Boolean),
+    ),
+  ).sort((left, right) => left.localeCompare(right, "ro"));
+
+  if (!isSupabaseConfigured()) {
+    return fallbackNames.map((name, index) =>
+      teamOptionSchema.parse({
+        id: `mock-team-${index + 1}`,
+        name,
+        slug: name
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, ""),
+      }),
+    );
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    if (!supabase) {
+      throw new Error("Supabase server client indisponibil.");
+    }
+
+    const { data, error } = await supabase
+      .from("teams")
+      .select("id, name, slug")
+      .order("name", { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    const rows = (data ?? []) as Record<string, unknown>[];
+
+    if (!rows.length) {
+      return fallbackNames.map((name, index) =>
+        teamOptionSchema.parse({
+          id: `fallback-team-${index + 1}`,
+          name,
+          slug: name
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, ""),
+        }),
+      );
+    }
+
+    return rows.map((item) =>
+      teamOptionSchema.parse({
+        id: item.id,
+        name: item.name,
+        slug: item.slug,
+      }),
+    );
+  } catch (error) {
+    console.error("Nu am putut incarca lista reutilizabila de echipe.", error);
+    return fallbackNames.map((name, index) =>
+      teamOptionSchema.parse({
+        id: `fallback-team-${index + 1}`,
+        name,
+        slug: name
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, ""),
+      }),
+    );
   }
 }
 

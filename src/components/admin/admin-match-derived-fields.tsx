@@ -9,9 +9,12 @@ type AdminMatchDerivedFieldsProps = {
   formId: string;
   defaultHomeTeam: string;
   defaultAwayTeam: string;
+  teamSuggestions?: string[];
   defaultStartsAt?: string | null;
   defaultReservationOpensAt?: string | null;
   defaultReservationClosesAt?: string | null;
+  homeTeamName?: string;
+  awayTeamName?: string;
   titleName?: string;
   slugName?: string;
   opponentNameName?: string;
@@ -33,9 +36,12 @@ export function AdminMatchDerivedFields({
   formId,
   defaultHomeTeam,
   defaultAwayTeam,
+  teamSuggestions = [],
   defaultStartsAt,
   defaultReservationOpensAt,
   defaultReservationClosesAt,
+  homeTeamName = "homeTeam",
+  awayTeamName = "awayTeam",
   titleName = "title",
   slugName = "slug",
   opponentNameName = "opponentName",
@@ -73,6 +79,7 @@ export function AdminMatchDerivedFields({
     [awayTeam, homeTeam],
   );
   const generatedSlug = useMemo(() => slugifyMatchTitle(generatedTitle), [generatedTitle]);
+  const datalistId = `${formId}-team-suggestions`;
 
   return (
     <>
@@ -93,17 +100,21 @@ export function AdminMatchDerivedFields({
 
       <TextField
         id={`${formId}-home-team`}
+        name={homeTeamName}
         label="Gazda"
         value={homeTeam}
         placeholder="Ex: FC Milsami Orhei"
+        listId={datalistId}
         onChange={setHomeTeam}
         required
       />
       <TextField
         id={`${formId}-away-team`}
-        label="Oaspeți"
+        name={awayTeamName}
+        label="Oaspeti"
         value={awayTeam}
-        placeholder="Ex: FC Petrocub Hâncești"
+        placeholder="Ex: FC Petrocub Hancesti"
+        listId={datalistId}
         onChange={setAwayTeam}
         required
       />
@@ -135,28 +146,42 @@ export function AdminMatchDerivedFields({
       />
       <DateTimeFieldGroup
         prefix={`${formId}-reservation-closes`}
-        label="Închidere ticketing"
+        label="Inchidere ticketing"
         value={closesDateTime}
         onChange={setClosesDateTime}
       />
+
+      {teamSuggestions.length ? (
+        <datalist id={datalistId}>
+          {Array.from(new Set(teamSuggestions.map((team) => team.trim()).filter(Boolean))).map(
+            (teamName) => (
+              <option key={teamName} value={teamName} />
+            ),
+          )}
+        </datalist>
+      ) : null}
     </>
   );
 }
 
 function TextField({
   id,
+  name,
   label,
   value,
   onChange,
   placeholder,
+  listId,
   readOnly = false,
   required = false,
 }: {
   id: string;
+  name?: string;
   label: string;
   value: string;
   onChange?: (value: string) => void;
   placeholder?: string;
+  listId?: string;
   readOnly?: boolean;
   required?: boolean;
 }) {
@@ -165,8 +190,11 @@ function TextField({
       <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}
+        name={name}
         value={value}
         placeholder={placeholder}
+        list={listId}
+        autoComplete="off"
         readOnly={readOnly}
         required={required}
         onChange={onChange ? (event) => onChange(event.target.value) : undefined}

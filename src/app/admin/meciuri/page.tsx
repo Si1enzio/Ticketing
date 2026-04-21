@@ -10,7 +10,11 @@ import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createMatchAction, deleteMatchAction, updateMatchAction } from "@/lib/actions/admin";
-import { getAdminMatchOverview, getStadiumBuilderData } from "@/lib/supabase/queries";
+import {
+  getAdminMatchOverview,
+  getStadiumBuilderData,
+  getTeamCatalog,
+} from "@/lib/supabase/queries";
 
 const matchStatusOptions = [
   { value: "draft", label: "Ciornă" },
@@ -32,13 +36,15 @@ export default async function AdminMatchesPage({
 }) {
   await connection();
   const resolvedSearchParams = (await searchParams) ?? {};
-  const [matches, stadiums] = await Promise.all([
+  const [matches, stadiums, teamCatalog] = await Promise.all([
     getAdminMatchOverview(),
     getStadiumBuilderData(),
+    getTeamCatalog(),
   ]);
 
   const defaultStadium = stadiums[0];
   const defaultHomeTeam = "FC Milsami Orhei";
+  const teamSuggestions = teamCatalog.map((team) => team.name);
 
   return (
     <div className="grid gap-8">
@@ -89,6 +95,7 @@ export default async function AdminMatchesPage({
               formId="match-create"
               defaultHomeTeam={defaultHomeTeam}
               defaultAwayTeam=""
+              teamSuggestions={teamSuggestions}
             />
             <Field name="competitionName" label="Competiție" />
             <Field name="maxTicketsPerUser" label="Limită / user" type="number" defaultValue="4" />
@@ -177,6 +184,7 @@ export default async function AdminMatchesPage({
                     formId={`match-${match.id}`}
                     defaultHomeTeam={deriveHomeTeam(match.title, match.opponentName)}
                     defaultAwayTeam={match.opponentName}
+                    teamSuggestions={teamSuggestions}
                     defaultStartsAt={match.startsAt}
                     defaultReservationOpensAt={match.reservationOpensAt}
                     defaultReservationClosesAt={match.reservationClosesAt}

@@ -74,10 +74,11 @@ const sectorMoveSchema = z.object({
 
 const matchSchema = z.object({
   stadiumId: z.string(),
+  homeTeam: z.string().min(2),
+  awayTeam: z.string().min(2),
   title: z.string().min(4),
   slug: z.string().min(4),
   competitionName: z.string().min(2),
-  opponentName: z.string().min(2),
   startsAt: z.string().min(5),
   status: z.string().default("draft"),
   maxTicketsPerUser: z.coerce.number().int().min(1),
@@ -217,6 +218,47 @@ function redirectToAdminMatches(params: Record<string, string>): never {
 function redirectToAdminStadiumMap(params: Record<string, string>): never {
   const query = new URLSearchParams(params);
   redirect(`/admin/stadion/harta?${query.toString()}`);
+}
+
+function slugifyEntityName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function persistTeamsCatalog(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  actorUserId: string,
+  teamNames: string[],
+) {
+  if (!supabase) {
+    return;
+  }
+
+  const payload = Array.from(
+    new Set(teamNames.map((name) => name.trim()).filter(Boolean)),
+  ).map((name) => ({
+    name,
+    slug: slugifyEntityName(name),
+    created_by: actorUserId,
+  }));
+
+  if (!payload.length) {
+    return;
+  }
+
+  const { error } = await supabase.from("teams").upsert(payload, {
+    onConflict: "slug",
+    ignoreDuplicates: false,
+  });
+
+  if (error) {
+    console.error("Nu am putut sincroniza catalogul de echipe.", error);
+    throw error;
+  }
 }
 
 function redirectToSectorSource(
@@ -1058,10 +1100,11 @@ export async function createMatchAction(formData: FormData) {
   const viewer = await ensureAdmin();
   const parsed = matchSchema.safeParse({
     stadiumId: formData.get("stadiumId"),
+    homeTeam: formData.get("homeTeam"),
+    awayTeam: formData.get("awayTeam"),
     title: formData.get("title"),
     slug: formData.get("slug"),
     competitionName: formData.get("competitionName"),
-    opponentName: formData.get("opponentName"),
     startsAt: formData.get("startsAt"),
     status: formData.get("status"),
     maxTicketsPerUser: formData.get("maxTicketsPerUser"),
@@ -1080,6 +1123,11 @@ export async function createMatchAction(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) return;
 
+  await persistTeamsCatalog(supabase, viewer.userId, [
+    parsed.data.homeTeam,
+    parsed.data.awayTeam,
+  ]);
+
   const { data } = await supabase
     .from("matches")
     .insert({
@@ -1087,7 +1135,7 @@ export async function createMatchAction(formData: FormData) {
       title: parsed.data.title,
       slug: parsed.data.slug,
       competition_name: parsed.data.competitionName,
-      opponent_name: parsed.data.opponentName,
+      opponent_name: parsed.data.awayTeam,
       starts_at: parsed.data.startsAt,
       status: parsed.data.status,
       scanner_enabled: parsed.data.scannerEnabled,
@@ -1379,10 +1427,11 @@ export async function updateMatchAction(formData: FormData) {
   const parsed = matchUpdateSchema.safeParse({
     matchId: formData.get("matchId"),
     stadiumId: formData.get("stadiumId"),
+    homeTeam: formData.get("homeTeam"),
+    awayTeam: formData.get("awayTeam"),
     title: formData.get("title"),
     slug: formData.get("slug"),
     competitionName: formData.get("competitionName"),
-    opponentName: formData.get("opponentName"),
     startsAt: formData.get("startsAt"),
     status: formData.get("status"),
     maxTicketsPerUser: formData.get("maxTicketsPerUser"),
@@ -1401,6 +1450,11 @@ export async function updateMatchAction(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) return;
 
+  await persistTeamsCatalog(supabase, viewer.userId, [
+    parsed.data.homeTeam,
+    parsed.data.awayTeam,
+  ]);
+
   await supabase
     .from("matches")
     .update({
@@ -1408,7 +1462,7 @@ export async function updateMatchAction(formData: FormData) {
       title: parsed.data.title,
       slug: parsed.data.slug,
       competition_name: parsed.data.competitionName,
-      opponent_name: parsed.data.opponentName,
+      opponent_name: parsed.data.awayTeam,
       starts_at: parsed.data.startsAt,
       status: parsed.data.status,
       scanner_enabled: parsed.data.scannerEnabled,

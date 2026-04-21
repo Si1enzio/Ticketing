@@ -249,6 +249,14 @@ export const stadiumSponsorSchema = z.object({
 
 export type StadiumSponsor = z.infer<typeof stadiumSponsorSchema>;
 
+export const teamOptionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+});
+
+export type TeamOption = z.infer<typeof teamOptionSchema>;
+
 export const stadiumSeatSchema = z.object({
   id: z.string(),
   rowLabel: z.string(),
