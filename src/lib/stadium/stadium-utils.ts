@@ -427,9 +427,28 @@ export function buildSeatRows(
     return acc;
   }, {});
 
+  function compareRowLabelsDescending(left: string, right: string) {
+    const leftNumber = Number(left);
+    const rightNumber = Number(right);
+    const leftIsNumber = !Number.isNaN(leftNumber);
+    const rightIsNumber = !Number.isNaN(rightNumber);
+
+    if (leftIsNumber && rightIsNumber) {
+      return rightNumber - leftNumber;
+    }
+
+    return right.localeCompare(left, "ro");
+  }
+
   if (rowConfigs?.length) {
     return [...rowConfigs]
-      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .sort((left, right) => {
+        if (left.sortOrder !== right.sortOrder) {
+          return right.sortOrder - left.sortOrder;
+        }
+
+        return compareRowLabelsDescending(left.label, right.label);
+      })
       .filter((row) => row.isVisible !== false)
       .map((layout) => {
         const rowSeats = [...(rows[layout.label] ?? [])].sort(
@@ -479,7 +498,7 @@ export function buildSeatRows(
       });
   }
 
-  const rowOrder = Object.keys(rows).sort((left, right) => Number(left) - Number(right));
+  const rowOrder = Object.keys(rows).sort(compareRowLabelsDescending);
 
   return rowOrder.map((rowLabel, index) => {
     const rowSeats = [...rows[rowLabel]].sort((left, right) => left.seatNumber - right.seatNumber);
