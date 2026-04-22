@@ -107,16 +107,16 @@ export function StadiumTierView({
                 type="button"
                 onClick={() => onSelectSector(sector.config.code)}
                 className={cn(
-                  "rounded-[22px] border px-3 py-3 text-left transition",
+                  "overflow-hidden rounded-[22px] border px-3 py-3 text-left transition",
                   isSelected
                     ? "border-[#dc2626] bg-[#fff1f2] shadow-[0_18px_36px_-24px_rgba(220,38,38,0.5)]"
                     : "border-black/6 bg-white hover:border-[#dc2626]/30 hover:bg-[#fff7f7]",
                 )}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     <div
-                      className="h-3.5 w-3.5 rounded-full ring-2 ring-white"
+                      className="h-3.5 w-3.5 shrink-0 rounded-full ring-2 ring-white"
                       style={{ backgroundColor: sector.data?.color ?? "#9ca3af" }}
                     />
                     <div className="min-w-0">
@@ -129,7 +129,7 @@ export function StadiumTierView({
                     </div>
                   </div>
                   {summary ? (
-                    <span className="min-w-[112px] rounded-[20px] border border-black/6 bg-neutral-50 px-3 py-1.5 text-left">
+                    <span className="min-w-[104px] max-w-full rounded-[20px] border border-black/6 bg-neutral-50 px-3 py-1.5 text-left">
                       <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-600 xl:text-[12px]">
                         {summary.availableSeats}
                       </span>
