@@ -152,10 +152,12 @@ export function StadiumMapRenderer({
   const { locale } = useI18n();
   const copy = getStadiumMapMessages(locale);
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const zoomViewportRef = useRef<HTMLDivElement | null>(null);
   const pinchStateRef = useRef<{
     startDistance: number;
     startZoom: number;
   } | null>(null);
+  const suppressSectorClickRef = useRef(false);
   const [dragState, setDragState] = useState<{
     pointerId: number;
     targetId: string;
@@ -164,6 +166,12 @@ export function StadiumMapRenderer({
     lastY: number;
   } | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [mousePanState, setMousePanState] = useState<{
+    startX: number;
+    startY: number;
+    scrollLeft: number;
+    scrollTop: number;
+  } | null>(null);
 
   function clampZoom(value: number) {
     return Math.min(2.5, Math.max(1, value));
@@ -206,11 +214,11 @@ export function StadiumMapRenderer({
     sectorCode: string,
     event: ReactPointerEvent<SVGGElement>,
   ) {
-    onSelectSector(sectorCode);
-
     if (!editable || !onSectorDrag) {
       return;
     }
+
+    onSelectSector(sectorCode);
 
     const point = toSvgCoordinates(event);
     if (!point) {
@@ -364,6 +372,15 @@ export function StadiumMapRenderer({
     }
   }
 
+  function handleSectorClick(sectorCode: string) {
+    if (suppressSectorClickRef.current) {
+      suppressSectorClickRef.current = false;
+      return;
+    }
+
+    onSelectSector(sectorCode);
+  }
+
   return (
     <div className="grid gap-4 rounded-[28px] border border-black/6 bg-neutral-50 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -421,7 +438,45 @@ export function StadiumMapRenderer({
         onKeyDown={handleKeyDown}
       >
         <div
+          ref={zoomViewportRef}
           className="overflow-auto rounded-[24px]"
+          onMouseDown={(event) => {
+            if (editable || zoomLevel <= 1 || event.button !== 0 || !zoomViewportRef.current) {
+              return;
+            }
+
+            setMousePanState({
+              startX: event.clientX,
+              startY: event.clientY,
+              scrollLeft: zoomViewportRef.current.scrollLeft,
+              scrollTop: zoomViewportRef.current.scrollTop,
+            });
+            suppressSectorClickRef.current = false;
+          }}
+          onMouseMove={(event) => {
+            if (!mousePanState || !zoomViewportRef.current) {
+              return;
+            }
+
+            const deltaX = event.clientX - mousePanState.startX;
+            const deltaY = event.clientY - mousePanState.startY;
+
+            if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
+              suppressSectorClickRef.current = true;
+            }
+
+            zoomViewportRef.current.scrollLeft = mousePanState.scrollLeft - deltaX;
+            zoomViewportRef.current.scrollTop = mousePanState.scrollTop - deltaY;
+          }}
+          onMouseUp={() => {
+            setMousePanState(null);
+            window.setTimeout(() => {
+              suppressSectorClickRef.current = false;
+            }, 0);
+          }}
+          onMouseLeave={() => {
+            setMousePanState(null);
+          }}
           onTouchStart={(event) => {
             const distance = getTouchDistance(event);
             if (!distance) {
@@ -449,6 +504,7 @@ export function StadiumMapRenderer({
               pinchStateRef.current = null;
             }
           }}
+          style={{ cursor: !editable && zoomLevel > 1 ? (mousePanState ? "grabbing" : "grab") : "default" }}
         >
           <div
             className="mx-auto origin-top transition-[width] duration-150 ease-out"
@@ -575,7 +631,7 @@ export function StadiumMapRenderer({
                   sector={sector}
                   state={getSectorAvailabilityState(sector.summary)}
                   isSelected={selectedSectorCode === sector.config.code}
-                  onClick={() => onSelectSector(sector.config.code)}
+                  onClick={() => handleSectorClick(sector.config.code)}
                   onPointerDown={(event) => handleSectorPointerDown(sector.config.code, event)}
                 />
               ))}
