@@ -151,16 +151,19 @@ export function AdminMatchCard({
               />
               <Field
                 name={`price-${match.id}`}
-                htmlName="ticketPriceCents"
-                label="Pret (bani)"
+                htmlName="ticketPriceLei"
+                label="Pret (lei)"
                 type="number"
-                defaultValue={String(match.ticketPriceCents)}
+                step="0.01"
+                min="0"
+                defaultValue={formatLeiInputValue(match.ticketPriceCents)}
               />
               <Field
                 name={`currency-${match.id}`}
                 htmlName="currency"
                 label="Moneda"
                 defaultValue={match.currency}
+                readOnly
               />
               <label className="flex items-center gap-3 rounded-[22px] border border-black/6 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 lg:col-span-2">
                 <input
@@ -234,12 +237,18 @@ function Field({
   label,
   type = "text",
   defaultValue,
+  step,
+  min,
+  readOnly = false,
 }: {
   name: string;
   htmlName?: string;
   label: string;
   type?: string;
   defaultValue?: string;
+  step?: string;
+  min?: string;
+  readOnly?: boolean;
 }) {
   return (
     <div className="grid gap-2">
@@ -249,7 +258,10 @@ function Field({
         name={htmlName ?? name}
         type={type}
         defaultValue={defaultValue}
+        step={step}
+        min={min}
         required
+        readOnly={readOnly}
         className="rounded-2xl bg-white"
       />
     </div>
@@ -295,4 +307,10 @@ function NumberCell({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-lg font-semibold text-[#111111]">{value}</p>
     </div>
   );
+}
+
+function formatLeiInputValue(amountCents: number) {
+  const valueInLei = amountCents / 100;
+
+  return Number.isInteger(valueInLei) ? String(valueInLei) : valueInLei.toFixed(2);
 }

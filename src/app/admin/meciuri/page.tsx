@@ -110,8 +110,15 @@ export default async function AdminMatchesPage({
               options={ticketingModeOptions}
               defaultValue="free"
             />
-            <Field name="ticketPriceCents" label="Pret (bani)" type="number" defaultValue="0" />
-            <Field name="currency" label="Moneda" defaultValue="MDL" />
+            <Field
+              name="ticketPriceLei"
+              label="Pret (lei)"
+              type="number"
+              defaultValue="0"
+              step="0.01"
+              min="0"
+            />
+            <Field name="currency" label="Moneda" defaultValue="MDL" readOnly />
             <label className="flex items-center gap-3 rounded-[22px] border border-black/6 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 lg:col-span-2">
               <input type="checkbox" name="scannerEnabled" defaultChecked />
               Scanner activ pentru acest meci
@@ -149,11 +156,17 @@ function Field({
   label,
   type = "text",
   defaultValue,
+  step,
+  min,
+  readOnly = false,
 }: {
   name: string;
   label: string;
   type?: string;
   defaultValue?: string;
+  step?: string;
+  min?: string;
+  readOnly?: boolean;
 }) {
   return (
     <div className="grid gap-2">
@@ -163,7 +176,10 @@ function Field({
         name={name}
         type={type}
         defaultValue={defaultValue}
+        step={step}
+        min={min}
         required
+        readOnly={readOnly}
         className="rounded-2xl bg-white"
       />
     </div>

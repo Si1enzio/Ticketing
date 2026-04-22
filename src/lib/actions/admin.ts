@@ -307,6 +307,40 @@ function validateMatchScheduleWindow(input: {
   return null;
 }
 
+function parseLeiAmountInput(
+  value: FormDataEntryValue | null,
+  label: string,
+): { ok: true; cents: number } | { ok: false; message: string } {
+  const rawValue = String(value ?? "").trim();
+
+  if (!rawValue) {
+    return { ok: true, cents: 0 };
+  }
+
+  const normalizedValue = rawValue.replace(",", ".");
+
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalizedValue)) {
+    return {
+      ok: false,
+      message: `Completeaza campul „${label}” folosind lei, cu maximum doua zecimale.`,
+    };
+  }
+
+  const parsedAmount = Number(normalizedValue);
+
+  if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+    return {
+      ok: false,
+      message: `Valoarea introdusa pentru „${label}” nu este valida.`,
+    };
+  }
+
+  return {
+    ok: true,
+    cents: Math.round(parsedAmount * 100),
+  };
+}
+
 function redirectToAdminStadiumMap(params: Record<string, string>): never {
   const query = new URLSearchParams(params);
   redirect(`/admin/stadion/harta?${query.toString()}`);
@@ -1215,6 +1249,12 @@ export async function toggleSeatFlagAction(input: z.input<typeof seatToggleSchem
 
 export async function createMatchAction(formData: FormData) {
   const viewer = await ensureAdmin();
+  const ticketPriceResult = parseLeiAmountInput(formData.get("ticketPriceLei"), "Pret");
+
+  if (!ticketPriceResult.ok) {
+    redirectToAdminMatches({ error: ticketPriceResult.message });
+  }
+
   const parsed = matchSchema.safeParse({
     stadiumId: formData.get("stadiumId"),
     homeTeam: formData.get("homeTeam"),
@@ -1229,8 +1269,8 @@ export async function createMatchAction(formData: FormData) {
     reservationClosesAt: formData.get("reservationClosesAt") || undefined,
     scannerEnabled: formData.get("scannerEnabled") === "on",
     ticketingMode: formData.get("ticketingMode") || "free",
-    ticketPriceCents: formData.get("ticketPriceCents") || 0,
-    currency: formData.get("currency") || "MDL",
+    ticketPriceCents: ticketPriceResult.cents,
+    currency: "MDL",
   });
 
   if (!parsed.success || !isSupabaseConfigured()) {
@@ -1321,16 +1361,21 @@ export async function createMatchAction(formData: FormData) {
     });
   }
 
-  const { error: settingsError } = await supabase.from("match_settings").upsert({
-    match_id: data.id,
-    max_tickets_per_user: parsed.data.maxTicketsPerUser,
-    opens_at: reservationOpensAtResult.value,
-    closes_at: reservationClosesAtResult.value,
-    ticketing_mode: parsed.data.ticketingMode,
-    ticket_price_cents:
-      parsed.data.ticketingMode === "paid" ? parsed.data.ticketPriceCents : 0,
-    currency: parsed.data.currency,
-  });
+  const { error: settingsError } = await supabase.from("match_settings").upsert(
+    {
+      match_id: data.id,
+      max_tickets_per_user: parsed.data.maxTicketsPerUser,
+      opens_at: reservationOpensAtResult.value,
+      closes_at: reservationClosesAtResult.value,
+      ticketing_mode: parsed.data.ticketingMode,
+      ticket_price_cents:
+        parsed.data.ticketingMode === "paid" ? parsed.data.ticketPriceCents : 0,
+      currency: "MDL",
+    },
+    {
+      onConflict: "match_id",
+    },
+  );
 
   if (settingsError) {
     console.error("Nu am putut salva setarile meciului nou.", settingsError);
@@ -1616,6 +1661,12 @@ export async function saveStadiumMapConfigAction(formData: FormData) {
 
 export async function updateMatchAction(formData: FormData) {
   const viewer = await ensureAdmin();
+  const ticketPriceResult = parseLeiAmountInput(formData.get("ticketPriceLei"), "Pret");
+
+  if (!ticketPriceResult.ok) {
+    redirectToAdminMatches({ error: ticketPriceResult.message });
+  }
+
   const parsed = matchUpdateSchema.safeParse({
     matchId: formData.get("matchId"),
     stadiumId: formData.get("stadiumId"),
@@ -1631,8 +1682,8 @@ export async function updateMatchAction(formData: FormData) {
     reservationClosesAt: formData.get("reservationClosesAt") || undefined,
     scannerEnabled: formData.get("scannerEnabled") === "on",
     ticketingMode: formData.get("ticketingMode") || "free",
-    ticketPriceCents: formData.get("ticketPriceCents") || 0,
-    currency: formData.get("currency") || "MDL",
+    ticketPriceCents: ticketPriceResult.cents,
+    currency: "MDL",
   });
 
   if (!parsed.success || !isSupabaseConfigured()) {
@@ -1721,16 +1772,21 @@ export async function updateMatchAction(formData: FormData) {
     });
   }
 
-  const { error: settingsError } = await supabase.from("match_settings").upsert({
-    match_id: parsed.data.matchId,
-    max_tickets_per_user: parsed.data.maxTicketsPerUser,
-    opens_at: reservationOpensAtResult.value,
-    closes_at: reservationClosesAtResult.value,
-    ticketing_mode: parsed.data.ticketingMode,
-    ticket_price_cents:
-      parsed.data.ticketingMode === "paid" ? parsed.data.ticketPriceCents : 0,
-    currency: parsed.data.currency,
-  });
+  const { error: settingsError } = await supabase.from("match_settings").upsert(
+    {
+      match_id: parsed.data.matchId,
+      max_tickets_per_user: parsed.data.maxTicketsPerUser,
+      opens_at: reservationOpensAtResult.value,
+      closes_at: reservationClosesAtResult.value,
+      ticketing_mode: parsed.data.ticketingMode,
+      ticket_price_cents:
+        parsed.data.ticketingMode === "paid" ? parsed.data.ticketPriceCents : 0,
+      currency: "MDL",
+    },
+    {
+      onConflict: "match_id",
+    },
+  );
 
   if (settingsError) {
     console.error("Nu am putut actualiza setarile meciului.", settingsError);
