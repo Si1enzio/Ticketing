@@ -166,6 +166,7 @@ export default async function TicketPage({
                 ticketUrl={ticketUrl}
                 pdfUrl={pdfUrl}
                 imageUrl={imageUrl}
+                ticketCode={ticket.ticketCode}
               />
               <div className="rounded-[26px] border border-black/6 bg-neutral-50 p-4 text-sm leading-7 text-neutral-600">
                 Poti partaja pagina biletului, descarca PDF-ul sau salva varianta verticala ca
