@@ -3,7 +3,10 @@ import { z } from "zod";
 
 import { hasAnyRole } from "@/lib/auth/roles";
 import { scanResponseSchema } from "@/lib/domain/types";
-import { formatTicketFingerprint, verifyTicketToken } from "@/lib/security/tickets";
+import {
+  formatTicketFingerprint,
+  verifyAccessToken,
+} from "@/lib/security/tickets";
 import { getViewerContext } from "@/lib/supabase/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -39,15 +42,25 @@ export async function POST(request: Request) {
     );
   }
 
-  let payload;
+  if (!viewer.userId) {
+    return NextResponse.json(
+      {
+        result: "blocked",
+        message: "Sesiunea stewardului nu este valida.",
+      },
+      { status: 403 },
+    );
+  }
+
+  let payload: Awaited<ReturnType<typeof verifyAccessToken>>;
 
   try {
-    payload = await verifyTicketToken(parsed.data.token);
+    payload = await verifyAccessToken(parsed.data.token);
   } catch {
     return NextResponse.json(
       {
         result: "invalid_token",
-        message: "Semnătura QR nu este validă.",
+        message: "Semnatura QR nu este valida.",
       },
       { status: 400 },
     );
@@ -59,21 +72,37 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         result: "invalid_token",
-        message: "Conexiunea Supabase nu este disponibilă.",
+        message: "Conexiunea Supabase nu este disponibila.",
       },
       { status: 500 },
     );
   }
 
-  const { data, error } = await supabase.rpc("scan_ticket_token", {
-    p_match_id: parsed.data.matchId,
-    p_ticket_code: payload.code,
-    p_token_version: payload.version,
-    p_steward_id: viewer.userId,
-    p_gate_id: null,
-    p_device_label: parsed.data.deviceLabel ?? null,
-    p_token_fingerprint: formatTicketFingerprint(parsed.data.token),
-  });
+  const tokenFingerprint = formatTicketFingerprint(parsed.data.token);
+  const rpcName =
+    payload.kind === "subscription" ? "scan_subscription_token" : "scan_ticket_token";
+  const rpcPayload =
+    payload.kind === "subscription"
+      ? {
+          p_match_id: parsed.data.matchId,
+          p_subscription_code: payload.code,
+          p_token_version: payload.version,
+          p_steward_id: viewer.userId,
+          p_gate_id: null,
+          p_device_label: parsed.data.deviceLabel ?? null,
+          p_token_fingerprint: tokenFingerprint,
+        }
+      : {
+          p_match_id: parsed.data.matchId,
+          p_ticket_code: payload.code,
+          p_token_version: payload.version,
+          p_steward_id: viewer.userId,
+          p_gate_id: null,
+          p_device_label: parsed.data.deviceLabel ?? null,
+          p_token_fingerprint: tokenFingerprint,
+        };
+
+  const { data, error } = await supabase.rpc(rpcName, rpcPayload);
 
   if (error) {
     return NextResponse.json(
@@ -87,14 +116,16 @@ export async function POST(request: Request) {
 
   const result = scanResponseSchema.parse({
     result: data?.result ?? "invalid_token",
-    message: data?.message ?? "Răspuns gol de la validare.",
-    ticketCode: data?.ticket_code ?? null,
+    message: data?.message ?? "Raspuns gol de la validare.",
+    credentialKind: data?.credential_kind ?? payload.kind,
+    ticketCode: data?.ticket_code ?? data?.subscription_code ?? null,
     matchTitle: data?.match_title ?? null,
     seatLabel: data?.seat_label ?? null,
     sectorLabel: data?.sector_label ?? null,
     scannedAt: data?.scanned_at ?? null,
+    holderName: data?.holder_name ?? null,
+    holderBirthDate: data?.holder_birth_date ?? null,
   });
 
   return NextResponse.json(result);
 }
-

@@ -77,6 +77,10 @@ export default async function TicketPage({
   const pdfUrl = `${env.siteUrl}/bilete/${ticket.ticketCode}/pdf`;
   const imageUrl = `${env.siteUrl}/bilete/${ticket.ticketCode}/image`;
   const pdfDownloadUrl = `${pdfUrl}?download=1`;
+  const groupedPdfDownloadUrl =
+    sameMatchTickets.length > 1
+      ? `${env.siteUrl}/cabinet/meciuri/${ticket.matchId}/pdf?download=1`
+      : null;
 
   const ticketContent = (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">
@@ -126,6 +130,16 @@ export default async function TicketPage({
                     <DownloadCloud className="mr-2 h-4 w-4" />
                     Descarca PDF
                   </Link>
+                  {groupedPdfDownloadUrl ? (
+                    <Link
+                      href={groupedPdfDownloadUrl}
+                      target="_blank"
+                      className="inline-flex items-center rounded-full border border-[#dc2626]/18 bg-[#fff1f2] px-4 py-2 text-sm font-medium text-[#b91c1c] transition hover:bg-[#fee2e2]"
+                    >
+                      <DownloadCloud className="mr-2 h-4 w-4" />
+                      PDF grupat
+                    </Link>
+                  ) : null}
                   <DownloadTicketImageButton imageUrl={imageUrl} />
                   <PrintTicketButton pdfUrl={pdfUrl} />
                 </div>

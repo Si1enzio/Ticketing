@@ -25,6 +25,12 @@ export const ticketStatusSchema = z.enum([
 export const ticketingModeSchema = z.enum(["free", "paid"]);
 export const subscriptionDurationSchema = z.enum(["annual", "semiannual"]);
 export const subscriptionStatusSchema = z.enum(["active", "expired", "canceled"]);
+export const profileGenderSchema = z.enum([
+  "male",
+  "female",
+  "other",
+  "unspecified",
+]);
 export const seatAvailabilitySchema = z.enum([
   "available",
   "selected",
@@ -45,6 +51,7 @@ export const scanResultSchema = z.enum([
   "not_found",
 ]);
 export const matchSeatOverrideStatusSchema = z.enum(["blocked", "admin_hold"]);
+export const accessCredentialKindSchema = z.enum(["ticket", "subscription"]);
 
 export const viewerContextSchema = z.object({
   userId: z.string().uuid().nullable(),
@@ -61,6 +68,24 @@ export type ViewerContext = z.infer<typeof viewerContextSchema> & {
   isPrivileged: boolean;
   isAdmin: boolean;
 };
+
+export const profileDetailsSchema = z.object({
+  userId: z.string(),
+  email: z.string().email().nullable().default(null),
+  contactEmail: z.string().email().nullable().default(null),
+  fullName: z.string().nullable().default(null),
+  phone: z.string().nullable().default(null),
+  locality: z.string().nullable().default(null),
+  district: z.string().nullable().default(null),
+  birthDate: z.string().nullable().default(null),
+  gender: profileGenderSchema.default("unspecified"),
+  preferredLanguage: z.string().default("ro"),
+  marketingOptIn: z.boolean().default(false),
+  smsOptIn: z.boolean().default(false),
+  canReserve: z.boolean().default(false),
+});
+
+export type ProfileDetails = z.infer<typeof profileDetailsSchema>;
 
 export const publicMatchSchema = z.object({
   id: z.string().uuid(),
@@ -349,11 +374,14 @@ export type ScannerMatch = z.infer<typeof scannerMatchSchema>;
 export const scanResponseSchema = z.object({
   result: scanResultSchema,
   message: z.string(),
+  credentialKind: accessCredentialKindSchema.default("ticket"),
   ticketCode: z.string().nullable().default(null),
   matchTitle: z.string().nullable().default(null),
   seatLabel: z.string().nullable().default(null),
   sectorLabel: z.string().nullable().default(null),
   scannedAt: z.string().nullable().default(null),
+  holderName: z.string().nullable().default(null),
+  holderBirthDate: z.string().nullable().default(null),
 });
 
 export type ScanResponse = z.infer<typeof scanResponseSchema>;
@@ -389,12 +417,16 @@ export const scanLogEntrySchema = z.object({
   matchTitle: z.string(),
   scannedAt: z.string(),
   result: scanResultSchema,
+  credentialKind: accessCredentialKindSchema.default("ticket"),
   deviceLabel: z.string().nullable().default(null),
   tokenFingerprint: z.string().nullable().default(null),
   ticketId: z.string().nullable().default(null),
   ticketCode: z.string().nullable().default(null),
   ticketStatus: ticketStatusSchema.nullable().default(null),
   ticketSource: z.string().nullable().default(null),
+  subscriptionId: z.string().nullable().default(null),
+  subscriptionCode: z.string().nullable().default(null),
+  subscriptionStatus: subscriptionStatusSchema.nullable().default(null),
   seatLabel: z.string().nullable().default(null),
   rowLabel: z.string().nullable().default(null),
   seatNumber: z.coerce.number().int().nullable().default(null),
@@ -408,6 +440,7 @@ export const scanLogEntrySchema = z.object({
   holderUserId: z.string().nullable().default(null),
   holderName: z.string().nullable().default(null),
   holderEmail: z.string().nullable().default(null),
+  holderBirthDate: z.string().nullable().default(null),
 });
 
 export type ScanLogEntry = z.infer<typeof scanLogEntrySchema>;
@@ -459,6 +492,21 @@ export const userSubscriptionSchema = z.object({
   currency: z.string().default("MDL"),
   source: z.string(),
   note: z.string().nullable().default(null),
+  subscriptionCode: z.string(),
+  qrTokenVersion: z.coerce.number().int().positive().default(1),
+  stadiumId: z.string().nullable().default(null),
+  stadiumName: z.string().nullable().default(null),
+  seatId: z.string().nullable().default(null),
+  sectorName: z.string().nullable().default(null),
+  sectorCode: z.string().nullable().default(null),
+  sectorColor: z.string().nullable().default(null),
+  rowLabel: z.string().nullable().default(null),
+  seatNumber: z.coerce.number().int().nullable().default(null),
+  seatLabel: z.string().nullable().default(null),
+  gateName: z.string().nullable().default(null),
+  holderName: z.string().nullable().default(null),
+  holderEmail: z.string().nullable().default(null),
+  holderBirthDate: z.string().nullable().default(null),
   product: subscriptionProductSchema,
 });
 

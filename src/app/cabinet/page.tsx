@@ -1,14 +1,21 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
-import { CalendarClock, Download, Ticket, UserRoundCheck } from "lucide-react";
+import { CalendarClock, Download, DownloadCloud, Ticket, UserRoundCheck } from "lucide-react";
 
+import { ProfileDetailsForm } from "@/components/profile-details-form";
 import { TicketListItem } from "@/components/ticket-list-item";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import type { TicketCard } from "@/lib/domain/types";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getServerI18n } from "@/lib/i18n/server";
 import { getUserSubscriptions } from "@/lib/supabase/reports";
-import { getViewerContext, getViewerTickets } from "@/lib/supabase/queries";
+import {
+  getViewerContext,
+  getViewerProfileDetails,
+  getViewerTickets,
+} from "@/lib/supabase/queries";
 
 export default async function CabinetPage() {
   await connection();
@@ -19,10 +26,12 @@ export default async function CabinetPage() {
     redirect("/autentificare?next=/cabinet");
   }
 
-  const [tickets, subscriptions] = await Promise.all([
+  const [tickets, subscriptions, profile] = await Promise.all([
     getViewerTickets(viewer),
     viewer.userId ? getUserSubscriptions(viewer.userId) : Promise.resolve([]),
+    getViewerProfileDetails(viewer),
   ]);
+
   const now = new Date();
   const upcoming = tickets.filter(
     (ticket) => ticket.status === "active" && new Date(ticket.startsAt) >= now,
@@ -30,10 +39,12 @@ export default async function CabinetPage() {
   const archived = tickets.filter(
     (ticket) => ticket.status !== "active" || new Date(ticket.startsAt) < now,
   );
+  const activeSubscriptions = subscriptions.filter((item) => item.status === "active");
   const hasMultiTicketUpcomingMatch = upcoming.some(
     (ticket, index) => upcoming.findIndex((item) => item.matchId === ticket.matchId) !== index,
   );
-  const activeSubscriptions = subscriptions.filter((item) => item.status === "active");
+  const upcomingGroups = groupTicketsByMatch(upcoming);
+  const archivedGroups = groupTicketsByMatch(archived);
 
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">
@@ -57,7 +68,7 @@ export default async function CabinetPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <SummaryCard
           icon={Ticket}
           label={messages.cabinet.summary.activeTickets}
@@ -66,7 +77,7 @@ export default async function CabinetPage() {
         <SummaryCard
           icon={CalendarClock}
           label={messages.cabinet.summary.upcomingMatches}
-          value={upcoming.length}
+          value={upcomingGroups.length}
         />
         <SummaryCard
           icon={Download}
@@ -80,10 +91,33 @@ export default async function CabinetPage() {
         />
       </div>
 
+      {profile ? (
+        <div className="space-y-4">
+          <SectionTitle
+            title="Profil si contact"
+            subtitle="Completeaza datele utile pentru acces, comunicare si activitati CRM. Aceste informatii sunt vizibile administratorilor."
+          />
+          <Card className="surface-panel overflow-hidden rounded-[32px] border border-white/70 bg-white/94">
+            <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
+            <CardContent className="space-y-5 p-6">
+              <div className="grid gap-3 rounded-[24px] border border-black/6 bg-neutral-50 p-4 text-sm text-neutral-700 md:grid-cols-3">
+                <InfoTile label="Cont autentificare" value={profile.email ?? "Nedefinit"} />
+                <InfoTile
+                  label="Cod suporter"
+                  value={viewer.userId?.slice(0, 8).toUpperCase() ?? "-"}
+                />
+                <InfoTile label="Varsta estimata" value={getAgeLabel(profile.birthDate)} />
+              </div>
+              <ProfileDetailsForm profile={profile} locale={locale} />
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
+
       <div className="space-y-4">
         <SectionTitle
           title={messages.cabinet.sections.subscriptionsTitle}
-          subtitle={messages.cabinet.sections.subscriptionsSubtitle}
+          subtitle="Abonamentele active includ stadionul, locul tau fix si documentul de prezentat la acces."
         />
         {activeSubscriptions.length ? (
           <div className="grid gap-4 md:grid-cols-2">
@@ -92,18 +126,38 @@ export default async function CabinetPage() {
                 key={subscription.id}
                 className="surface-panel rounded-[28px] border border-white/70 bg-white/92"
               >
-                <CardContent className="space-y-2 p-5">
+                <CardContent className="space-y-3 p-5">
                   <p className="font-semibold text-[#111111]">{subscription.product.name}</p>
                   <p className="text-sm text-neutral-600">
-                    {messages.cabinet.subscriptionValidUntil}{" "}
+                    Valabil pana la{" "}
                     {new Date(subscription.endsAt).toLocaleDateString(
                       locale === "ru" ? "ru-RU" : "ro-RO",
                     )}
                   </p>
+                  <p className="text-sm text-neutral-600">
+                    Stadion: {subscription.stadiumName ?? "Nedefinit"} - loc{" "}
+                    {subscription.rowLabel ?? "-"} / {subscription.seatNumber ?? "-"}
+                  </p>
                   <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
-                    {subscription.product.durationMonths} {messages.cabinet.months} ·{" "}
+                    {subscription.product.durationMonths} luni -{" "}
                     {(subscription.pricePaidCents / 100).toFixed(2)} {subscription.currency}
                   </p>
+                  <div className="flex flex-wrap gap-3 pt-1">
+                    <Link
+                      href={`/abonamente/${subscription.subscriptionCode}`}
+                      className="inline-flex items-center rounded-full border border-[#111111] bg-white px-4 py-2 text-sm font-medium text-[#111111] transition hover:bg-neutral-100"
+                    >
+                      Deschide abonamentul
+                    </Link>
+                    <Link
+                      href={`/abonamente/${subscription.subscriptionCode}/pdf?download=1`}
+                      target="_blank"
+                      className="inline-flex items-center rounded-full border border-[#dc2626]/18 bg-[#fff1f2] px-4 py-2 text-sm font-medium text-[#b91c1c] transition hover:bg-[#fee2e2]"
+                    >
+                      <DownloadCloud className="mr-2 h-4 w-4" />
+                      Descarca PDF
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -125,20 +179,33 @@ export default async function CabinetPage() {
           <Card className="rounded-[28px] border border-[#dc2626]/12 bg-[#fff7f7]">
             <CardContent className="p-5 text-sm leading-7 text-neutral-700">
               {locale === "ru"
-                ? "Если на один матч у тебя есть несколько билетов, открой первый и проведи влево или вправо на странице билета, чтобы быстро переключать QR-коды."
+                ? "Esli na odin match u tebya est neskolko biletov, deschide primul si gliseaza intre QR-uri."
                 : "Daca ai mai multe bilete pentru acelasi meci, deschide primul bilet si gliseaza stanga-dreapta in pagina lui pentru a trece rapid intre QR-uri."}
             </CardContent>
           </Card>
         ) : null}
         {upcoming.length ? (
-          <div className="grid gap-4">
-            {upcoming.map((ticket) => (
-              <TicketListItem
-                key={ticket.ticketId}
-                ticket={ticket}
-                locale={locale}
-                messages={messages}
-              />
+          <div className="grid gap-6">
+            {upcomingGroups.map((group) => (
+              <div key={group.matchId} className="space-y-3">
+                {group.tickets.length > 1 ? (
+                  <MatchTicketGroupCard
+                    matchId={group.matchId}
+                    matchTitle={group.matchTitle}
+                    count={group.tickets.length}
+                  />
+                ) : null}
+                <div className="grid gap-4">
+                  {group.tickets.map((ticket) => (
+                    <TicketListItem
+                      key={ticket.ticketId}
+                      ticket={ticket}
+                      locale={locale}
+                      messages={messages}
+                    />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         ) : (
@@ -155,14 +222,27 @@ export default async function CabinetPage() {
           subtitle={messages.cabinet.sections.historySubtitle}
         />
         {archived.length ? (
-          <div className="grid gap-4">
-            {archived.map((ticket) => (
-              <TicketListItem
-                key={ticket.ticketId}
-                ticket={ticket}
-                locale={locale}
-                messages={messages}
-              />
+          <div className="grid gap-6">
+            {archivedGroups.map((group) => (
+              <div key={group.matchId} className="space-y-3">
+                {group.tickets.length > 1 ? (
+                  <MatchTicketGroupCard
+                    matchId={group.matchId}
+                    matchTitle={group.matchTitle}
+                    count={group.tickets.length}
+                  />
+                ) : null}
+                <div className="grid gap-4">
+                  {group.tickets.map((ticket) => (
+                    <TicketListItem
+                      key={ticket.ticketId}
+                      ticket={ticket}
+                      locale={locale}
+                      messages={messages}
+                    />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         ) : (
@@ -232,4 +312,92 @@ function EmptyState({
       </CardContent>
     </Card>
   );
+}
+
+function MatchTicketGroupCard({
+  matchId,
+  matchTitle,
+  count,
+}: {
+  matchId: string;
+  matchTitle: string;
+  count: number;
+}) {
+  return (
+    <Card className="rounded-[28px] border border-[#dc2626]/12 bg-[#fff7f7]">
+      <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.22em] text-[#b91c1c]">
+            Document grupat pentru meci
+          </p>
+          <p className="mt-1 text-lg font-semibold text-[#111111]">{matchTitle}</p>
+          <p className="mt-1 text-sm text-neutral-600">{count} bilete in acelasi document</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href={`/cabinet/meciuri/${matchId}/pdf`}
+            target="_blank"
+            className="inline-flex items-center rounded-full border border-[#111111] bg-white px-4 py-2 text-sm font-medium text-[#111111] transition hover:bg-neutral-100"
+          >
+            Printeaza PDF grupat
+          </Link>
+          <Link
+            href={`/cabinet/meciuri/${matchId}/pdf?download=1`}
+            target="_blank"
+            className="inline-flex items-center rounded-full border border-[#dc2626]/18 bg-[#fff1f2] px-4 py-2 text-sm font-medium text-[#b91c1c] transition hover:bg-[#fee2e2]"
+          >
+            <DownloadCloud className="mr-2 h-4 w-4" />
+            Descarca PDF grupat
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function InfoTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">{label}</p>
+      <p className="mt-1 font-medium text-[#111111]">{value}</p>
+    </div>
+  );
+}
+
+function groupTicketsByMatch(tickets: TicketCard[]) {
+  const groups = new Map<string, { matchId: string; matchTitle: string; tickets: TicketCard[] }>();
+
+  for (const ticket of tickets) {
+    const existing = groups.get(ticket.matchId);
+    if (existing) {
+      existing.tickets.push(ticket);
+    } else {
+      groups.set(ticket.matchId, {
+        matchId: ticket.matchId,
+        matchTitle: ticket.matchTitle,
+        tickets: [ticket],
+      });
+    }
+  }
+
+  return Array.from(groups.values());
+}
+
+function getAgeLabel(birthDate: string | null) {
+  if (!birthDate) {
+    return "Nedeclarata";
+  }
+
+  const birth = new Date(birthDate);
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const beforeBirthday =
+    now.getMonth() < birth.getMonth() ||
+    (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate());
+
+  if (beforeBirthday) {
+    age -= 1;
+  }
+
+  return age >= 0 ? `${age} ani` : "Nedeclarata";
 }

@@ -126,12 +126,16 @@ export async function getMatchScanLogs(matchId: string): Promise<ScanLogEntry[]>
         matchTitle: row.match_title,
         scannedAt: row.scanned_at,
         result: row.result,
+        credentialKind: row.credential_kind,
         deviceLabel: row.device_label,
         tokenFingerprint: row.token_fingerprint,
         ticketId: row.ticket_id,
         ticketCode: row.ticket_code,
         ticketStatus: row.ticket_status,
         ticketSource: row.ticket_source,
+        subscriptionId: row.subscription_id,
+        subscriptionCode: row.subscription_code,
+        subscriptionStatus: row.subscription_status,
         seatLabel: row.seat_label,
         rowLabel: row.row_label,
         seatNumber: row.seat_number,
@@ -145,6 +149,7 @@ export async function getMatchScanLogs(matchId: string): Promise<ScanLogEntry[]>
         holderUserId: row.holder_user_id,
         holderName: row.holder_name,
         holderEmail: row.holder_email,
+        holderBirthDate: row.holder_birth_date,
       }),
     );
   } catch (error) {
@@ -350,12 +355,16 @@ export async function getUserScanLogs(userId: string): Promise<ScanLogEntry[]> {
         matchTitle: row.match_title,
         scannedAt: row.scanned_at,
         result: row.result,
+        credentialKind: row.credential_kind,
         deviceLabel: row.device_label,
         tokenFingerprint: row.token_fingerprint,
         ticketId: row.ticket_id,
         ticketCode: row.ticket_code,
         ticketStatus: row.ticket_status,
         ticketSource: row.ticket_source,
+        subscriptionId: row.subscription_id,
+        subscriptionCode: row.subscription_code,
+        subscriptionStatus: row.subscription_status,
         seatLabel: row.seat_label,
         rowLabel: row.row_label,
         seatNumber: row.seat_number,
@@ -369,6 +378,7 @@ export async function getUserScanLogs(userId: string): Promise<ScanLogEntry[]> {
         holderUserId: row.holder_user_id,
         holderName: row.holder_name,
         holderEmail: row.holder_email,
+        holderBirthDate: row.holder_birth_date,
       }),
     );
   } catch (error) {
@@ -392,6 +402,17 @@ export async function getSubscriptionProducts(): Promise<SubscriptionProduct[]> 
         isActive: true,
       }),
       subscriptionProductSchema.parse({
+        id: "annual-pass-free",
+        code: "annual-pass-free",
+        name: "Abonament anual gratuit",
+        durationType: "annual",
+        durationMonths: 12,
+        priceCents: 0,
+        currency: "MDL",
+        description: "Acces sezon complet fara cost.",
+        isActive: true,
+      }),
+      subscriptionProductSchema.parse({
         id: "semiannual-pass",
         code: "semiannual-pass",
         name: "Abonament semi-anual",
@@ -400,6 +421,17 @@ export async function getSubscriptionProducts(): Promise<SubscriptionProduct[]> 
         priceCents: 95000,
         currency: "MDL",
         description: "Acces tur / retur",
+        isActive: true,
+      }),
+      subscriptionProductSchema.parse({
+        id: "semiannual-pass-free",
+        code: "semiannual-pass-free",
+        name: "Abonament semi-anual gratuit",
+        durationType: "semiannual",
+        durationMonths: 6,
+        priceCents: 0,
+        currency: "MDL",
+        description: "Acces gratuit pentru jumatate de sezon.",
         isActive: true,
       }),
     ];
@@ -454,31 +486,8 @@ export async function getUserSubscriptions(userId: string): Promise<UserSubscrip
     }
 
     const { data, error } = await supabase
-      .from("user_subscriptions")
-      .select(
-        `
-          id,
-          user_id,
-          status,
-          starts_at,
-          ends_at,
-          price_paid_cents,
-          currency,
-          source,
-          note,
-          subscription_products!inner (
-            id,
-            code,
-            name,
-            duration_type,
-            duration_months,
-            price_cents,
-            currency,
-            description,
-            is_active
-          )
-        `,
-      )
+      .from("subscription_delivery_view")
+      .select("*")
       .eq("user_id", userId)
       .order("starts_at", { ascending: false });
 
@@ -486,13 +495,9 @@ export async function getUserSubscriptions(userId: string): Promise<UserSubscrip
       throw error;
     }
 
-    return ((data ?? []) as Array<Record<string, unknown>>).map((row) => {
-      const product = Array.isArray(row.subscription_products)
-        ? row.subscription_products[0]
-        : row.subscription_products;
-
-      return userSubscriptionSchema.parse({
-        id: row.id,
+    return ((data ?? []) as Array<Record<string, unknown>>).map((row) =>
+      userSubscriptionSchema.parse({
+        id: row.subscription_id,
         userId: row.user_id,
         status: row.status,
         startsAt: row.starts_at,
@@ -501,19 +506,34 @@ export async function getUserSubscriptions(userId: string): Promise<UserSubscrip
         currency: row.currency,
         source: row.source,
         note: row.note,
+        subscriptionCode: row.subscription_code,
+        qrTokenVersion: row.qr_token_version,
+        stadiumId: row.stadium_id,
+        stadiumName: row.stadium_name,
+        seatId: row.seat_id,
+        sectorName: row.sector_name,
+        sectorCode: row.sector_code,
+        sectorColor: row.sector_color,
+        rowLabel: row.row_label,
+        seatNumber: row.seat_number,
+        seatLabel: row.seat_label,
+        gateName: row.gate_name,
+        holderName: row.holder_name,
+        holderEmail: row.holder_email,
+        holderBirthDate: row.holder_birth_date,
         product: {
-          id: product?.id,
-          code: product?.code,
-          name: product?.name,
-          durationType: product?.duration_type,
-          durationMonths: product?.duration_months,
-          priceCents: product?.price_cents,
-          currency: product?.currency,
-          description: product?.description,
-          isActive: product?.is_active,
+          id: row.product_id,
+          code: row.product_code,
+          name: row.product_name,
+          durationType: row.duration_type,
+          durationMonths: row.duration_months,
+          priceCents: row.product_price_cents,
+          currency: row.product_currency,
+          description: row.product_description,
+          isActive: row.product_is_active,
         },
-      });
-    });
+      }),
+    );
   } catch (error) {
     console.error("Nu am putut incarca abonamentele utilizatorului.", error);
     return [];

@@ -179,6 +179,8 @@ const seatToggleSchema = z.object({
 const subscriptionAssignSchema = z.object({
   userId: z.string(),
   productId: z.string(),
+  stadiumId: z.string(),
+  seatId: z.string(),
   startsAt: z.string().min(5),
   note: z.string().optional(),
 });
@@ -2105,6 +2107,8 @@ export async function assignUserSubscriptionAction(formData: FormData) {
   const parsed = subscriptionAssignSchema.safeParse({
     userId: formData.get("userId"),
     productId: formData.get("productId"),
+    stadiumId: formData.get("stadiumId"),
+    seatId: formData.get("seatId"),
     startsAt: formData.get("startsAt"),
     note: formData.get("note") || undefined,
   });
@@ -2130,6 +2134,62 @@ export async function assignUserSubscriptionAction(formData: FormData) {
   const endsAt = new Date(startsAt);
   endsAt.setMonth(endsAt.getMonth() + Number(product.duration_months ?? 0));
 
+  const { data: seatRow } = await supabase
+    .from("seats")
+    .select(
+      `
+        id,
+        gate_id,
+        stadium_sectors!inner (
+          id,
+          stadium_id,
+          gate_id
+        )
+      `,
+    )
+    .eq("id", parsed.data.seatId)
+    .maybeSingle();
+
+  const seat = seatRow as {
+    id?: string | null;
+    gate_id?: string | null;
+    stadium_sectors?:
+      | {
+          id?: string | null;
+          stadium_id?: string | null;
+          gate_id?: string | null;
+        }
+      | Array<{
+          id?: string | null;
+          stadium_id?: string | null;
+          gate_id?: string | null;
+        }>
+      | null;
+  } | null;
+
+  const seatSector = Array.isArray(seat?.stadium_sectors)
+    ? seat?.stadium_sectors[0]
+    : seat?.stadium_sectors;
+
+  if (!seat?.id || !seatSector?.stadium_id || seatSector.stadium_id !== parsed.data.stadiumId) {
+    throw new Error("Locul ales nu apartine stadionului selectat pentru abonament.");
+  }
+
+  const { count: overlappingCount } = await supabase
+    .from("user_subscriptions")
+    .select("id", { count: "exact", head: true })
+    .eq("seat_id", parsed.data.seatId)
+    .eq("stadium_id", parsed.data.stadiumId)
+    .eq("status", "active")
+    .lte("starts_at", endsAt.toISOString())
+    .gte("ends_at", startsAt.toISOString());
+
+  if ((overlappingCount ?? 0) > 0) {
+    throw new Error(
+      "Locul ales are deja un alt abonament activ sau suprapus in perioada selectata.",
+    );
+  }
+
   const { data } = await supabase
     .from("user_subscriptions")
     .insert({
@@ -2142,6 +2202,9 @@ export async function assignUserSubscriptionAction(formData: FormData) {
       currency: String(product.currency ?? "MDL"),
       source: "admin_assignment",
       note: parsed.data.note ?? null,
+      stadium_id: parsed.data.stadiumId,
+      seat_id: parsed.data.seatId,
+      gate_id: seat.gate_id ?? seatSector.gate_id ?? null,
       created_by: viewer.userId,
     })
     .select("id")

@@ -4,12 +4,14 @@ import { hasMinimumRole, normalizeRoles } from "@/lib/auth/roles";
 import {
   adminMatchOverviewSchema,
   adminUserOverviewSchema,
+  profileDetailsSchema,
   publicMatchSchema,
   seatMapSeatSchema,
   ticketCardSchema,
   type AdminMatchOverview,
   type AdminUserOverview,
   type CheckoutSummary,
+  type ProfileDetails,
   type PublicMatch,
   type ScannerMatch,
   type SeatMapSector,
@@ -17,9 +19,11 @@ import {
   type StadiumSponsor,
   type TeamOption,
   type TicketCard,
+  type UserSubscription,
   type ViewerContext,
   checkoutSummarySchema,
   teamOptionSchema,
+  userSubscriptionSchema,
 } from "@/lib/domain/types";
 import { stadiumMapConfigSchema } from "@/lib/stadium/stadium-schema";
 import type { StadiumMapConfig } from "@/lib/stadium/stadium-types";
@@ -108,6 +112,104 @@ export async function getViewerContext(): Promise<ViewerContext> {
   } catch (error) {
     console.error("Nu am putut încărca contextul utilizatorului.", error);
     return mockViewer;
+  }
+}
+
+function parseProfileDetails(row: Record<string, unknown>) {
+  return profileDetailsSchema.parse({
+    userId: row.id,
+    email: row.email,
+    contactEmail: row.contact_email,
+    fullName: row.full_name,
+    phone: row.phone,
+    locality: row.locality,
+    district: row.district,
+    birthDate: row.birth_date,
+    gender: row.gender,
+    preferredLanguage: row.preferred_language,
+    marketingOptIn: row.marketing_opt_in,
+    smsOptIn: row.sms_opt_in,
+    canReserve: row.can_reserve,
+  });
+}
+
+export async function getViewerProfileDetails(
+  viewer: ViewerContext,
+): Promise<ProfileDetails | null> {
+  if (!viewer.userId || !isSupabaseConfigured()) {
+    return viewer.userId
+      ? profileDetailsSchema.parse({
+          userId: viewer.userId,
+          email: viewer.email,
+          contactEmail: viewer.email,
+          fullName: viewer.fullName,
+          phone: null,
+          locality: null,
+          district: null,
+          birthDate: null,
+          gender: "unspecified",
+          preferredLanguage: "ro",
+          marketingOptIn: false,
+          smsOptIn: false,
+          canReserve: viewer.canReserve,
+        })
+      : null;
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    if (!supabase) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select(
+        "id, email, contact_email, full_name, phone, locality, district, birth_date, gender, preferred_language, marketing_opt_in, sms_opt_in, can_reserve",
+      )
+      .eq("id", viewer.userId)
+      .maybeSingle();
+
+    if (error || !data) {
+      throw error;
+    }
+
+    return parseProfileDetails(data as Record<string, unknown>);
+  } catch (error) {
+    console.error("Nu am putut incarca profilul complet al utilizatorului.", error);
+    return null;
+  }
+}
+
+export async function getAdminUserProfileDetails(userId: string): Promise<ProfileDetails | null> {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    if (!supabase) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select(
+        "id, email, contact_email, full_name, phone, locality, district, birth_date, gender, preferred_language, marketing_opt_in, sms_opt_in, can_reserve",
+      )
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error || !data) {
+      throw error;
+    }
+
+    return parseProfileDetails(data as Record<string, unknown>);
+  } catch (error) {
+    console.error("Nu am putut incarca profilul CRM al utilizatorului.", error);
+    return null;
   }
 }
 
@@ -398,6 +500,86 @@ export async function getTicketByCode(ticketCode: string, viewer: ViewerContext)
     });
   } catch (error) {
     console.error("Nu am putut încărca biletul solicitat.", error);
+    return null;
+  }
+}
+
+export async function getSubscriptionByCode(
+  subscriptionCode: string,
+  viewer: ViewerContext,
+): Promise<UserSubscription | null> {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  if (!viewer.userId && !viewer.isAdmin) {
+    return null;
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    if (!supabase) {
+      return null;
+    }
+
+    let query = supabase
+      .from("subscription_delivery_view")
+      .select("*")
+      .eq("subscription_code", subscriptionCode)
+      .limit(1);
+
+    if (!viewer.isAdmin) {
+      query = query.eq("user_id", viewer.userId ?? "");
+    }
+
+    const { data, error } = await query.maybeSingle();
+
+    if (error || !data) {
+      return null;
+    }
+
+    const row = data as Record<string, unknown>;
+
+    return userSubscriptionSchema.parse({
+      id: row.subscription_id,
+      userId: row.user_id,
+      status: row.status,
+      startsAt: row.starts_at,
+      endsAt: row.ends_at,
+      pricePaidCents: row.price_paid_cents,
+      currency: row.currency,
+      source: row.source,
+      note: row.note,
+      subscriptionCode: row.subscription_code,
+      qrTokenVersion: row.qr_token_version,
+      stadiumId: row.stadium_id,
+      stadiumName: row.stadium_name,
+      seatId: row.seat_id,
+      sectorName: row.sector_name,
+      sectorCode: row.sector_code,
+      sectorColor: row.sector_color,
+      rowLabel: row.row_label,
+      seatNumber: row.seat_number,
+      seatLabel: row.seat_label,
+      gateName: row.gate_name,
+      holderName: row.holder_name,
+      holderEmail: row.holder_email,
+      holderBirthDate: row.holder_birth_date,
+      product: {
+        id: row.product_id,
+        code: row.product_code,
+        name: row.product_name,
+        durationType: row.duration_type,
+        durationMonths: row.duration_months,
+        priceCents: row.product_price_cents,
+        currency: row.product_currency,
+        description: row.product_description,
+        isActive: row.product_is_active,
+      },
+    });
+  } catch (error) {
+    console.error("Nu am putut incarca abonamentul solicitat.", error);
     return null;
   }
 }

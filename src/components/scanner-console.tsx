@@ -27,7 +27,7 @@ const resultStyles: Record<
     icon: ShieldCheck,
   },
   already_used: {
-    title: "Bilet deja folosit",
+    title: "Acces deja folosit",
     className: "border-red-300 bg-red-600 text-white",
     icon: ShieldAlert,
   },
@@ -42,17 +42,17 @@ const resultStyles: Record<
     icon: TicketX,
   },
   canceled: {
-    title: "Bilet anulat",
+    title: "Credential anulat",
     className: "border-red-300 bg-red-600 text-white",
     icon: TicketX,
   },
   blocked: {
-    title: "Bilet blocat",
+    title: "Credential blocat",
     className: "border-red-300 bg-red-600 text-white",
     icon: TicketX,
   },
   not_found: {
-    title: "Bilet inexistent",
+    title: "Credential inexistent",
     className: "border-red-300 bg-red-600 text-white",
     icon: TicketX,
   },
@@ -165,11 +165,14 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
                 const payload = {
                   result: "invalid_token",
                   message: String(error),
+                  credentialKind: "ticket",
                   ticketCode: null,
                   matchTitle: selectedMatch?.title ?? null,
                   seatLabel: null,
                   sectorLabel: null,
                   scannedAt: new Date().toISOString(),
+                  holderName: null,
+                  holderBirthDate: null,
                 } satisfies ScanResponse;
                 setLastResult(payload);
                 setOverlayResult(payload);
@@ -222,10 +225,24 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
                 </div>
               </div>
               <div className="mt-5 grid gap-2 text-sm">
-                {lastResult.ticketCode ? <p>Cod: {lastResult.ticketCode}</p> : null}
+                {lastResult.ticketCode ? (
+                  <p>
+                    {lastResult.credentialKind === "subscription"
+                      ? "Cod abonament"
+                      : "Cod bilet"}
+                    : {lastResult.ticketCode}
+                  </p>
+                ) : null}
                 {lastResult.matchTitle ? <p>Meci: {lastResult.matchTitle}</p> : null}
                 {lastResult.sectorLabel ? <p>Sector: {lastResult.sectorLabel}</p> : null}
                 {lastResult.seatLabel ? <p>Loc: {lastResult.seatLabel}</p> : null}
+                {lastResult.holderName ? <p>Titular: {lastResult.holderName}</p> : null}
+                {lastResult.holderBirthDate ? (
+                  <p>
+                    Data nasterii:{" "}
+                    {new Date(lastResult.holderBirthDate).toLocaleDateString("ro-RO")}
+                  </p>
+                ) : null}
                 {lastResult.scannedAt ? (
                   <p>Ora: {new Date(lastResult.scannedAt).toLocaleString("ro-RO")}</p>
                 ) : null}
