@@ -342,10 +342,35 @@ async function persistTeamsCatalog(
     return;
   }
 
-  const { error } = await supabase.from("teams").upsert(payload, {
-    onConflict: "slug",
-    ignoreDuplicates: false,
-  });
+  const teamNamesToPersist = payload.map((item) => item.name);
+  const teamSlugsToPersist = payload.map((item) => item.slug);
+
+  const { data: existingRows, error: existingError } = await supabase
+    .from("teams")
+    .select("name, slug")
+    .or(
+      [
+        `name.in.(${teamNamesToPersist.map((value) => `"${value.replace(/"/g, '""')}"`).join(",")})`,
+        `slug.in.(${teamSlugsToPersist.map((value) => `"${value.replace(/"/g, '""')}"`).join(",")})`,
+      ].join(","),
+    );
+
+  if (existingError) {
+    console.error("Nu am putut verifica echipele existente din catalog.", existingError);
+    throw existingError;
+  }
+
+  const existingNames = new Set((existingRows ?? []).map((row) => String(row.name)));
+  const existingSlugs = new Set((existingRows ?? []).map((row) => String(row.slug)));
+  const missingPayload = payload.filter(
+    (item) => !existingNames.has(item.name) && !existingSlugs.has(item.slug),
+  );
+
+  if (!missingPayload.length) {
+    return;
+  }
+
+  const { error } = await supabase.from("teams").insert(missingPayload);
 
   if (error) {
     console.error("Nu am putut sincroniza catalogul de echipe.", error);
