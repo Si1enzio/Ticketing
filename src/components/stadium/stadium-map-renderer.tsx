@@ -439,7 +439,12 @@ export function StadiumMapRenderer({
       >
         <div
           ref={zoomViewportRef}
-          className="overflow-auto rounded-[24px]"
+          className="relative w-full overflow-auto rounded-[24px]"
+          style={{
+            aspectRatio: `${config.viewBox.width} / ${config.viewBox.height}`,
+            cursor:
+              !editable && zoomLevel > 1 ? (mousePanState ? "grabbing" : "grab") : "default",
+          }}
           onMouseDown={(event) => {
             if (editable || zoomLevel <= 1 || event.button !== 0 || !zoomViewportRef.current) {
               return;
@@ -504,19 +509,20 @@ export function StadiumMapRenderer({
               pinchStateRef.current = null;
             }
           }}
-          style={{ cursor: !editable && zoomLevel > 1 ? (mousePanState ? "grabbing" : "grab") : "default" }}
         >
           <div
-            className="mx-auto origin-top transition-[width] duration-150 ease-out"
+            className="relative origin-top-left transition-[width,height] duration-150 ease-out"
             style={{
               width: `${zoomLevel * 100}%`,
+              height: `${zoomLevel * 100}%`,
               minWidth: zoomLevel > 1 ? `${zoomLevel * 100}%` : "100%",
+              minHeight: zoomLevel > 1 ? `${zoomLevel * 100}%` : "100%",
             }}
           >
             <svg
               ref={svgRef}
               viewBox={`${config.viewBox.minX} ${config.viewBox.minY} ${config.viewBox.width} ${config.viewBox.height}`}
-              className="h-auto w-full"
+              className="h-full w-full"
               role="img"
               aria-label={config.defaultLabel}
               onPointerMove={handlePointerMove}
