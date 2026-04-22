@@ -105,10 +105,12 @@ export async function POST(request: Request) {
   const { data, error } = await supabase.rpc(rpcName, rpcPayload);
 
   if (error) {
+    console.error("Eroare RPC la scanare.", error);
+
     return NextResponse.json(
       {
         result: "invalid_token",
-        message: error.message,
+        message: "A aparut o eroare la validarea credentialului. Reincearca imediat.",
       },
       { status: 400 },
     );
