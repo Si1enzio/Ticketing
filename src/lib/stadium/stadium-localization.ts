@@ -52,6 +52,10 @@ const stadiumMapMessages = {
     held: "hold",
     reserved: "rezervate",
     blocked: "blocate",
+    zoomIn: "Zoom in",
+    zoomOut: "Zoom out",
+    zoomReset: "Reset zoom",
+    zoomHint: "Poti mari harta din butoane sau cu pinch pe ecranele tactile.",
     stadiumFallback:
       "Stadionul nu are inca o geometrie custom. Afisam o harta generata automat din sectoarele existente.",
   },
@@ -105,6 +109,10 @@ const stadiumMapMessages = {
     held: "hold",
     reserved: "zanyato",
     blocked: "zablokirovano",
+    zoomIn: "Uvelichit",
+    zoomOut: "Umenshit",
+    zoomReset: "Sbrosit masshtab",
+    zoomHint: "Masshtab mozhno menyat knopkami ili zhestom pinch na touch-ekranah.",
     stadiumFallback:
       "U stadiona poka net individualnoi geometrii. Pokazyvaem avtomaticheski sformirovannuyu kartu.",
   },

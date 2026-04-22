@@ -9,10 +9,14 @@ export function SectorRow({
   row,
   disabled,
   onSeatClick,
+  scrollContainerRef,
+  onScroll,
 }: {
   row: StadiumSeatRow;
   disabled?: boolean;
   onSeatClick: (seatId: string) => void;
+  scrollContainerRef?: (node: HTMLDivElement | null) => void;
+  onScroll?: (scrollLeft: number) => void;
 }) {
   const { locale } = useI18n();
   const copy = getStadiumMapMessages(locale);
@@ -22,7 +26,11 @@ export function SectorRow({
       <div className="w-16 rounded-full bg-[#111111] px-3 py-2 text-center text-xs font-semibold text-white">
         {copy.row} {row.label}
       </div>
-      <div className="overflow-x-auto pb-2">
+      <div
+        ref={scrollContainerRef}
+        className="overflow-x-auto pb-2"
+        onScroll={(event) => onScroll?.(event.currentTarget.scrollLeft)}
+      >
         <div className="grid min-w-max grid-flow-col auto-cols-[2.75rem] gap-2 sm:auto-cols-[3rem]">
           {row.cells.map((cell) => {
             if (cell.kind !== "seat") {

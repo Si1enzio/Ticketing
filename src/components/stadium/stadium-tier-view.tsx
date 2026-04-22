@@ -9,21 +9,6 @@ import type {
 import { getSectorLabel, getTribuneLabel } from "@/lib/stadium/stadium-utils";
 import { cn } from "@/lib/utils";
 
-function Metric({
-  label,
-  value,
-}: {
-  label: string;
-  value: number;
-}) {
-  return (
-    <div className="rounded-2xl border border-black/6 bg-white/80 px-3 py-2">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-[#111111]">{value}</p>
-    </div>
-  );
-}
-
 export function StadiumTierView({
   tribunes,
   selectedTribuneId,
@@ -48,7 +33,7 @@ export function StadiumTierView({
     : [];
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[0.72fr_1.28fr]">
+    <div className="grid gap-5">
       <div className="grid gap-4 rounded-[28px] border border-black/6 bg-neutral-50 p-5">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-[#b91c1c]">
@@ -62,7 +47,7 @@ export function StadiumTierView({
           </p>
         </div>
 
-        <div className="grid gap-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {tribunes.map((tribune) => {
             const isActive = tribune.id === selectedTribuneId;
             return (
@@ -111,7 +96,7 @@ export function StadiumTierView({
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {sectorsForTribune.map((sector) => {
             const summary = sector.summary;
             const isSelected = selectedSectorCode === sector.config.code;
@@ -122,33 +107,36 @@ export function StadiumTierView({
                 type="button"
                 onClick={() => onSelectSector(sector.config.code)}
                 className={cn(
-                  "grid gap-4 rounded-[24px] border px-4 py-4 text-left transition",
+                  "rounded-[22px] border px-3 py-3 text-left transition",
                   isSelected
                     ? "border-[#dc2626] bg-[#fff1f2] shadow-[0_18px_36px_-24px_rgba(220,38,38,0.5)]"
                     : "border-black/6 bg-white hover:border-[#dc2626]/30 hover:bg-[#fff7f7]",
                 )}
               >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="h-4 w-4 rounded-full ring-2 ring-white"
-                    style={{ backgroundColor: sector.data?.color ?? "#9ca3af" }}
-                  />
-                  <div>
-                    <p className="font-semibold text-[#111111]">
-                      {getSectorLabel(locale, sector.config)}
-                    </p>
-                    <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
-                      {sector.config.code}
-                    </p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="h-3.5 w-3.5 rounded-full ring-2 ring-white"
+                      style={{ backgroundColor: sector.data?.color ?? "#9ca3af" }}
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-[#111111]">
+                        {getSectorLabel(locale, sector.config)}
+                      </p>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">
+                        {sector.config.code}
+                      </p>
+                    </div>
                   </div>
+                  {summary ? (
+                    <span className="rounded-full border border-black/6 bg-neutral-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-600">
+                      {summary.availableSeats} {copy.available}
+                    </span>
+                  ) : null}
                 </div>
 
-                {summary ? (
-                  <div className="grid gap-2">
-                    <Metric label={copy.available} value={summary.availableSeats} />
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-[#fecaca] bg-[#fff1f2] px-3 py-3 text-sm text-[#b91c1c]">
+                {summary ? null : (
+                  <div className="mt-3 rounded-2xl border border-[#fecaca] bg-[#fff1f2] px-3 py-3 text-sm text-[#b91c1c]">
                     {copy.sectorUnavailable}
                   </div>
                 )}

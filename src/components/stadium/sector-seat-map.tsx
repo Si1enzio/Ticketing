@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { useI18n } from "@/components/i18n-provider";
 import { SectorRow } from "@/components/stadium/sector-row";
@@ -24,6 +24,8 @@ export function SectorSeatMap({
 }) {
   const { locale } = useI18n();
   const copy = getStadiumMapMessages(locale);
+  const rowScrollRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const isSyncingScrollRef = useRef(false);
 
   const rows = useMemo(() => {
     if (!sector) {
@@ -32,6 +34,30 @@ export function SectorSeatMap({
 
     return buildSeatRows(sector, selectedSeatIds, sectorConfig?.rowConfigs);
   }, [sector, selectedSeatIds, sectorConfig]);
+
+  useEffect(() => {
+    rowScrollRefs.current = rowScrollRefs.current.slice(0, rows.length);
+  }, [rows.length]);
+
+  function syncRowScroll(scrollLeft: number) {
+    if (isSyncingScrollRef.current) {
+      return;
+    }
+
+    isSyncingScrollRef.current = true;
+
+    rowScrollRefs.current.forEach((node) => {
+      if (!node || Math.abs(node.scrollLeft - scrollLeft) < 1) {
+        return;
+      }
+
+      node.scrollLeft = scrollLeft;
+    });
+
+    window.requestAnimationFrame(() => {
+      isSyncingScrollRef.current = false;
+    });
+  }
 
   if (!sector) {
     return (
@@ -70,11 +96,15 @@ export function SectorSeatMap({
       </div>
 
       <div className="grid gap-3">
-        {rows.map((row) => (
+        {rows.map((row, rowIndex) => (
           <SectorRow
             key={row.id}
             row={row}
             disabled={disabled}
+            scrollContainerRef={(node) => {
+              rowScrollRefs.current[rowIndex] = node;
+            }}
+            onScroll={syncRowScroll}
             onSeatClick={(seatId) => {
               const seat = sector.seats.find((item) => item.seatId === seatId);
               if (!seat) {

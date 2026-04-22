@@ -5,7 +5,9 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type TouchEvent as ReactTouchEvent,
 } from "react";
+import { Minus, Plus } from "lucide-react";
 
 import { useI18n } from "@/components/i18n-provider";
 import { StadiumSector } from "@/components/stadium/stadium-sector";
@@ -150,6 +152,10 @@ export function StadiumMapRenderer({
   const { locale } = useI18n();
   const copy = getStadiumMapMessages(locale);
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const pinchStateRef = useRef<{
+    startDistance: number;
+    startZoom: number;
+  } | null>(null);
   const [dragState, setDragState] = useState<{
     pointerId: number;
     targetId: string;
@@ -157,6 +163,27 @@ export function StadiumMapRenderer({
     lastX: number;
     lastY: number;
   } | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
+
+  function clampZoom(value: number) {
+    return Math.min(2.5, Math.max(1, value));
+  }
+
+  function updateZoom(nextZoom: number) {
+    setZoomLevel(clampZoom(nextZoom));
+  }
+
+  function getTouchDistance(event: ReactTouchEvent<HTMLDivElement>) {
+    if (event.touches.length < 2) {
+      return null;
+    }
+
+    const [firstTouch, secondTouch] = [event.touches[0], event.touches[1]];
+    return Math.hypot(
+      secondTouch.clientX - firstTouch.clientX,
+      secondTouch.clientY - firstTouch.clientY,
+    );
+  }
 
   function toSvgCoordinates(event: ReactPointerEvent<Element>) {
     const svg = svgRef.current;
@@ -347,12 +374,45 @@ export function StadiumMapRenderer({
           <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
             {copy.overviewDescription}
           </p>
+          <p className="mt-1 text-xs leading-5 text-neutral-500">{copy.zoomHint}</p>
         </div>
-        {isFallback ? (
-          <div className="max-w-sm rounded-[22px] border border-black/6 bg-white px-4 py-3 text-xs leading-5 text-neutral-500">
-            {copy.stadiumFallback}
-          </div>
-        ) : null}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => updateZoom(zoomLevel - 0.2)}
+            disabled={zoomLevel <= 1}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-[#111111] transition hover:border-[#dc2626]/30 hover:text-[#dc2626] disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label={copy.zoomOut}
+            title={copy.zoomOut}
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => updateZoom(1)}
+            disabled={zoomLevel === 1}
+            className="rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#111111] transition hover:border-[#dc2626]/30 hover:text-[#dc2626] disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label={copy.zoomReset}
+            title={copy.zoomReset}
+          >
+            {Math.round(zoomLevel * 100)}%
+          </button>
+          <button
+            type="button"
+            onClick={() => updateZoom(zoomLevel + 0.2)}
+            disabled={zoomLevel >= 2.5}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-[#111111] transition hover:border-[#dc2626]/30 hover:text-[#dc2626] disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label={copy.zoomIn}
+            title={copy.zoomIn}
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          {isFallback ? (
+            <div className="max-w-sm rounded-[22px] border border-black/6 bg-white px-4 py-3 text-xs leading-5 text-neutral-500">
+              {copy.stadiumFallback}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <div
@@ -360,27 +420,64 @@ export function StadiumMapRenderer({
         tabIndex={editable ? 0 : -1}
         onKeyDown={handleKeyDown}
       >
-        <svg
-          ref={svgRef}
-          viewBox={`${config.viewBox.minX} ${config.viewBox.minY} ${config.viewBox.width} ${config.viewBox.height}`}
-          className="h-auto w-full"
-          role="img"
-          aria-label={config.defaultLabel}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerEnd}
-          onPointerCancel={handlePointerEnd}
-          onPointerLeave={(event) => {
-            if (!dragState) {
+        <div
+          className="overflow-auto rounded-[24px]"
+          onTouchStart={(event) => {
+            const distance = getTouchDistance(event);
+            if (!distance) {
+              pinchStateRef.current = null;
               return;
             }
 
-            handlePointerEnd(event);
+            pinchStateRef.current = {
+              startDistance: distance,
+              startZoom: zoomLevel,
+            };
+          }}
+          onTouchMove={(event) => {
+            const pinchState = pinchStateRef.current;
+            const distance = getTouchDistance(event);
+            if (!pinchState || !distance) {
+              return;
+            }
+
+            event.preventDefault();
+            updateZoom(pinchState.startZoom * (distance / pinchState.startDistance));
+          }}
+          onTouchEnd={(event) => {
+            if (event.touches.length < 2) {
+              pinchStateRef.current = null;
+            }
           }}
         >
-          {config.decorations?.map((element) => {
-            const decoration = getDecorationProps(element);
-            const isSelectedDecoration = selectedDecorationId === element.id;
-            const isFootballPitch =
+          <div
+            className="mx-auto origin-top transition-[width] duration-150 ease-out"
+            style={{
+              width: `${zoomLevel * 100}%`,
+              minWidth: zoomLevel > 1 ? `${zoomLevel * 100}%` : "100%",
+            }}
+          >
+            <svg
+              ref={svgRef}
+              viewBox={`${config.viewBox.minX} ${config.viewBox.minY} ${config.viewBox.width} ${config.viewBox.height}`}
+              className="h-auto w-full"
+              role="img"
+              aria-label={config.defaultLabel}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerEnd}
+              onPointerCancel={handlePointerEnd}
+              onPointerLeave={(event) => {
+                if (!dragState) {
+                  return;
+                }
+
+                handlePointerEnd(event);
+              }}
+            >
+              {config.decorations?.map((element) => {
+                const decoration = getDecorationProps(element);
+                const isSelectedDecoration = selectedDecorationId === element.id;
+                const isFootballPitch =
               element.kind === "rect" &&
               (element.preset === "football-pitch" || /pitch|teren/i.test(element.id));
 
@@ -470,19 +567,21 @@ export function StadiumMapRenderer({
                 onPointerDown={(event) => handleDecorationPointerDown(element, event)}
               />
             );
-          })}
+              })}
 
-          {sectors.map((sector) => (
-            <StadiumSector
-              key={sector.config.code}
-              sector={sector}
-              state={getSectorAvailabilityState(sector.summary)}
-              isSelected={selectedSectorCode === sector.config.code}
-              onClick={() => onSelectSector(sector.config.code)}
-              onPointerDown={(event) => handleSectorPointerDown(sector.config.code, event)}
-            />
-          ))}
-        </svg>
+              {sectors.map((sector) => (
+                <StadiumSector
+                  key={sector.config.code}
+                  sector={sector}
+                  state={getSectorAvailabilityState(sector.summary)}
+                  isSelected={selectedSectorCode === sector.config.code}
+                  onClick={() => onSelectSector(sector.config.code)}
+                  onPointerDown={(event) => handleSectorPointerDown(sector.config.code, event)}
+                />
+              ))}
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
   );
