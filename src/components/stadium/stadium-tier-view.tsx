@@ -144,11 +144,8 @@ export function StadiumTierView({
                 </div>
 
                 {summary ? (
-                  <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="grid gap-2">
                     <Metric label={copy.available} value={summary.availableSeats} />
-                    <Metric label={copy.held} value={summary.heldSeats} />
-                    <Metric label={copy.reserved} value={summary.reservedSeats} />
-                    <Metric label={copy.blocked} value={summary.blockedSeats} />
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-[#fecaca] bg-[#fff1f2] px-3 py-3 text-sm text-[#b91c1c]">

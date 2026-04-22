@@ -399,7 +399,28 @@ function isNavItemDisabled(href: string, viewer: ViewerContext) {
 }
 
 function shouldHideNavItem(href: string, viewer: ViewerContext) {
-  return isStewardOnly(viewer) && (href === "/cabinet" || href === "/");
+  if (href === "/admin" && !viewer.isAdmin) {
+    return true;
+  }
+
+  if (
+    href === "/scanner" &&
+    !viewer.roles.includes("steward") &&
+    !viewer.roles.includes("admin") &&
+    !viewer.roles.includes("superadmin")
+  ) {
+    return true;
+  }
+
+  if (href === "/cabinet" && (!viewer.isAuthenticated || isStewardOnly(viewer))) {
+    return true;
+  }
+
+  if (href === "/" && isStewardOnly(viewer)) {
+    return true;
+  }
+
+  return false;
 }
 
 function isStewardOnly(viewer: ViewerContext) {
