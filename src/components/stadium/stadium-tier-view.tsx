@@ -129,8 +129,13 @@ export function StadiumTierView({
                     </div>
                   </div>
                   {summary ? (
-                    <span className="rounded-full border border-black/6 bg-neutral-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-600">
-                      {summary.availableSeats} {copy.available}
+                    <span className="min-w-[112px] rounded-[20px] border border-black/6 bg-neutral-50 px-3 py-1.5 text-left">
+                      <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-600 xl:text-[12px]">
+                        {summary.availableSeats}
+                      </span>
+                      <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-500 xl:text-[10px]">
+                        {copy.available}
+                      </span>
                     </span>
                   ) : null}
                 </div>

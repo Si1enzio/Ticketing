@@ -35,6 +35,11 @@ export function SectorSeatMap({
     return buildSeatRows(sector, selectedSeatIds, sectorConfig?.rowConfigs);
   }, [sector, selectedSeatIds, sectorConfig]);
 
+  const availableSeatsCount = useMemo(
+    () => sector?.seats.filter((seat) => seat.availability === "available").length ?? 0,
+    [sector],
+  );
+
   useEffect(() => {
     rowScrollRefs.current = rowScrollRefs.current.slice(0, rows.length);
   }, [rows.length]);
@@ -93,6 +98,21 @@ export function SectorSeatMap({
         <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
           {sector.seats.length} {copy.seats}
         </p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-[22px] border border-black/6 bg-white px-4 py-3">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
+            {copy.totalSeatsLabel}
+          </p>
+          <p className="mt-1 text-2xl font-semibold text-[#111111]">{sector.seats.length}</p>
+        </div>
+        <div className="rounded-[22px] border border-black/6 bg-white px-4 py-3">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
+            {copy.availableNowLabel}
+          </p>
+          <p className="mt-1 text-2xl font-semibold text-[#111111]">{availableSeatsCount}</p>
+        </div>
       </div>
 
       <div className="grid gap-3">
