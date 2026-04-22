@@ -365,6 +365,9 @@ export const scannerMatchSchema = z.object({
   id: z.string(),
   title: z.string(),
   opponentName: z.string(),
+  stadiumName: z.string(),
+  competitionName: z.string(),
+  status: matchStatusSchema,
   startsAt: z.string(),
   scannerEnabled: z.boolean(),
 });

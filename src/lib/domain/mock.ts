@@ -231,6 +231,9 @@ export const mockScannerMatches: ScannerMatch[] = mockMatches.map((match) => ({
   id: match.id,
   title: match.title,
   opponentName: match.opponentName,
+  stadiumName: match.stadiumName,
+  competitionName: match.competitionName,
+  status: match.status,
   startsAt: match.startsAt,
   scannerEnabled: match.scannerEnabled,
 }));

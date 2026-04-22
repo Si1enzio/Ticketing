@@ -67,6 +67,7 @@ export function SiteHeader() {
     { href: "/scanner", label: t("common.scanner") },
     { href: "/admin", label: t("common.admin") },
   ] as const;
+  const visibleNavigation = navigation.filter((item) => !shouldHideNavItem(item.href, viewer));
 
   const syncViewer = useEffectEvent(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -177,7 +178,7 @@ export function SiteHeader() {
           </Link>
 
           <nav className="hidden items-center gap-2 lg:flex">
-            {navigation.map((item) => {
+            {visibleNavigation.map((item) => {
               const disabled = isNavItemDisabled(item.href, viewer);
 
               return (
@@ -248,12 +249,8 @@ export function SiteHeader() {
                     </Button>
                   </div>
                 </div>
-                {navigation.map((item) => {
+                {visibleNavigation.map((item) => {
                   const disabled = isNavItemDisabled(item.href, viewer);
-                  if (shouldHideNavItem(item.href, viewer)) {
-                    return null;
-                  }
-
                   return (
                     <SheetClose asChild key={item.href}>
                       <Link
@@ -402,7 +399,7 @@ function isNavItemDisabled(href: string, viewer: ViewerContext) {
 }
 
 function shouldHideNavItem(href: string, viewer: ViewerContext) {
-  return href === "/cabinet" && isStewardOnly(viewer);
+  return isStewardOnly(viewer) && (href === "/cabinet" || href === "/");
 }
 
 function isStewardOnly(viewer: ViewerContext) {

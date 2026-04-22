@@ -858,6 +858,9 @@ export async function getScannerMatches(): Promise<ScannerMatch[]> {
       id: match.id,
       title: match.title,
       opponentName: match.opponentName,
+      stadiumName: match.stadiumName,
+      competitionName: match.competitionName,
+      status: match.status,
       startsAt: match.startsAt,
       scannerEnabled: match.scannerEnabled,
     }));

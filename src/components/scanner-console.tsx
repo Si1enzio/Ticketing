@@ -1,21 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Scanner } from "@yudiel/react-qr-scanner";
-import { Camera, ShieldAlert, ShieldCheck, TicketX, X } from "lucide-react";
+import { ArrowLeft, Camera, ShieldAlert, ShieldCheck, TicketX, X } from "lucide-react";
 
-import type { ScannerMatch, ScanResponse } from "@/lib/domain/types";
+import type { ScanResponse, ScannerMatch } from "@/lib/domain/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
+const DEVICE_LABEL_STORAGE_KEY = "milsami-scanner-device-label";
 
 const resultStyles: Record<
   ScanResponse["result"],
@@ -58,17 +54,27 @@ const resultStyles: Record<
   },
 };
 
-export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
-  const [selectedMatchId, setSelectedMatchId] = useState(matches[0]?.id ?? "");
-  const [deviceLabel, setDeviceLabel] = useState("Telefon steward");
+export function ScannerConsole({
+  match,
+  backHref = "/scanner",
+}: {
+  match: ScannerMatch;
+  backHref?: string;
+}) {
+  const [deviceLabel, setDeviceLabel] = useState(() => {
+    if (typeof window === "undefined") {
+      return "Telefon steward";
+    }
+
+    return window.localStorage.getItem(DEVICE_LABEL_STORAGE_KEY) ?? "Telefon steward";
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastResult, setLastResult] = useState<ScanResponse | null>(null);
   const [overlayResult, setOverlayResult] = useState<ScanResponse | null>(null);
 
-  const selectedMatch = useMemo(
-    () => matches.find((match) => match.id === selectedMatchId) ?? null,
-    [matches, selectedMatchId],
-  );
+  useEffect(() => {
+    window.localStorage.setItem(DEVICE_LABEL_STORAGE_KEY, deviceLabel);
+  }, [deviceLabel]);
 
   useEffect(() => {
     if (!overlayResult) {
@@ -84,29 +90,37 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
     };
   }, [overlayResult]);
 
+  const matchDateLabel = useMemo(
+    () => new Date(match.startsAt).toLocaleString("ro-RO"),
+    [match.startsAt],
+  );
+
   async function submitToken(rawValue: string) {
-    if (!selectedMatchId || isSubmitting) {
+    if (isSubmitting) {
       return;
     }
 
     setIsSubmitting(true);
 
-    const response = await fetch("/api/scanner/validate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        token: rawValue,
-        matchId: selectedMatchId,
-        deviceLabel,
-      }),
-    });
+    try {
+      const response = await fetch("/api/scanner/validate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token: rawValue,
+          matchId: match.id,
+          deviceLabel,
+        }),
+      });
 
-    const payload = (await response.json()) as ScanResponse;
-    setLastResult(payload);
-    setOverlayResult(payload);
-    setIsSubmitting(false);
+      const payload = (await response.json()) as ScanResponse;
+      setLastResult(payload);
+      setOverlayResult(payload);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -114,24 +128,33 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
       <Card className="surface-dark overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.24),transparent_34%),linear-gradient(180deg,#171717_0%,#101010_100%)] text-white">
         <div className="h-1.5 bg-[linear-gradient(90deg,#ffffff_0%,#fca5a5_36%,#ef4444_100%)]" />
         <CardHeader className="space-y-4">
-          <CardTitle className="font-heading text-4xl uppercase tracking-[0.08em]">
-            Scanner mobil
-          </CardTitle>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="match">Meci activ</Label>
-              <Select value={selectedMatchId} onValueChange={setSelectedMatchId}>
-                <SelectTrigger id="match" className="border-white/10 bg-white/5 text-white">
-                  <SelectValue placeholder="Selecteaza meciul" />
-                </SelectTrigger>
-                <SelectContent>
-                  {matches.map((match) => (
-                    <SelectItem key={match.id} value={match.id}>
-                      {match.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle className="font-heading text-4xl uppercase tracking-[0.08em]">
+                Scanner mobil
+              </CardTitle>
+              <p className="mt-2 text-sm leading-6 text-white/68">
+                Scanner fix pentru meciul selectat. La refresh ramai pe acelasi meci.
+              </p>
+            </div>
+            <Link
+              href={backHref}
+              className="inline-flex items-center rounded-full border border-white/12 bg-white/6 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Inapoi la lista meciurilor
+            </Link>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-[1.1fr_0.9fr]">
+            <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm text-white/72">
+              <p className="text-xs uppercase tracking-[0.22em] text-white/50">
+                Meci selectat
+              </p>
+              <p className="mt-2 font-semibold text-white">{match.title}</p>
+              <p className="mt-1">{match.competitionName}</p>
+              <p className="mt-1">{match.stadiumName}</p>
+              <p className="mt-1">{matchDateLabel}</p>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="deviceLabel">Dispozitiv / poarta</Label>
@@ -141,18 +164,13 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
                 onChange={(event) => setDeviceLabel(event.target.value)}
                 className="border-white/10 bg-white/5 text-white"
               />
+              <p className="text-xs leading-5 text-white/52">
+                Eticheta este pastrata local pe dispozitiv si ramane dupa refresh.
+              </p>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {selectedMatch ? (
-            <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm text-white/72">
-              <p className="font-semibold text-white">{selectedMatch.title}</p>
-              <p>{selectedMatch.opponentName}</p>
-              <p className="mt-1">{new Date(selectedMatch.startsAt).toLocaleString("ro-RO")}</p>
-            </div>
-          ) : null}
-
           <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-black">
             <Scanner
               onScan={(codes) => {
@@ -167,7 +185,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
                   message: String(error),
                   credentialKind: "ticket",
                   ticketCode: null,
-                  matchTitle: selectedMatch?.title ?? null,
+                  matchTitle: match.title,
                   seatLabel: null,
                   sectorLabel: null,
                   scannedAt: new Date().toISOString(),
@@ -178,7 +196,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
                 setOverlayResult(payload);
               }}
               formats={["qr_code"]}
-              paused={isSubmitting || !selectedMatchId || Boolean(overlayResult)}
+              paused={isSubmitting || Boolean(overlayResult)}
               allowMultiple={false}
               scanDelay={400}
               constraints={{
@@ -230,7 +248,7 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
                     {lastResult.credentialKind === "subscription"
                       ? "Cod abonament"
                       : "Cod bilet"}
-                    : {lastResult.ticketCode}
+                    : {` ${lastResult.ticketCode}`}
                   </p>
                 ) : null}
                 {lastResult.matchTitle ? <p>Meci: {lastResult.matchTitle}</p> : null}
@@ -250,8 +268,8 @@ export function ScannerConsole({ matches }: { matches: ScannerMatch[] }) {
             </div>
           ) : (
             <div className="rounded-[26px] border border-dashed border-black/10 bg-neutral-50 p-8 text-sm leading-7 text-neutral-600">
-              Selecteaza meciul, porneste camera si scaneaza QR-ul. Rezultatul apare
-              instant, cu feedback mare si clar pentru fluxul rapid de la poarta.
+              Porneste camera si scaneaza QR-ul pentru meciul selectat. Rezultatul ramane
+              afisat mai jos chiar si dupa inchiderea overlay-ului temporar.
             </div>
           )}
         </CardContent>
