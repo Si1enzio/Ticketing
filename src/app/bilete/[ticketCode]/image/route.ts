@@ -44,7 +44,8 @@ function renderField({
         display: "flex",
         flexDirection: "column",
         gap: 8,
-        minHeight: 130,
+        flex: 1,
+        minHeight: 126,
         padding: "18px 20px",
         borderRadius: 24,
         border: priority ? "2px solid #fecaca" : "1px solid #e5e7eb",
@@ -135,14 +136,13 @@ export async function GET(
             overflow: "hidden",
             background: "#ffffff",
             border: "1px solid #e5e7eb",
-            boxShadow: "0 20px 70px rgba(17,17,17,0.10)",
           },
         },
         h("div", {
           style: {
             height: 12,
             width: "100%",
-            background: "linear-gradient(90deg,#ffffff 0%,#fca5a5 40%,#dc2626 100%)",
+            background: "#dc2626",
           },
         }),
         h(
@@ -152,8 +152,7 @@ export async function GET(
               display: "flex",
               flexDirection: "column",
               padding: "28px 28px 20px",
-              background:
-                "radial-gradient(circle at top right, rgba(239,68,68,0.20), transparent 36%), #111111",
+              background: "#111111",
               color: "#ffffff",
             },
           },
@@ -213,9 +212,9 @@ export async function GET(
             {
               style: {
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                flexDirection: "column",
                 width: "100%",
+                gap: 16,
               },
             },
             h(
@@ -302,46 +301,82 @@ export async function GET(
             "div",
             {
               style: {
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+                display: "flex",
+                flexDirection: "column",
                 gap: 16,
               },
             },
-            renderField({
-              label: "Titular",
-              value: ticket.purchaserName ?? ticket.purchaserEmail ?? "Cont suporter",
-            }),
-            renderField({
-              label: "Data si ora",
-              value: formatTicketDate(ticket.startsAt),
-            }),
-            renderField({
-              label: "Stadion",
-              value: ticket.stadiumName,
-            }),
-            renderField({
-              label: "Poarta",
-              value: ticket.gateName ?? "Fara poarta alocata",
-            }),
-            renderField({
-              label: "Sector",
-              value: ticket.sectorName,
-              priority: true,
-            }),
-            renderField({
-              label: "Rand",
-              value: ticket.rowLabel,
-              priority: true,
-            }),
-            renderField({
-              label: "Loc",
-              value: String(ticket.seatNumber),
-              priority: true,
-            }),
-            renderField({
-              label: "Status",
-              value: statusLabel,
-            }),
+            h(
+              "div",
+              {
+                style: {
+                  display: "flex",
+                  gap: 16,
+                },
+              },
+              renderField({
+                label: "Titular",
+                value: ticket.purchaserName ?? ticket.purchaserEmail ?? "Cont suporter",
+              }),
+              renderField({
+                label: "Data si ora",
+                value: formatTicketDate(ticket.startsAt),
+              }),
+            ),
+            h(
+              "div",
+              {
+                style: {
+                  display: "flex",
+                  gap: 16,
+                },
+              },
+              renderField({
+                label: "Stadion",
+                value: ticket.stadiumName,
+              }),
+              renderField({
+                label: "Poarta",
+                value: ticket.gateName ?? "Fara poarta alocata",
+              }),
+            ),
+            h(
+              "div",
+              {
+                style: {
+                  display: "flex",
+                  gap: 16,
+                },
+              },
+              renderField({
+                label: "Sector",
+                value: ticket.sectorName,
+                priority: true,
+              }),
+              renderField({
+                label: "Rand",
+                value: ticket.rowLabel,
+                priority: true,
+              }),
+            ),
+            h(
+              "div",
+              {
+                style: {
+                  display: "flex",
+                  gap: 16,
+                },
+              },
+              renderField({
+                label: "Loc",
+                value: String(ticket.seatNumber),
+                priority: true,
+              }),
+              renderField({
+                label: "Status",
+                value: statusLabel,
+              }),
+            ),
           ),
           h(
             "div",
