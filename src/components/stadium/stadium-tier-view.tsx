@@ -113,31 +113,23 @@ export function StadiumTierView({
                     : "border-black/6 bg-white hover:border-[#dc2626]/30 hover:bg-[#fff7f7]",
                 )}
               >
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     <div
                       className="h-3.5 w-3.5 shrink-0 rounded-full ring-2 ring-white"
                       style={{ backgroundColor: sector.data?.color ?? "#9ca3af" }}
                     />
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-[#111111]">
+                      <p className="text-lg font-semibold leading-tight text-[#111111]">
                         {getSectorLabel(locale, sector.config)}
                       </p>
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">
-                        {sector.config.code}
-                      </p>
+                      {summary ? (
+                        <p className="mt-1 text-sm font-medium text-neutral-500">
+                          {summary.availableSeats} {copy.available}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
-                  {summary ? (
-                    <span className="min-w-[104px] max-w-full rounded-[20px] border border-black/6 bg-neutral-50 px-3 py-1.5 text-left">
-                      <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-600 xl:text-[12px]">
-                        {summary.availableSeats}
-                      </span>
-                      <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-500 xl:text-[10px]">
-                        {copy.available}
-                      </span>
-                    </span>
-                  ) : null}
                 </div>
 
                 {summary ? null : (
