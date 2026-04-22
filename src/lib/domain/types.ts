@@ -239,12 +239,15 @@ export const adminUserOverviewSchema = z.object({
   fullName: z.string().nullable().default(null),
   roles: z.array(z.string()),
   canReserve: z.boolean().default(false),
+  registeredAt: z.string().nullable().default(null),
   totalReserved: z.coerce.number().int().nonnegative(),
   totalScanned: z.coerce.number().int().nonnegative(),
   noShowRatio: z.coerce.number().default(0),
   abuseScore: z.coerce.number().default(0),
   activeBlockType: z.string().nullable().default(null),
   activeBlockUntil: z.string().nullable().default(null),
+  lastTicketIssuedAt: z.string().nullable().default(null),
+  lastValidScanAt: z.string().nullable().default(null),
 });
 
 export type AdminUserOverview = z.infer<typeof adminUserOverviewSchema>;

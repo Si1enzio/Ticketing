@@ -734,6 +734,82 @@ export async function getAdminUsersOverview(): Promise<AdminUserOverview[]> {
       return mockAdminUsers;
     }
 
+    const needsDerivedDates = rows.some(
+      (item) =>
+        item.registered_at === undefined ||
+        item.last_ticket_issued_at === undefined ||
+        item.last_valid_scan_at === undefined,
+    );
+
+    let registeredAtByUser = new Map<string, string | null>();
+    const lastTicketIssuedAtByUser = new Map<string, string | null>();
+    const lastValidScanAtByUser = new Map<string, string | null>();
+
+    if (needsDerivedDates) {
+      const userIds = rows
+        .map((item) => String(item.user_id ?? ""))
+        .filter(Boolean);
+
+      const [profilesResult, ticketsResult, scansResult] = await Promise.all([
+        supabase.from("profiles").select("id, created_at").in("id", userIds),
+        supabase
+          .from("tickets")
+          .select("user_id, issued_at")
+          .in("user_id", userIds)
+          .order("issued_at", { ascending: false }),
+        supabase
+          .from("ticket_scans")
+          .select("scanned_at, tickets!ticket_id(user_id)")
+          .eq("result", "valid")
+          .order("scanned_at", { ascending: false }),
+      ]);
+
+      const profileRows = (profilesResult.data ?? []) as Array<{
+        id: string;
+        created_at?: string | null;
+      }>;
+      const ticketRows = (ticketsResult.data ?? []) as Array<{
+        user_id?: string | null;
+        issued_at?: string | null;
+      }>;
+      const scanRows = (scansResult.data ?? []) as Array<{
+        scanned_at?: string | null;
+        tickets?:
+          | {
+              user_id?: string | null;
+            }
+          | Array<{
+              user_id?: string | null;
+            }>
+          | null;
+      }>;
+
+      registeredAtByUser = new Map(
+        profileRows.map((profile) => [String(profile.id), profile.created_at ?? null]),
+      );
+
+      for (const ticket of ticketRows) {
+        const userId = ticket.user_id ? String(ticket.user_id) : "";
+
+        if (!userId || lastTicketIssuedAtByUser.has(userId)) {
+          continue;
+        }
+
+        lastTicketIssuedAtByUser.set(userId, ticket.issued_at ?? null);
+      }
+
+      for (const scan of scanRows) {
+        const ticketRelation = Array.isArray(scan.tickets) ? scan.tickets[0] : scan.tickets;
+        const userId = ticketRelation?.user_id ? String(ticketRelation.user_id) : "";
+
+        if (!userId || lastValidScanAtByUser.has(userId)) {
+          continue;
+        }
+
+        lastValidScanAtByUser.set(userId, scan.scanned_at ?? null);
+      }
+    }
+
     return rows.map((item) =>
       adminUserOverviewSchema.parse({
         userId: item.user_id,
@@ -741,12 +817,24 @@ export async function getAdminUsersOverview(): Promise<AdminUserOverview[]> {
         fullName: item.full_name,
         roles: item.roles,
         canReserve: item.can_reserve,
+        registeredAt:
+          item.registered_at ??
+          registeredAtByUser.get(String(item.user_id ?? "")) ??
+          null,
         totalReserved: item.total_reserved,
         totalScanned: item.total_scanned,
         noShowRatio: item.no_show_ratio,
         abuseScore: item.abuse_score,
         activeBlockType: item.active_block_type,
         activeBlockUntil: item.active_block_until,
+        lastTicketIssuedAt:
+          item.last_ticket_issued_at ??
+          lastTicketIssuedAtByUser.get(String(item.user_id ?? "")) ??
+          null,
+        lastValidScanAt:
+          item.last_valid_scan_at ??
+          lastValidScanAtByUser.get(String(item.user_id ?? "")) ??
+          null,
       }),
     );
   } catch (error) {
