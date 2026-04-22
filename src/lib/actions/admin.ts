@@ -278,6 +278,8 @@ function validateMatchScheduleWindow(input: {
   reservationClosesAtIso: string | null;
 }): string | null {
   const startsAt = new Date(input.startsAtIso);
+  const closesGraceDeadline = new Date(startsAt);
+  closesGraceDeadline.setHours(closesGraceDeadline.getHours() + 1);
 
   if (input.reservationOpensAtIso) {
     const opensAt = new Date(input.reservationOpensAtIso);
@@ -288,8 +290,8 @@ function validateMatchScheduleWindow(input: {
 
   if (input.reservationClosesAtIso) {
     const closesAt = new Date(input.reservationClosesAtIso);
-    if (closesAt > startsAt) {
-      return "Inchiderea ticketing-ului nu poate fi dupa startul meciului.";
+    if (closesAt > closesGraceDeadline) {
+      return "Inchiderea ticketing-ului poate fi setata cel mult la o ora dupa startul meciului.";
     }
   }
 
