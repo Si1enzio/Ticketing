@@ -231,6 +231,80 @@ function redirectToAdminMatches(params: Record<string, string>): never {
   redirect(`/admin/meciuri?${query.toString()}`);
 }
 
+function normalizeMatchDateTime(
+  value: string | undefined,
+  label: string,
+  options?: { required?: boolean },
+): { ok: true; value: string | null } | { ok: false; message: string } {
+  const rawValue = value?.trim() ?? "";
+
+  if (!rawValue) {
+    if (options?.required) {
+      return {
+        ok: false,
+        message: `Completeaza data si ora pentru campul „${label}”.`,
+      };
+    }
+
+    return { ok: true, value: null };
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(rawValue)) {
+    return {
+      ok: false,
+      message: `Formatul pentru „${label}” nu este valid.`,
+    };
+  }
+
+  const normalizedValue = rawValue.length === 16 ? `${rawValue}:00` : rawValue;
+  const parsedDate = new Date(normalizedValue);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return {
+      ok: false,
+      message: `Data sau ora selectata pentru „${label}” nu este valida.`,
+    };
+  }
+
+  return {
+    ok: true,
+    value: parsedDate.toISOString(),
+  };
+}
+
+function validateMatchScheduleWindow(input: {
+  startsAtIso: string;
+  reservationOpensAtIso: string | null;
+  reservationClosesAtIso: string | null;
+}): string | null {
+  const startsAt = new Date(input.startsAtIso);
+
+  if (input.reservationOpensAtIso) {
+    const opensAt = new Date(input.reservationOpensAtIso);
+    if (opensAt > startsAt) {
+      return "Deschiderea ticketing-ului nu poate fi dupa startul meciului.";
+    }
+  }
+
+  if (input.reservationClosesAtIso) {
+    const closesAt = new Date(input.reservationClosesAtIso);
+    if (closesAt > startsAt) {
+      return "Inchiderea ticketing-ului nu poate fi dupa startul meciului.";
+    }
+  }
+
+  if (input.reservationOpensAtIso && input.reservationClosesAtIso) {
+    const opensAt = new Date(input.reservationOpensAtIso);
+    const closesAt = new Date(input.reservationClosesAtIso);
+
+    if (opensAt >= closesAt) {
+      return "Deschiderea ticketing-ului trebuie sa fie inainte de inchidere.";
+    }
+  }
+
+  return null;
+}
+
 function redirectToAdminStadiumMap(params: Record<string, string>): never {
   const query = new URLSearchParams(params);
   redirect(`/admin/stadion/harta?${query.toString()}`);
@@ -1133,18 +1207,68 @@ export async function createMatchAction(formData: FormData) {
   });
 
   if (!parsed.success || !isSupabaseConfigured()) {
-    return;
+    redirectToAdminMatches({
+      error: "Datele meciului nu sunt complete sau nu au format valid.",
+    });
+  }
+
+  const startsAtResult = normalizeMatchDateTime(parsed.data.startsAt, "Start meci", {
+    required: true,
+  });
+  if (!startsAtResult.ok) {
+    redirectToAdminMatches({ error: startsAtResult.message });
+  }
+
+  if (!startsAtResult.value) {
+    redirectToAdminMatches({ error: "Startul meciului este obligatoriu." });
+  }
+
+  const reservationOpensAtResult = normalizeMatchDateTime(
+    parsed.data.reservationOpensAt,
+    "Deschidere ticketing",
+  );
+  if (!reservationOpensAtResult.ok) {
+    redirectToAdminMatches({ error: reservationOpensAtResult.message });
+  }
+
+  const reservationClosesAtResult = normalizeMatchDateTime(
+    parsed.data.reservationClosesAt,
+    "Inchidere ticketing",
+  );
+  if (!reservationClosesAtResult.ok) {
+    redirectToAdminMatches({ error: reservationClosesAtResult.message });
+  }
+
+  const scheduleError = validateMatchScheduleWindow({
+    startsAtIso: startsAtResult.value,
+    reservationOpensAtIso: reservationOpensAtResult.value,
+    reservationClosesAtIso: reservationClosesAtResult.value,
+  });
+
+  if (scheduleError) {
+    redirectToAdminMatches({ error: scheduleError });
   }
 
   const supabase = await createSupabaseServerClient();
-  if (!supabase) return;
+  if (!supabase) {
+    redirectToAdminMatches({
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
 
-  await persistTeamsCatalog(supabase, viewer.userId, [
-    parsed.data.homeTeam,
-    parsed.data.awayTeam,
-  ]);
+  try {
+    await persistTeamsCatalog(supabase, viewer.userId, [
+      parsed.data.homeTeam,
+      parsed.data.awayTeam,
+    ]);
+  } catch (error) {
+    console.error("Nu am putut sincroniza echipele pentru meci.", error);
+    redirectToAdminMatches({
+      error: "Catalogul de echipe nu a putut fi actualizat. Incearca din nou.",
+    });
+  }
 
-  const { data } = await supabase
+  const { data, error: insertError } = await supabase
     .from("matches")
     .insert({
       stadium_id: parsed.data.stadiumId,
@@ -1152,7 +1276,7 @@ export async function createMatchAction(formData: FormData) {
       slug: parsed.data.slug,
       competition_name: parsed.data.competitionName,
       opponent_name: parsed.data.awayTeam,
-      starts_at: parsed.data.startsAt,
+      starts_at: startsAtResult.value,
       status: parsed.data.status,
       scanner_enabled: parsed.data.scannerEnabled,
       created_by: viewer.userId,
@@ -1161,22 +1285,47 @@ export async function createMatchAction(formData: FormData) {
     .select("id")
     .maybeSingle();
 
-  if (data?.id) {
-    await supabase.from("match_settings").upsert({
-      match_id: data.id,
-      max_tickets_per_user: parsed.data.maxTicketsPerUser,
-      opens_at: parsed.data.reservationOpensAt ?? null,
-      closes_at: parsed.data.reservationClosesAt ?? null,
-      ticketing_mode: parsed.data.ticketingMode,
-      ticket_price_cents:
-        parsed.data.ticketingMode === "paid" ? parsed.data.ticketPriceCents : 0,
-      currency: parsed.data.currency,
+  if (insertError || !data?.id) {
+    console.error("Nu am putut crea meciul.", insertError);
+    redirectToAdminMatches({
+      error:
+        insertError?.message ??
+        "Meciul nu a putut fi creat. Verifica datele si incearca din nou.",
     });
-    await logAudit(viewer.userId, "create_match", "matches", data.id, parsed.data);
   }
+
+  const { error: settingsError } = await supabase.from("match_settings").upsert({
+    match_id: data.id,
+    max_tickets_per_user: parsed.data.maxTicketsPerUser,
+    opens_at: reservationOpensAtResult.value,
+    closes_at: reservationClosesAtResult.value,
+    ticketing_mode: parsed.data.ticketingMode,
+    ticket_price_cents:
+      parsed.data.ticketingMode === "paid" ? parsed.data.ticketPriceCents : 0,
+    currency: parsed.data.currency,
+  });
+
+  if (settingsError) {
+    console.error("Nu am putut salva setarile meciului nou.", settingsError);
+    redirectToAdminMatches({
+      error:
+        settingsError.message ??
+        "Setarile meciului nu au putut fi salvate. Incearca din nou.",
+    });
+  }
+
+  await logAudit(viewer.userId, "create_match", "matches", data.id, {
+    ...parsed.data,
+    startsAt: startsAtResult.value,
+    reservationOpensAt: reservationOpensAtResult.value,
+    reservationClosesAt: reservationClosesAtResult.value,
+  });
 
   revalidatePath("/admin");
   revalidatePath("/admin/meciuri");
+  redirectToAdminMatches({
+    notice: `Meciul ${parsed.data.title} a fost creat.`,
+  });
 }
 
 export async function createStandAction(formData: FormData) {
@@ -1460,18 +1609,68 @@ export async function updateMatchAction(formData: FormData) {
   });
 
   if (!parsed.success || !isSupabaseConfigured()) {
-    return;
+    redirectToAdminMatches({
+      error: "Datele meciului nu sunt complete sau nu au format valid.",
+    });
+  }
+
+  const startsAtResult = normalizeMatchDateTime(parsed.data.startsAt, "Start meci", {
+    required: true,
+  });
+  if (!startsAtResult.ok) {
+    redirectToAdminMatches({ error: startsAtResult.message });
+  }
+
+  if (!startsAtResult.value) {
+    redirectToAdminMatches({ error: "Startul meciului este obligatoriu." });
+  }
+
+  const reservationOpensAtResult = normalizeMatchDateTime(
+    parsed.data.reservationOpensAt,
+    "Deschidere ticketing",
+  );
+  if (!reservationOpensAtResult.ok) {
+    redirectToAdminMatches({ error: reservationOpensAtResult.message });
+  }
+
+  const reservationClosesAtResult = normalizeMatchDateTime(
+    parsed.data.reservationClosesAt,
+    "Inchidere ticketing",
+  );
+  if (!reservationClosesAtResult.ok) {
+    redirectToAdminMatches({ error: reservationClosesAtResult.message });
+  }
+
+  const scheduleError = validateMatchScheduleWindow({
+    startsAtIso: startsAtResult.value,
+    reservationOpensAtIso: reservationOpensAtResult.value,
+    reservationClosesAtIso: reservationClosesAtResult.value,
+  });
+
+  if (scheduleError) {
+    redirectToAdminMatches({ error: scheduleError });
   }
 
   const supabase = await createSupabaseServerClient();
-  if (!supabase) return;
+  if (!supabase) {
+    redirectToAdminMatches({
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
 
-  await persistTeamsCatalog(supabase, viewer.userId, [
-    parsed.data.homeTeam,
-    parsed.data.awayTeam,
-  ]);
+  try {
+    await persistTeamsCatalog(supabase, viewer.userId, [
+      parsed.data.homeTeam,
+      parsed.data.awayTeam,
+    ]);
+  } catch (error) {
+    console.error("Nu am putut sincroniza echipele pentru meci.", error);
+    redirectToAdminMatches({
+      error: "Catalogul de echipe nu a putut fi actualizat. Incearca din nou.",
+    });
+  }
 
-  await supabase
+  const { error: updateError } = await supabase
     .from("matches")
     .update({
       stadium_id: parsed.data.stadiumId,
@@ -1479,28 +1678,54 @@ export async function updateMatchAction(formData: FormData) {
       slug: parsed.data.slug,
       competition_name: parsed.data.competitionName,
       opponent_name: parsed.data.awayTeam,
-      starts_at: parsed.data.startsAt,
+      starts_at: startsAtResult.value,
       status: parsed.data.status,
       scanner_enabled: parsed.data.scannerEnabled,
       updated_by: viewer.userId,
     })
     .eq("id", parsed.data.matchId);
 
-  await supabase.from("match_settings").upsert({
+  if (updateError) {
+    console.error("Nu am putut actualiza meciul.", updateError);
+    redirectToAdminMatches({
+      error:
+        updateError.message ??
+        "Meciul nu a putut fi actualizat. Verifica datele si incearca din nou.",
+    });
+  }
+
+  const { error: settingsError } = await supabase.from("match_settings").upsert({
     match_id: parsed.data.matchId,
     max_tickets_per_user: parsed.data.maxTicketsPerUser,
-    opens_at: parsed.data.reservationOpensAt ?? null,
-    closes_at: parsed.data.reservationClosesAt ?? null,
+    opens_at: reservationOpensAtResult.value,
+    closes_at: reservationClosesAtResult.value,
     ticketing_mode: parsed.data.ticketingMode,
     ticket_price_cents:
       parsed.data.ticketingMode === "paid" ? parsed.data.ticketPriceCents : 0,
     currency: parsed.data.currency,
   });
 
-  await logAudit(viewer.userId, "update_match", "matches", parsed.data.matchId, parsed.data);
+  if (settingsError) {
+    console.error("Nu am putut actualiza setarile meciului.", settingsError);
+    redirectToAdminMatches({
+      error:
+        settingsError.message ??
+        "Setarile meciului nu au putut fi actualizate. Incearca din nou.",
+    });
+  }
+
+  await logAudit(viewer.userId, "update_match", "matches", parsed.data.matchId, {
+    ...parsed.data,
+    startsAt: startsAtResult.value,
+    reservationOpensAt: reservationOpensAtResult.value,
+    reservationClosesAt: reservationClosesAtResult.value,
+  });
 
   revalidatePath("/admin");
   revalidatePath("/admin/meciuri");
+  redirectToAdminMatches({
+    notice: `Meciul ${parsed.data.title} a fost actualizat.`,
+  });
 }
 
 export async function deleteMatchAction(formData: FormData) {
