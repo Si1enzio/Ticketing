@@ -19,6 +19,7 @@ export default async function ReservationConfirmationPage({
   const viewer = await getViewerContext();
   const tickets = await getTicketsByReservationId(reservationId, viewer);
   const { locale, messages } = await getServerI18n();
+  const isSuperadmin = viewer.roles.includes("superadmin");
 
   if (!tickets.length) {
     notFound();
@@ -63,6 +64,30 @@ export default async function ReservationConfirmationPage({
                 {messages.confirmation.downloadPdf}
               </Link>
             </Button>
+            {isSuperadmin && tickets.length > 1 ? (
+              <>
+                <Button
+                  asChild
+                  variant="secondary"
+                  className="rounded-full bg-white text-[#111111] hover:bg-neutral-100"
+                >
+                  <Link href={`/cabinet/rezervari/${reservationId}/pdf`} target="_blank">
+                    <Download className="mr-2 h-4 w-4" />
+                    Printeaza bundle
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="secondary"
+                  className="rounded-full bg-white text-[#111111] hover:bg-neutral-100"
+                >
+                  <Link href={`/cabinet/rezervari/${reservationId}/pdf?download=1`} target="_blank">
+                    <Download className="mr-2 h-4 w-4" />
+                    Descarca bundle
+                  </Link>
+                </Button>
+              </>
+            ) : null}
             <Button
               asChild
               variant="outline"

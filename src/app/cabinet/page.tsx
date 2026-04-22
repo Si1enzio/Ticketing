@@ -40,11 +40,13 @@ export default async function CabinetPage() {
     (ticket) => ticket.status !== "active" || new Date(ticket.startsAt) < now,
   );
   const activeSubscriptions = subscriptions.filter((item) => item.status === "active");
+  const isSuperadmin = viewer.roles.includes("superadmin");
   const hasMultiTicketUpcomingMatch = upcoming.some(
     (ticket, index) => upcoming.findIndex((item) => item.matchId === ticket.matchId) !== index,
   );
   const upcomingGroups = groupTicketsByMatch(upcoming);
   const archivedGroups = groupTicketsByMatch(archived);
+  const reservationBundles = isSuperadmin ? groupTicketsByReservation(tickets) : [];
 
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">
@@ -168,6 +170,22 @@ export default async function CabinetPage() {
             description={messages.cabinet.empty.noSubscriptionsDescription}
           />
         )}
+      </div>
+
+      <div className="space-y-4">
+        {reservationBundles.length ? (
+          <>
+            <SectionTitle
+              title="Bundle-uri emise"
+              subtitle="Pentru superadmin, fiecare rezervare cu mai multe bilete poate fi tratata ca un grup separat de tiparit sau descarcat pentru parteneri, sponsori sau invitati."
+            />
+            <div className="grid gap-4">
+              {reservationBundles.map((bundle) => (
+                <ReservationBundleCard key={bundle.reservationId} bundle={bundle} locale={locale} />
+              ))}
+            </div>
+          </>
+        ) : null}
       </div>
 
       <div className="space-y-4">
@@ -355,6 +373,59 @@ function MatchTicketGroupCard({
   );
 }
 
+function ReservationBundleCard({
+  bundle,
+  locale,
+}: {
+  bundle: ReturnType<typeof groupTicketsByReservation>[number];
+  locale: string;
+}) {
+  const issuedAt = new Date(bundle.issuedAt);
+
+  return (
+    <Card className="rounded-[28px] border border-[#dc2626]/12 bg-[#fff7f7]">
+      <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.22em] text-[#b91c1c]">
+            Bundle rezervare
+          </p>
+          <p className="mt-1 text-lg font-semibold text-[#111111]">{bundle.matchTitle}</p>
+          <p className="mt-1 text-sm text-neutral-600">
+            {bundle.tickets.length} bilete - emise la{" "}
+            {issuedAt.toLocaleString(locale === "ru" ? "ru-RU" : "ro-RO")}
+          </p>
+          <p className="mt-1 text-sm text-neutral-600">
+            Sursa: {bundle.source} - cod bundle {bundle.reservationId.slice(0, 8).toUpperCase()}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href={`/cabinet/rezervari/${bundle.reservationId}/pdf`}
+            target="_blank"
+            className="inline-flex items-center rounded-full border border-[#111111] bg-white px-4 py-2 text-sm font-medium text-[#111111] transition hover:bg-neutral-100"
+          >
+            Printeaza bundle
+          </Link>
+          <Link
+            href={`/cabinet/rezervari/${bundle.reservationId}/pdf?download=1`}
+            target="_blank"
+            className="inline-flex items-center rounded-full border border-[#dc2626]/18 bg-[#fff1f2] px-4 py-2 text-sm font-medium text-[#b91c1c] transition hover:bg-[#fee2e2]"
+          >
+            <DownloadCloud className="mr-2 h-4 w-4" />
+            Descarca bundle
+          </Link>
+          <Link
+            href={`/confirmare/${bundle.reservationId}`}
+            className="inline-flex items-center rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-[#111111] transition hover:bg-neutral-100"
+          >
+            Vezi grupul
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -381,6 +452,45 @@ function groupTicketsByMatch(tickets: TicketCard[]) {
   }
 
   return Array.from(groups.values());
+}
+
+function groupTicketsByReservation(tickets: TicketCard[]) {
+  const groups = new Map<
+    string,
+    {
+      reservationId: string;
+      matchId: string;
+      matchTitle: string;
+      issuedAt: string;
+      source: string;
+      tickets: TicketCard[];
+    }
+  >();
+
+  for (const ticket of tickets) {
+    const existing = groups.get(ticket.reservationId);
+
+    if (existing) {
+      existing.tickets.push(ticket);
+      if (new Date(ticket.issuedAt) < new Date(existing.issuedAt)) {
+        existing.issuedAt = ticket.issuedAt;
+      }
+      continue;
+    }
+
+    groups.set(ticket.reservationId, {
+      reservationId: ticket.reservationId,
+      matchId: ticket.matchId,
+      matchTitle: ticket.matchTitle,
+      issuedAt: ticket.issuedAt,
+      source: ticket.source,
+      tickets: [ticket],
+    });
+  }
+
+  return Array.from(groups.values())
+    .filter((bundle) => bundle.tickets.length > 1)
+    .sort((left, right) => new Date(right.issuedAt).getTime() - new Date(left.issuedAt).getTime());
 }
 
 function getAgeLabel(birthDate: string | null) {

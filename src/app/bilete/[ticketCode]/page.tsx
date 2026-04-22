@@ -48,6 +48,12 @@ export default async function TicketPage({
         .sort(sortTicketsForMatchNavigation)
     : [];
   const currentTicketIndex = sameMatchTickets.findIndex((item) => item.ticketCode === ticket.ticketCode);
+  const sameReservationTickets = ownTicket
+    ? viewerTickets
+        .filter((item) => item.reservationId === ticket.reservationId)
+        .sort(sortTicketsForMatchNavigation)
+    : [];
+  const isSuperadmin = viewer.roles.includes("superadmin");
   const previousTicket =
     currentTicketIndex > 0 ? sameMatchTickets[currentTicketIndex - 1] : null;
   const nextTicket =
@@ -81,6 +87,12 @@ export default async function TicketPage({
     sameMatchTickets.length > 1
       ? `${env.siteUrl}/cabinet/meciuri/${ticket.matchId}/pdf?download=1`
       : null;
+  const reservationBundlePdfUrl =
+    isSuperadmin && sameReservationTickets.length > 1
+      ? `${env.siteUrl}/cabinet/rezervari/${ticket.reservationId}/pdf`
+      : null;
+  const reservationBundlePdfDownloadUrl =
+    reservationBundlePdfUrl ? `${reservationBundlePdfUrl}?download=1` : null;
 
   const ticketContent = (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">
@@ -138,6 +150,16 @@ export default async function TicketPage({
                     >
                       <DownloadCloud className="mr-2 h-4 w-4" />
                       PDF grupat
+                    </Link>
+                  ) : null}
+                  {reservationBundlePdfDownloadUrl ? (
+                    <Link
+                      href={reservationBundlePdfDownloadUrl}
+                      target="_blank"
+                      className="inline-flex items-center rounded-full border border-[#dc2626]/18 bg-[#fff1f2] px-4 py-2 text-sm font-medium text-[#b91c1c] transition hover:bg-[#fee2e2]"
+                    >
+                      <DownloadCloud className="mr-2 h-4 w-4" />
+                      Bundle rezervare
                     </Link>
                   ) : null}
                   <DownloadTicketImageButton imageUrl={imageUrl} />
