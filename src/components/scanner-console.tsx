@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRef } from "react";
 import Link from "next/link";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { ArrowLeft, Camera, ShieldAlert, ShieldCheck, TicketX, X } from "lucide-react";
@@ -54,6 +55,26 @@ const resultStyles: Record<
   },
 };
 
+function getScannerErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+}
+
+function isPassiveScannerError(message: string) {
+  const normalized = message.toLowerCase();
+
+  return (
+    normalized.includes("notfound") ||
+    normalized.includes("no qr") ||
+    normalized.includes("no barcode") ||
+    normalized.includes("not found") ||
+    normalized.includes("could not detect")
+  );
+}
+
 export function ScannerConsole({
   match,
   backHref = "/scanner",
@@ -71,6 +92,10 @@ export function ScannerConsole({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastResult, setLastResult] = useState<ScanResponse | null>(null);
   const [overlayResult, setOverlayResult] = useState<ScanResponse | null>(null);
+  const [scannerKey, setScannerKey] = useState(0);
+  const [scannerErrorMessage, setScannerErrorMessage] = useState<string | null>(null);
+  const [manualToken, setManualToken] = useState("");
+  const lastSubmittedRef = useRef<{ value: string; at: number } | null>(null);
 
   useEffect(() => {
     window.localStorage.setItem(DEVICE_LABEL_STORAGE_KEY, deviceLabel);
@@ -96,10 +121,27 @@ export function ScannerConsole({
   );
 
   async function submitToken(rawValue: string) {
+    const normalizedRawValue = rawValue.trim();
+
+    if (!normalizedRawValue) {
+      return;
+    }
+
     if (isSubmitting) {
       return;
     }
 
+    const now = Date.now();
+    const lastSubmitted = lastSubmittedRef.current;
+
+    if (
+      lastSubmitted?.value === normalizedRawValue &&
+      now - lastSubmitted.at < 2500
+    ) {
+      return;
+    }
+
+    lastSubmittedRef.current = { value: normalizedRawValue, at: now };
     setIsSubmitting(true);
 
     try {
@@ -109,7 +151,7 @@ export function ScannerConsole({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          token: rawValue,
+          token: normalizedRawValue,
           matchId: match.id,
           deviceLabel,
         }),
@@ -173,37 +215,57 @@ export function ScannerConsole({
         <CardContent className="space-y-4">
           <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-black">
             <Scanner
+              key={scannerKey}
               onScan={(codes) => {
                 const rawValue = codes[0]?.rawValue;
                 if (rawValue) {
+                  setScannerErrorMessage(null);
                   void submitToken(rawValue);
                 }
               }}
               onError={(error) => {
-                const payload = {
-                  result: "invalid_token",
-                  message: String(error),
-                  credentialKind: "ticket",
-                  ticketCode: null,
-                  matchTitle: match.title,
-                  seatLabel: null,
-                  sectorLabel: null,
-                  scannedAt: new Date().toISOString(),
-                  holderName: null,
-                  holderBirthDate: null,
-                } satisfies ScanResponse;
-                setLastResult(payload);
-                setOverlayResult(payload);
+                const message = getScannerErrorMessage(error);
+
+                if (isPassiveScannerError(message)) {
+                  return;
+                }
+
+                setScannerErrorMessage(message);
               }}
               formats={["qr_code"]}
               paused={isSubmitting || Boolean(overlayResult)}
               allowMultiple={false}
               scanDelay={400}
+              components={{
+                finder: true,
+                torch: true,
+                zoom: true,
+              }}
+              sound
               constraints={{
                 facingMode: "environment",
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
               }}
             />
           </div>
+
+          {scannerErrorMessage ? (
+            <div className="rounded-[24px] border border-red-300/40 bg-red-500/12 p-4 text-sm leading-6 text-red-50">
+              <p className="font-semibold">Camera nu a pornit stabil.</p>
+              <p className="mt-1 text-white/72">{scannerErrorMessage}</p>
+              <Button
+                type="button"
+                onClick={() => {
+                  setScannerErrorMessage(null);
+                  setScannerKey((value) => value + 1);
+                }}
+                className="mt-3 rounded-full bg-white text-[#111111] hover:bg-white/90"
+              >
+                Reporneste camera
+              </Button>
+            </div>
+          ) : null}
 
           <Button
             type="button"
@@ -211,12 +273,46 @@ export function ScannerConsole({
             onClick={() => {
               setLastResult(null);
               setOverlayResult(null);
+              setScannerErrorMessage(null);
             }}
             className="w-full rounded-full border-white/12 bg-white/5 text-white hover:bg-white/10"
           >
             <Camera className="mr-2 h-4 w-4" />
             Curata rezultatul
           </Button>
+
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void submitToken(manualToken);
+              setManualToken("");
+            }}
+            className="rounded-[26px] border border-white/10 bg-white/5 p-4"
+          >
+            <Label htmlFor="manual-token" className="text-white">
+              Backup: token QR copiat
+            </Label>
+            <p className="mt-1 text-xs leading-5 text-white/55">
+              Daca telefonul nu decodeaza camera, poti scana QR-ul cu o aplicatie externa
+              si lipi aici textul obtinut.
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+              <Input
+                id="manual-token"
+                value={manualToken}
+                onChange={(event) => setManualToken(event.target.value)}
+                placeholder="Lipeste tokenul QR"
+                className="border-white/10 bg-black/20 text-white placeholder:text-white/30"
+              />
+              <Button
+                type="submit"
+                disabled={!manualToken.trim() || isSubmitting}
+                className="rounded-full bg-white text-[#111111] hover:bg-white/90"
+              >
+                Valideaza
+              </Button>
+            </div>
+          </form>
         </CardContent>
       </Card>
 

@@ -1,6 +1,7 @@
 import "server-only";
 
-import { SignJWT, jwtVerify } from "jose";
+import { createHmac, timingSafeEqual } from "node:crypto";
+import { jwtVerify } from "jose";
 import QRCode from "qrcode";
 import { z } from "zod";
 
@@ -58,6 +59,8 @@ const verifiedAccessPayloadSchema = z.discriminatedUnion("kind", [
 ]);
 
 const encoder = new TextEncoder();
+const COMPACT_ACCESS_TOKEN_PREFIX = "m1";
+const COMPACT_ACCESS_TOKEN_SIGNATURE_BYTES = 16;
 
 function getJwtSecret() {
   return encoder.encode(
@@ -65,35 +68,84 @@ function getJwtSecret() {
   );
 }
 
-export async function signTicketToken(payload: TicketPayload) {
-  const compactPayload = {
-    c: payload.code,
-    v: payload.version,
-    k: "t" as const,
-  };
+function getHmacSecret() {
+  return process.env.SUPABASE_JWT_SECRET ?? "milsami-demo-secret-for-local-builds-only";
+}
 
-  return new SignJWT(compactPayload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("14d")
-    .sign(getJwtSecret());
+function encodeCode(code: string) {
+  return Buffer.from(code, "utf8").toString("base64url");
+}
+
+function decodeCode(value: string) {
+  return Buffer.from(value, "base64url").toString("utf8");
+}
+
+function signCompactAccessToken(kind: "t" | "s", code: string, version: number) {
+  const body = `${COMPACT_ACCESS_TOKEN_PREFIX}.${kind}.${encodeCode(code)}.${version}`;
+  const signature = createHmac("sha256", getHmacSecret())
+    .update(body)
+    .digest()
+    .subarray(0, COMPACT_ACCESS_TOKEN_SIGNATURE_BYTES)
+    .toString("base64url");
+
+  return `${body}.${signature}`;
+}
+
+function verifyCompactAccessToken(token: string) {
+  const parts = token.split(".");
+
+  if (parts.length !== 5 || parts[0] !== COMPACT_ACCESS_TOKEN_PREFIX) {
+    return null;
+  }
+
+  const [, kind, encodedCode, rawVersion, signature] = parts;
+
+  if (kind !== "t" && kind !== "s") {
+    return null;
+  }
+
+  const version = Number(rawVersion);
+
+  if (!Number.isInteger(version) || version < 0) {
+    return null;
+  }
+
+  const body = `${COMPACT_ACCESS_TOKEN_PREFIX}.${kind}.${encodedCode}.${rawVersion}`;
+  const expectedSignature = createHmac("sha256", getHmacSecret())
+    .update(body)
+    .digest()
+    .subarray(0, COMPACT_ACCESS_TOKEN_SIGNATURE_BYTES);
+  const receivedSignature = Buffer.from(signature, "base64url");
+
+  if (
+    receivedSignature.length !== expectedSignature.length ||
+    !timingSafeEqual(receivedSignature, expectedSignature)
+  ) {
+    throw new Error("Semnatura compacta QR nu este valida.");
+  }
+
+  return verifiedAccessPayloadSchema.parse({
+    code: decodeCode(encodedCode),
+    version,
+    kind: kind === "t" ? "ticket" : "subscription",
+  });
+}
+
+export async function signTicketToken(payload: TicketPayload) {
+  return signCompactAccessToken("t", payload.code, payload.version);
 }
 
 export async function signSubscriptionToken(payload: SubscriptionPayload) {
-  const compactPayload = {
-    c: payload.code,
-    v: payload.version,
-    k: "s" as const,
-  };
-
-  return new SignJWT(compactPayload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("180d")
-    .sign(getJwtSecret());
+  return signCompactAccessToken("s", payload.code, payload.version);
 }
 
 export async function verifyAccessToken(token: string) {
+  const compactPayload = verifyCompactAccessToken(token);
+
+  if (compactPayload) {
+    return compactPayload;
+  }
+
   const { payload } = await jwtVerify(token, getJwtSecret());
 
   const compactResult = compactTicketPayloadSchema.safeParse(payload);
@@ -143,8 +195,8 @@ export async function generateTicketQrDataUrl(payload: TicketPayload) {
   const qrToken = await signTicketToken(payload);
 
   return QRCode.toDataURL(qrToken, {
-    errorCorrectionLevel: "L",
-    margin: 1,
+    errorCorrectionLevel: "M",
+    margin: 2,
     color: {
       dark: "#111111",
       light: "#ffffff",
@@ -156,8 +208,8 @@ export async function generateSubscriptionQrDataUrl(payload: SubscriptionPayload
   const qrToken = await signSubscriptionToken(payload);
 
   return QRCode.toDataURL(qrToken, {
-    errorCorrectionLevel: "L",
-    margin: 1,
+    errorCorrectionLevel: "M",
+    margin: 2,
     color: {
       dark: "#111111",
       light: "#ffffff",
