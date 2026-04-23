@@ -174,7 +174,7 @@ export const messages = {
       goToCabinet: "Mergi in cabinet",
     },
     matchCard: {
-      estimatedSeats: "locuri estimate",
+    estimatedSeats: "locuri disponibile",
       freeOpen: "Bilet gratuit",
       paidOpen: "Procurare cu plata",
       defaultDescription:
@@ -370,7 +370,7 @@ export const messages = {
       goToCabinet: "Перейти в кабинет",
     },
     matchCard: {
-      estimatedSeats: "мест примерно",
+    estimatedSeats: "доступных мест",
       freeOpen: "Бесплатный билет",
       paidOpen: "Платная покупка",
       defaultDescription:

@@ -95,9 +95,14 @@ export function SectorSeatMap({
             </p>
           </div>
         </div>
-        <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
-          {sector.seats.length} {copy.seats}
-        </p>
+        <div className="rounded-full border border-black/6 bg-white px-4 py-2 text-right shadow-[0_12px_34px_-28px_rgba(17,17,17,0.45)]">
+          <p className="text-sm font-semibold text-[#111111]">
+            {availableSeatsCount} {copy.available}
+          </p>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
+            / {sector.seats.length} {copy.seats}
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">

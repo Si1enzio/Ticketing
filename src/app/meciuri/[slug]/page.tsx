@@ -112,7 +112,7 @@ export default async function MatchDetailPage({
             <div className="grid gap-3 text-sm text-neutral-700">
               <StatChip label="Bilete emise" value={match.issuedCount} />
               <StatChip label="Bilete scanate" value={match.scannedCount} />
-              <StatChip label="Locuri estimate disponibile" value={match.availableEstimate} />
+              <StatChip label="Locuri disponibile" value={match.availableEstimate} />
             </div>
 
             <div className="rounded-[26px] border border-black/6 bg-neutral-50 p-4">
