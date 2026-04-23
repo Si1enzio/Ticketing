@@ -9,6 +9,7 @@ const navItems = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/meciuri", label: "Meciuri" },
   { href: "/admin/stadion", label: "Stadion" },
+  { href: "/admin/tombola", label: "Tombola" },
   { href: "/admin/utilizatori", label: "Utilizatori" },
   { href: "/admin/abuz", label: "Abuz" },
 ] as const;

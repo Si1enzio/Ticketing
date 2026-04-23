@@ -451,6 +451,24 @@ export const scanLogEntrySchema = z.object({
 
 export type ScanLogEntry = z.infer<typeof scanLogEntrySchema>;
 
+export const raffleCandidateSchema = z.object({
+  id: z.string(),
+  matchId: z.string(),
+  credentialKind: accessCredentialKindSchema.default("ticket"),
+  code: z.string(),
+  holderName: z.string().nullable().default(null),
+  holderEmail: z.string().nullable().default(null),
+  seatLabel: z.string().nullable().default(null),
+  rowLabel: z.string().nullable().default(null),
+  seatNumber: z.coerce.number().int().nullable().default(null),
+  sectorName: z.string().nullable().default(null),
+  standName: z.string().nullable().default(null),
+  gateName: z.string().nullable().default(null),
+  scannedAt: z.string(),
+});
+
+export type RaffleCandidate = z.infer<typeof raffleCandidateSchema>;
+
 export const adminUserStatsSchema = z.object({
   userId: z.string(),
   email: z.string().nullable().default(null),

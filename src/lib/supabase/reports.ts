@@ -6,11 +6,13 @@ import {
   matchSeatOverrideSchema,
   matchSectorPricingOverrideSchema,
   scanLogEntrySchema,
+  raffleCandidateSchema,
   subscriptionProductSchema,
   type AdminUserStats,
   type MatchSeatOverride,
   type MatchSectorPricingOverride,
   type MatchReport,
+  type RaffleCandidate,
   type ScanLogEntry,
   type SubscriptionProduct,
   type UserSubscription,
@@ -247,6 +249,73 @@ export async function getMatchSectorPricingOverrides(
     );
   } catch (error) {
     console.error("Nu am putut incarca preturile pe sectoare pentru meci.", error);
+    return [];
+  }
+}
+
+export async function getMatchRaffleCandidates(matchId: string): Promise<RaffleCandidate[]> {
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    if (!supabase) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from("scan_log_overview")
+      .select("*")
+      .eq("match_id", matchId)
+      .eq("result", "valid")
+      .order("scanned_at", { ascending: true })
+      .limit(5000);
+
+    if (error) {
+      throw error;
+    }
+
+    const uniqueByCredential = new Map<string, RaffleCandidate>();
+
+    for (const row of (data ?? []) as Record<string, unknown>[]) {
+      const credentialKind = String(row.credential_kind ?? "ticket");
+      const code = String(row.ticket_code ?? row.subscription_code ?? "");
+
+      if (!code) {
+        continue;
+      }
+
+      const uniqueKey = `${credentialKind}:${code}`;
+
+      if (uniqueByCredential.has(uniqueKey)) {
+        continue;
+      }
+
+      uniqueByCredential.set(
+        uniqueKey,
+        raffleCandidateSchema.parse({
+          id: uniqueKey,
+          matchId: row.match_id,
+          credentialKind,
+          code,
+          holderName: row.holder_name,
+          holderEmail: row.holder_email,
+          seatLabel: row.seat_label,
+          rowLabel: row.row_label,
+          seatNumber: row.seat_number,
+          sectorName: row.sector_name,
+          standName: row.stand_name,
+          gateName: row.gate_name,
+          scannedAt: row.scanned_at,
+        }),
+      );
+    }
+
+    return Array.from(uniqueByCredential.values());
+  } catch (error) {
+    console.error("Nu am putut incarca lista pentru tombola.", error);
     return [];
   }
 }
