@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 
 import { SubscriptionDocument } from "@/lib/pdf/subscription-document";
+import { withNoStoreHeaders } from "@/lib/security/http";
 import { generateSubscriptionQrDataUrl } from "@/lib/security/tickets";
 import { getSubscriptionByCode, getViewerContext } from "@/lib/supabase/queries";
 
@@ -28,6 +29,7 @@ export async function GET(
 
   return new Response(new Uint8Array(buffer), {
     headers: {
+      ...Object.fromEntries(withNoStoreHeaders()),
       "Content-Type": "application/pdf",
       "Content-Disposition": `${shouldDownload ? "attachment" : "inline"}; filename="${subscription.subscriptionCode}.pdf"`,
     },

@@ -5,6 +5,7 @@ import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 import { createElement as h } from "react";
 
+import { withNoStoreHeaders } from "@/lib/security/http";
 import { generateTicketQrDataUrl } from "@/lib/security/tickets";
 import { getTicketByCode, getViewerContext } from "@/lib/supabase/queries";
 
@@ -412,7 +413,7 @@ export async function GET(
   );
 
   const shouldDownload = request.nextUrl.searchParams.get("download") === "1";
-  const headers = new Headers(image.headers);
+  const headers = withNoStoreHeaders(image.headers);
   headers.set("Content-Type", "image/png");
   headers.set(
     "Content-Disposition",

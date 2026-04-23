@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { hasAnyRole } from "@/lib/auth/roles";
+import { withNoStoreHeaders } from "@/lib/security/http";
 import { getAdminMatchOverview, getAdminUsersOverview, getViewerContext } from "@/lib/supabase/queries";
 import { getAdminUserStats, getMatchReport } from "@/lib/supabase/reports";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -149,8 +150,10 @@ export async function GET(request: Request) {
 
   return new NextResponse(csv, {
     headers: {
+      ...Object.fromEntries(withNoStoreHeaders()),
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="${kind}.csv"`,
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

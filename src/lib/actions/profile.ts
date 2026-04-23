@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { profileGenderSchema } from "@/lib/domain/types";
 import { isSupabaseConfigured } from "@/lib/env";
+import { ensureTrustedServerActionRequest } from "@/lib/security/http";
 import { getViewerContext } from "@/lib/supabase/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -28,6 +29,8 @@ const profileUpdateSchema = z.object({
 });
 
 export async function updateViewerProfileAction(formData: FormData) {
+  await ensureTrustedServerActionRequest();
+
   const viewer = await getViewerContext();
 
   if (!viewer.userId || !isSupabaseConfigured()) {

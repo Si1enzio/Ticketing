@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 
 import { TicketGroupDocument } from "@/lib/pdf/ticket-group-document";
+import { withNoStoreHeaders } from "@/lib/security/http";
 import { generateTicketQrDataUrl } from "@/lib/security/tickets";
 import {
   getStadiumSponsors,
@@ -49,6 +50,7 @@ export async function GET(
 
   return new Response(new Uint8Array(buffer), {
     headers: {
+      ...Object.fromEntries(withNoStoreHeaders()),
       "Content-Type": "application/pdf",
       "Content-Disposition": `${shouldDownload ? "attachment" : "inline"}; filename="bundle-${tickets[0].matchSlug}-${fileSuffix}.pdf"`,
     },

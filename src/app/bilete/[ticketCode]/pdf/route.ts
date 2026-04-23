@@ -1,6 +1,7 @@
 import { renderToBuffer } from "@react-pdf/renderer";
 
 import { TicketDocument } from "@/lib/pdf/ticket-document";
+import { withNoStoreHeaders } from "@/lib/security/http";
 import { generateTicketQrDataUrl } from "@/lib/security/tickets";
 import {
   getStadiumSponsors,
@@ -34,6 +35,7 @@ export async function GET(
 
   return new Response(new Uint8Array(buffer), {
     headers: {
+      ...Object.fromEntries(withNoStoreHeaders()),
       "Content-Type": "application/pdf",
       "Content-Disposition": `${shouldDownload ? "attachment" : "inline"}; filename="${ticket.ticketCode}.pdf"`,
     },

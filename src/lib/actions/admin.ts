@@ -6,6 +6,10 @@ import { z } from "zod";
 
 import { hasAnyRole } from "@/lib/auth/roles";
 import { isSupabaseConfigured } from "@/lib/env";
+import {
+  ensureTrustedServerActionRequest,
+  sanitizeUserFacingErrorMessage,
+} from "@/lib/security/http";
 import { stadiumMapConfigSchema } from "@/lib/stadium/stadium-schema";
 import { getViewerContext } from "@/lib/supabase/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -193,6 +197,8 @@ const ticketActionSchema = z.object({
 async function ensureAdmin(): Promise<
   Awaited<ReturnType<typeof getViewerContext>> & { userId: string }
 > {
+  await ensureTrustedServerActionRequest();
+
   const viewer = await getViewerContext();
 
   if (!viewer.userId || !hasAnyRole(viewer.roles, ["admin", "superadmin"])) {
@@ -1356,7 +1362,10 @@ export async function createMatchAction(formData: FormData) {
     console.error("Nu am putut crea meciul.", insertError);
     redirectToAdminMatches({
       error:
-        insertError?.message ??
+        sanitizeUserFacingErrorMessage(
+          insertError?.message,
+          "Meciul nu a putut fi creat. Verifica datele si incearca din nou.",
+        ) ??
         "Meciul nu a putut fi creat. Verifica datele si incearca din nou.",
     });
   }
@@ -1381,7 +1390,10 @@ export async function createMatchAction(formData: FormData) {
     console.error("Nu am putut salva setarile meciului nou.", settingsError);
     redirectToAdminMatches({
       error:
-        settingsError.message ??
+        sanitizeUserFacingErrorMessage(
+          settingsError.message,
+          "Setarile meciului nu au putut fi salvate. Incearca din nou.",
+        ) ??
         "Setarile meciului nu au putut fi salvate. Incearca din nou.",
     });
   }
@@ -1767,7 +1779,10 @@ export async function updateMatchAction(formData: FormData) {
     console.error("Nu am putut actualiza meciul.", updateError);
     redirectToAdminMatches({
       error:
-        updateError.message ??
+        sanitizeUserFacingErrorMessage(
+          updateError.message,
+          "Meciul nu a putut fi actualizat. Verifica datele si incearca din nou.",
+        ) ??
         "Meciul nu a putut fi actualizat. Verifica datele si incearca din nou.",
     });
   }
@@ -1792,7 +1807,10 @@ export async function updateMatchAction(formData: FormData) {
     console.error("Nu am putut actualiza setarile meciului.", settingsError);
     redirectToAdminMatches({
       error:
-        settingsError.message ??
+        sanitizeUserFacingErrorMessage(
+          settingsError.message,
+          "Setarile meciului nu au putut fi actualizate. Incearca din nou.",
+        ) ??
         "Setarile meciului nu au putut fi actualizate. Incearca din nou.",
     });
   }

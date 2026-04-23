@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { isSupabaseConfigured } from "@/lib/env";
+import {
+  ensureTrustedServerActionRequest,
+  sanitizeUserFacingErrorMessage,
+} from "@/lib/security/http";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const holdSchema = z.object({
@@ -24,6 +28,8 @@ const paymentSchema = z.object({
 });
 
 export async function holdSeatsAction(input: z.input<typeof holdSchema>) {
+  await ensureTrustedServerActionRequest();
+
   const parsed = holdSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -59,7 +65,10 @@ export async function holdSeatsAction(input: z.input<typeof holdSchema>) {
   if (error) {
     return {
       ok: false,
-      message: error.message,
+      message: sanitizeUserFacingErrorMessage(
+        error.message,
+        "Locurile nu au putut fi blocate acum. Reincearca imediat.",
+      ),
     };
   }
 
@@ -73,6 +82,8 @@ export async function holdSeatsAction(input: z.input<typeof holdSchema>) {
 }
 
 export async function confirmSeatHoldAction(input: z.input<typeof confirmSchema>) {
+  await ensureTrustedServerActionRequest();
+
   const parsed = confirmSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -108,7 +119,10 @@ export async function confirmSeatHoldAction(input: z.input<typeof confirmSchema>
   if (error) {
     return {
       ok: false,
-      message: error.message,
+      message: sanitizeUserFacingErrorMessage(
+        error.message,
+        "Biletele nu au putut fi emise acum. Reincearca imediat.",
+      ),
     };
   }
 
@@ -123,6 +137,8 @@ export async function confirmSeatHoldAction(input: z.input<typeof confirmSchema>
 }
 
 export async function completeDemoCheckoutAction(input: z.input<typeof paymentSchema>) {
+  await ensureTrustedServerActionRequest();
+
   const parsed = paymentSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -157,7 +173,10 @@ export async function completeDemoCheckoutAction(input: z.input<typeof paymentSc
   if (error) {
     return {
       ok: false,
-      message: error.message,
+      message: sanitizeUserFacingErrorMessage(
+        error.message,
+        "Plata demo nu a putut fi confirmata acum. Reincearca imediat.",
+      ),
     };
   }
 

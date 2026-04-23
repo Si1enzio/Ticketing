@@ -3,6 +3,8 @@ import { z } from "zod";
 
 import { hasAnyRole } from "@/lib/auth/roles";
 import { scanResponseSchema } from "@/lib/domain/types";
+import { withNoStoreHeaders, isTrustedOriginValue } from "@/lib/security/http";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 import {
   formatTicketFingerprint,
   verifyAccessToken,
@@ -16,16 +18,63 @@ const requestSchema = z.object({
   deviceLabel: z.string().max(120).optional(),
 });
 
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return NextResponse.json(body, {
+    status,
+    headers: withNoStoreHeaders(),
+  });
+}
+
 export async function POST(request: Request) {
+  const requestOrigin = request.headers.get("origin");
+  const contentType = request.headers.get("content-type") ?? "";
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  const clientIp = forwardedFor?.split(",")[0]?.trim() || "unknown";
+  const ipRateLimit = checkRateLimit({
+    key: `scanner:ip:${clientIp}`,
+    limit: 180,
+    windowMs: 60_000,
+  });
+
+  if (!ipRateLimit.ok) {
+    return jsonResponse(
+      {
+        result: "blocked",
+        message: "Prea multe incercari de scanare intr-un interval scurt.",
+      },
+      429,
+    );
+  }
+
+  if (requestOrigin && !isTrustedOriginValue(requestOrigin, request.url)) {
+    return jsonResponse(
+      {
+        result: "blocked",
+        message: "Originea cererii nu este permisa pentru scanner.",
+      },
+      403,
+    );
+  }
+
+  if (!contentType.toLowerCase().includes("application/json")) {
+    return jsonResponse(
+      {
+        result: "invalid_token",
+        message: "Cererea pentru scanner trebuie trimisa in format JSON.",
+      },
+      415,
+    );
+  }
+
   const viewer = await getViewerContext();
 
   if (!hasAnyRole(viewer.roles, ["steward", "admin", "superadmin"])) {
-    return NextResponse.json(
+    return jsonResponse(
       {
         result: "blocked",
         message: "Nu ai permisiunea de a folosi scannerul.",
       },
-      { status: 403 },
+      403,
     );
   }
 
@@ -33,22 +82,38 @@ export async function POST(request: Request) {
   const parsed = requestSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
+    return jsonResponse(
       {
         result: "invalid_token",
         message: "Payload invalid pentru validare.",
       },
-      { status: 400 },
+      400,
     );
   }
 
   if (!viewer.userId) {
-    return NextResponse.json(
+    return jsonResponse(
       {
         result: "blocked",
         message: "Sesiunea stewardului nu este valida.",
       },
-      { status: 403 },
+      403,
+    );
+  }
+
+  const stewardRateLimit = checkRateLimit({
+    key: `scanner:steward:${viewer.userId}`,
+    limit: 90,
+    windowMs: 15_000,
+  });
+
+  if (!stewardRateLimit.ok) {
+    return jsonResponse(
+      {
+        result: "blocked",
+        message: "Scannerul primeste prea multe cereri simultan. Reincearca imediat.",
+      },
+      429,
     );
   }
 
@@ -57,24 +122,24 @@ export async function POST(request: Request) {
   try {
     payload = await verifyAccessToken(parsed.data.token);
   } catch {
-    return NextResponse.json(
+    return jsonResponse(
       {
         result: "invalid_token",
         message: "Semnatura QR nu este valida.",
       },
-      { status: 400 },
+      400,
     );
   }
 
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
-    return NextResponse.json(
+    return jsonResponse(
       {
         result: "invalid_token",
         message: "Conexiunea Supabase nu este disponibila.",
       },
-      { status: 500 },
+      500,
     );
   }
 
@@ -107,12 +172,12 @@ export async function POST(request: Request) {
   if (error) {
     console.error("Eroare RPC la scanare.", error);
 
-    return NextResponse.json(
+    return jsonResponse(
       {
         result: "invalid_token",
         message: "A aparut o eroare la validarea credentialului. Reincearca imediat.",
       },
-      { status: 400 },
+      400,
     );
   }
 
@@ -129,5 +194,5 @@ export async function POST(request: Request) {
     holderBirthDate: data?.holder_birth_date ?? null,
   });
 
-  return NextResponse.json(result);
+  return jsonResponse(result);
 }
