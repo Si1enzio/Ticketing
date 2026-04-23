@@ -14,6 +14,7 @@ import { TicketSwipeShell } from "@/components/ticket-swipe-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { env } from "@/lib/env";
+import { formatSeatPosition } from "@/lib/format/seat";
 import { getServerI18n } from "@/lib/i18n/server";
 import type { TicketCard } from "@/lib/domain/types";
 import { getTicketByCode, getViewerContext, getViewerTickets } from "@/lib/supabase/queries";
@@ -178,7 +179,7 @@ export default async function TicketPage({
                 />
                 <Info title="Stadion" value={ticket.stadiumName} />
                 <Info title="Sector" value={ticket.sectorName} />
-                <Info title="Rand / loc" value={`${ticket.rowLabel} / ${ticket.seatNumber}`} />
+                <Info title="Pozitie loc" value={formatSeatPosition(ticket)} />
                 <Info title="Poarta" value={ticket.gateName ?? "Nealocata"} />
                 <Info
                   title="Titular"

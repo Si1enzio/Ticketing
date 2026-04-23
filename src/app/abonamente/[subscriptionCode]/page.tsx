@@ -7,6 +7,7 @@ import { SubscriptionQr } from "@/components/subscription-qr";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { env } from "@/lib/env";
+import { formatSeatPosition } from "@/lib/format/seat";
 import { getSubscriptionByCode, getViewerContext } from "@/lib/supabase/queries";
 
 const statusMap = {
@@ -102,8 +103,8 @@ export default async function SubscriptionPage({
                 <Info label="Poarta" value={subscription.gateName ?? "Libera"} />
                 <Info label="Sector" value={subscription.sectorName ?? "Fara sector"} />
                 <Info
-                  label="Rand / loc"
-                  value={`${subscription.rowLabel ?? "-"} / ${subscription.seatNumber ?? "-"}`}
+                  label="Pozitie loc"
+                  value={formatSeatPosition(subscription)}
                 />
               </div>
             </CardContent>

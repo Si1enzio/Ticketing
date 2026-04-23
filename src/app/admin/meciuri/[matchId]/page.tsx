@@ -8,6 +8,7 @@ import { MatchSectorPricingManager } from "@/components/admin/match-sector-prici
 import { MatchSeatOverridesManager } from "@/components/admin/match-seat-overrides-manager";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatSectorSeatPosition } from "@/lib/format/seat";
 import { getAdminMatchOverview, getSeatMapForMatch, getStadiumMapConfigByStadiumId } from "@/lib/supabase/queries";
 import {
   getMatchReport,
@@ -142,9 +143,7 @@ export default async function AdminMatchDetailsPage({
                   </div>
 
                   <div className="mt-3 grid gap-2 text-sm text-neutral-600 sm:grid-cols-2 xl:grid-cols-4">
-                    <p>
-                      Loc: {scan.sectorName ?? "-"} · {scan.rowLabel ?? "-"} / {scan.seatNumber ?? "-"}
-                    </p>
+                    <p>Pozitie: {formatSectorSeatPosition(scan)}</p>
                     <p>Tribună: {scan.standName ?? "Nedefinită"}</p>
                     <p>Poartă: {scan.gateName ?? "Nedefinită"}</p>
                     <p>Dispozitiv: {scan.deviceLabel ?? "Necunoscut"}</p>

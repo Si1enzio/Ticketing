@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { TicketCard } from "@/lib/domain/types";
 import { isSupabaseConfigured } from "@/lib/env";
+import { formatSeatPosition } from "@/lib/format/seat";
 import { getServerI18n } from "@/lib/i18n/server";
 import { getUserSubscriptions } from "@/lib/supabase/reports";
 import {
@@ -137,8 +138,8 @@ export default async function CabinetPage() {
                     )}
                   </p>
                   <p className="text-sm text-neutral-600">
-                    Stadion: {subscription.stadiumName ?? "Nedefinit"} - loc{" "}
-                    {subscription.rowLabel ?? "-"} / {subscription.seatNumber ?? "-"}
+                    Stadion: {subscription.stadiumName ?? "Nedefinit"} -{" "}
+                    {formatSeatPosition(subscription)}
                   </p>
                   <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
                     {subscription.product.durationMonths} luni -{" "}

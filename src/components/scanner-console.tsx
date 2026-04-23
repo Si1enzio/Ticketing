@@ -7,6 +7,7 @@ import { Scanner, setZXingModuleOverrides } from "@yudiel/react-qr-scanner";
 import { ArrowLeft, Camera, ShieldAlert, ShieldCheck, TicketX, X } from "lucide-react";
 
 import type { ScanResponse, ScannerMatch } from "@/lib/domain/types";
+import { formatSeatPosition } from "@/lib/format/seat";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -371,7 +372,16 @@ export function ScannerConsole({
                 ) : null}
                 {lastResult.matchTitle ? <p>Meci: {lastResult.matchTitle}</p> : null}
                 {lastResult.sectorLabel ? <p>Sector: {lastResult.sectorLabel}</p> : null}
-                {lastResult.seatLabel ? <p>Loc: {lastResult.seatLabel}</p> : null}
+                {hasSeatPosition(lastResult) ? (
+                  <p>
+                    Pozitie:{" "}
+                    {formatSeatPosition({
+                      rowLabel: lastResult.rowLabel,
+                      seatNumber: lastResult.seatNumber,
+                      seatLabel: lastResult.seatLabel,
+                    })}
+                  </p>
+                ) : null}
                 {lastResult.holderName ? <p>Titular: {lastResult.holderName}</p> : null}
                 {lastResult.holderBirthDate ? (
                   <p>
@@ -432,4 +442,8 @@ export function ScannerConsole({
       ) : null}
     </div>
   );
+}
+
+function hasSeatPosition(result: ScanResponse) {
+  return Boolean(result.rowLabel || result.seatNumber != null || result.seatLabel);
 }

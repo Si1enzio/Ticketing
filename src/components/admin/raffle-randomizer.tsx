@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { RaffleCandidate } from "@/lib/domain/types";
+import { formatSeatPosition } from "@/lib/format/seat";
 
 export function RaffleRandomizer({
   candidates,
@@ -20,7 +21,7 @@ export function RaffleRandomizer({
   const participantLabel = candidates.length === 1 ? "participant validat" : "participanti validati";
 
   const csvText = useMemo(() => {
-    const header = ["#", "Nume", "Cod", "Loc", "Sector", "Tribuna", "Poarta", "Scanat la"];
+    const header = ["#", "Nume", "Cod", "Pozitie loc", "Sector", "Tribuna", "Poarta", "Scanat la"];
     const rows = winners.map((winner, index) => [
       String(index + 1),
       getDisplayName(winner),
@@ -191,7 +192,7 @@ function WinnerCard({ winner, index }: { winner: RaffleCandidate; index: number 
         </p>
       </div>
       <div className="mt-3 grid gap-2 text-sm text-neutral-600 sm:grid-cols-2">
-        <p>Loc: {getSeatLabel(winner)}</p>
+        <p>Pozitie: {getSeatLabel(winner)}</p>
         <p>Sector: {winner.sectorName ?? "-"}</p>
         <p>Tribuna: {winner.standName ?? "-"}</p>
         <p>Poarta: {winner.gateName ?? "-"}</p>
@@ -207,15 +208,7 @@ function getDisplayName(candidate: RaffleCandidate) {
 }
 
 function getSeatLabel(candidate: RaffleCandidate) {
-  if (candidate.seatLabel) {
-    return candidate.seatLabel;
-  }
-
-  if (candidate.rowLabel || candidate.seatNumber !== null) {
-    return `Rand ${candidate.rowLabel ?? "-"} / loc ${candidate.seatNumber ?? "-"}`;
-  }
-
-  return "-";
+  return formatSeatPosition(candidate);
 }
 
 function shuffleWithCrypto<T>(items: T[]) {

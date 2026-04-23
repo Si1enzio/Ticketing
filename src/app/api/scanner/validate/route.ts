@@ -188,6 +188,8 @@ export async function POST(request: Request) {
     ticketCode: data?.ticket_code ?? data?.subscription_code ?? null,
     matchTitle: data?.match_title ?? null,
     seatLabel: data?.seat_label ?? null,
+    rowLabel: data?.row_label ?? null,
+    seatNumber: data?.seat_number ?? null,
     sectorLabel: data?.sector_label ?? null,
     scannedAt: data?.scanned_at ?? null,
     holderName: data?.holder_name ?? null,

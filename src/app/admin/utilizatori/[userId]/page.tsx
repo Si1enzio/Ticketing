@@ -6,6 +6,7 @@ import { ro } from "date-fns/locale";
 
 import { AdminSubscriptionAssignmentForm } from "@/components/admin/admin-subscription-assignment-form";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatSectorSeatPosition, formatSeatPosition } from "@/lib/format/seat";
 import { getStadiumBuilderData, getAdminUserProfileDetails } from "@/lib/supabase/queries";
 import {
   getAdminUserStats,
@@ -142,9 +143,7 @@ export default async function AdminUserDetailsPage({
                       <p>Cod: {subscription.subscriptionCode}</p>
                       <p>Stadion: {subscription.stadiumName ?? "Nedefinit"}</p>
                       <p>Sector: {subscription.sectorName ?? "Fara sector"}</p>
-                      <p>
-                        Loc: {subscription.rowLabel ?? "-"} / {subscription.seatNumber ?? "-"}
-                      </p>
+                      <p>Pozitie: {formatSeatPosition(subscription)}</p>
                       <p>Poarta: {subscription.gateName ?? "Libera"}</p>
                       <p>
                         Valoare: {(subscription.pricePaidCents / 100).toFixed(2)} {subscription.currency}
@@ -200,7 +199,7 @@ export default async function AdminUserDetailsPage({
                       <p className="mt-1 text-sm text-neutral-600">
                         {scan.credentialKind === "subscription" ? "Abonament" : "Bilet"}:{" "}
                         {scan.subscriptionCode ?? scan.ticketCode ?? "Cod lipsa"} -{" "}
-                        {scan.sectorName ?? "Sector"} - {scan.rowLabel ?? "-"} / {scan.seatNumber ?? "-"}
+                        {formatSectorSeatPosition(scan)}
                       </p>
                     </div>
                     <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">

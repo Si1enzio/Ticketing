@@ -384,6 +384,8 @@ export const scanResponseSchema = z.object({
   ticketCode: z.string().nullable().default(null),
   matchTitle: z.string().nullable().default(null),
   seatLabel: z.string().nullable().default(null),
+  rowLabel: z.string().nullable().default(null),
+  seatNumber: z.coerce.number().int().nullable().default(null),
   sectorLabel: z.string().nullable().default(null),
   scannedAt: z.string().nullable().default(null),
   holderName: z.string().nullable().default(null),

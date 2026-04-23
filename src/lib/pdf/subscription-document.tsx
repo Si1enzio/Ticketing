@@ -4,6 +4,7 @@ import path from "node:path";
 import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 import type { UserSubscription } from "@/lib/domain/types";
+import { formatSeatPosition } from "@/lib/format/seat";
 
 const pdfFontFamily = "GeistSubscriptionPdf";
 const geistPdfFontPath = path.join(
@@ -185,8 +186,8 @@ export function SubscriptionDocument({
               <SubscriptionField label="Poarta" value={subscription.gateName ?? "Libera"} />
               <SubscriptionField label="Sector" value={subscription.sectorName ?? "Fara sector"} />
               <SubscriptionField
-                label="Rand / loc"
-                value={`${subscription.rowLabel ?? "-"} / ${subscription.seatNumber ?? "-"}`}
+                label="Pozitie loc"
+                value={formatSeatPosition(subscription)}
               />
             </View>
 
