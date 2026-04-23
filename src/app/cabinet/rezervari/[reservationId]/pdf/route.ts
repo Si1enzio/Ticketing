@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 
 import { TicketGroupDocument } from "@/lib/pdf/ticket-group-document";
+import { getTicketGroupFilenamePrefix, getTicketGroupPdfOptions } from "@/lib/pdf/ticket-group-options";
 import { withNoStoreHeaders } from "@/lib/security/http";
 import { generateTicketQrDataUrl } from "@/lib/security/tickets";
 import {
@@ -43,16 +44,20 @@ export async function GET(
     ),
   );
   const sponsors = await getStadiumSponsors(tickets[0].stadiumId);
-  const buffer = await renderToBuffer(TicketGroupDocument({ tickets, qrDataUrls, sponsors }));
   const url = new URL(request.url);
+  const pdfOptions = getTicketGroupPdfOptions(url);
+  const buffer = await renderToBuffer(
+    TicketGroupDocument({ tickets, qrDataUrls, sponsors, ...pdfOptions }),
+  );
   const shouldDownload = url.searchParams.get("download") === "1";
   const fileSuffix = reservationId.slice(0, 8).toUpperCase();
+  const prefix = getTicketGroupFilenamePrefix(pdfOptions);
 
   return new Response(new Uint8Array(buffer), {
     headers: {
       ...Object.fromEntries(withNoStoreHeaders()),
       "Content-Type": "application/pdf",
-      "Content-Disposition": `${shouldDownload ? "attachment" : "inline"}; filename="bundle-${tickets[0].matchSlug}-${fileSuffix}.pdf"`,
+      "Content-Disposition": `${shouldDownload ? "attachment" : "inline"}; filename="${prefix}-${tickets[0].matchSlug}-${fileSuffix}.pdf"`,
     },
   });
 }

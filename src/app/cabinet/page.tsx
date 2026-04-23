@@ -368,6 +368,7 @@ function MatchTicketGroupCard({
             Descarca PDF grupat
           </Link>
         </div>
+        <SheetPrintLinks baseUrl={`/cabinet/meciuri/${matchId}/pdf`} labelPrefix="A4" />
       </CardContent>
     </Card>
   );
@@ -421,8 +422,40 @@ function ReservationBundleCard({
             Vezi grupul
           </Link>
         </div>
+        <SheetPrintLinks
+          baseUrl={`/cabinet/rezervari/${bundle.reservationId}/pdf`}
+          labelPrefix="Print taiere"
+        />
       </CardContent>
     </Card>
+  );
+}
+
+function SheetPrintLinks({ baseUrl, labelPrefix }: { baseUrl: string; labelPrefix: string }) {
+  return (
+    <div className="flex w-full basis-full flex-wrap items-center gap-2 border-t border-black/6 pt-3 text-xs text-neutral-600 md:justify-end">
+      <span className="mr-1 font-medium text-[#111111]">{labelPrefix}:</span>
+      {[3, 4, 6].map((count) => (
+        <Link
+          key={count}
+          href={`${baseUrl}?layout=cut-sheet&perPage=${count}`}
+          target="_blank"
+          className="inline-flex rounded-full border border-black/10 bg-white px-3 py-1.5 font-medium text-[#111111] transition hover:bg-neutral-100"
+        >
+          {count} / foaie
+        </Link>
+      ))}
+      {[3, 4, 6].map((count) => (
+        <Link
+          key={`download-${count}`}
+          href={`${baseUrl}?layout=cut-sheet&perPage=${count}&download=1`}
+          target="_blank"
+          className="inline-flex rounded-full border border-[#dc2626]/18 bg-[#fff1f2] px-3 py-1.5 font-medium text-[#b91c1c] transition hover:bg-[#fee2e2]"
+        >
+          Descarca {count}
+        </Link>
+      ))}
+    </div>
   );
 }
 

@@ -86,6 +86,22 @@ export default async function ReservationConfirmationPage({
                     Descarca bundle
                   </Link>
                 </Button>
+                {[3, 4, 6].map((count) => (
+                  <Button
+                    key={count}
+                    asChild
+                    variant="secondary"
+                    className="rounded-full bg-white text-[#111111] hover:bg-neutral-100"
+                  >
+                    <Link
+                      href={`/cabinet/rezervari/${reservationId}/pdf?layout=cut-sheet&perPage=${count}`}
+                      target="_blank"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      A4: {count} bilete
+                    </Link>
+                  </Button>
+                ))}
               </>
             ) : null}
             <Button
