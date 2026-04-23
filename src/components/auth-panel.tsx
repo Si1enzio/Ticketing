@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { env, getMissingSupabasePublicEnvVars, isSupabaseConfigured } from "@/lib/env";
+import { sanitizeSupabaseAuthErrorMessage } from "@/lib/security/messages";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
@@ -72,7 +73,7 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
     setIsPending(false);
 
     if (error) {
-      toast.error(error.message);
+      toast.error(sanitizeSupabaseAuthErrorMessage(error.message));
       return;
     }
 
@@ -114,7 +115,7 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
     setIsPending(false);
 
     if (error) {
-      toast.error(error.message);
+      toast.error(sanitizeSupabaseAuthErrorMessage(error.message));
       return;
     }
 
@@ -153,7 +154,7 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
     setIsPending(false);
 
     if (error) {
-      toast.error(error.message);
+      toast.error(sanitizeSupabaseAuthErrorMessage(error.message));
       return;
     }
 

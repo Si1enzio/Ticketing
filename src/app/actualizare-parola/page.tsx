@@ -1,20 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { z } from "zod";
 import { LoaderCircle, LockKeyhole } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { z } from "zod";
 
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { sanitizeSupabaseAuthErrorMessage } from "@/lib/security/messages";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const passwordSchema = z
   .object({
-    password: z.string().min(8, "Parola trebuie să aibă minimum 8 caractere."),
+    password: z.string().min(8, "Parola trebuie sa aiba minimum 8 caractere."),
     confirmPassword: z.string().min(8),
   })
   .refine((value) => value.password === value.confirmPassword, {
@@ -40,7 +41,7 @@ export default function UpdatePasswordPage() {
     const supabase = createSupabaseBrowserClient();
 
     if (!supabase) {
-      toast.error("Lipsește configurația Supabase.");
+      toast.error("Lipseste configuratia Supabase.");
       return;
     }
 
@@ -53,11 +54,16 @@ export default function UpdatePasswordPage() {
     setIsPending(false);
 
     if (error) {
-      toast.error(error.message);
+      toast.error(
+        sanitizeSupabaseAuthErrorMessage(
+          error.message,
+          "Parola nu a putut fi actualizata acum.",
+        ),
+      );
       return;
     }
 
-    toast.success("Parola a fost actualizată.");
+    toast.success("Parola a fost actualizata.");
     router.push("/cabinet");
     router.refresh();
   }
@@ -67,26 +73,30 @@ export default function UpdatePasswordPage() {
       <Card className="w-full border-[#d5a021]/15 bg-white/95">
         <CardHeader>
           <CardTitle className="font-heading text-4xl uppercase tracking-[0.12em]">
-            Actualizează parola
+            Actualizeaza parola
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form action={handleSubmit} className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="password">Parolă nouă</Label>
+              <Label htmlFor="password">Parola noua</Label>
               <Input id="password" name="password" type="password" required />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="confirmPassword">Confirmă parola</Label>
+              <Label htmlFor="confirmPassword">Confirma parola</Label>
               <Input id="confirmPassword" name="confirmPassword" type="password" required />
             </div>
-            <Button type="submit" disabled={isPending} className="rounded-full bg-[#11552d] hover:bg-[#0e4524]">
+            <Button
+              type="submit"
+              disabled={isPending}
+              className="rounded-full bg-[#11552d] hover:bg-[#0e4524]"
+            >
               {isPending ? (
                 <LoaderCircle className="animate-spin" />
               ) : (
                 <LockKeyhole className="mr-2 h-4 w-4" />
               )}
-              Salvează parola
+              Salveaza parola
             </Button>
           </form>
         </CardContent>
@@ -94,4 +104,3 @@ export default function UpdatePasswordPage() {
     </section>
   );
 }
-
