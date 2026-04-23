@@ -5,14 +5,19 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { hasAnyRole } from "@/lib/auth/roles";
+import { profileGenderSchema } from "@/lib/domain/types";
 import { isSupabaseConfigured } from "@/lib/env";
+import { isSupabaseAdminConfigured } from "@/lib/env.server";
 import {
   ensureTrustedServerActionRequest,
   sanitizeUserFacingErrorMessage,
 } from "@/lib/security/http";
 import { stadiumMapConfigSchema } from "@/lib/stadium/stadium-schema";
 import { getViewerContext } from "@/lib/supabase/queries";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createSupabaseAdminClient,
+  createSupabaseServerClient,
+} from "@/lib/supabase/server";
 
 const stadiumSchema = z.object({
   name: z.string().min(3),
@@ -167,6 +172,37 @@ const roleSchema = z.object({
   role: z.enum(["steward", "admin", "superadmin", "user"]),
 });
 
+const managedUserCreateSchema = z.object({
+  email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),
+  password: z.string().min(8).max(128),
+  fullName: z.string().trim().min(2).max(120).optional().or(z.literal("")),
+  role: z.enum(["user", "steward", "admin", "superadmin"]),
+  canReserve: z
+    .union([z.literal("true"), z.literal("false"), z.boolean()])
+    .default("true")
+    .transform((value) => value === true || value === "true"),
+  phone: z.string().trim().max(32).optional().or(z.literal("")),
+  contactEmail: z.string().trim().email().max(254).optional().or(z.literal("")),
+  locality: z.string().trim().max(120).optional().or(z.literal("")),
+  district: z.string().trim().max(120).optional().or(z.literal("")),
+  birthDate: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .or(z.literal("")),
+  gender: profileGenderSchema.default("unspecified"),
+  preferredLanguage: z.enum(["ro", "ru"]).default("ro"),
+  marketingOptIn: z
+    .union([z.literal("true"), z.literal("false"), z.boolean()])
+    .default("false")
+    .transform((value) => value === true || value === "true"),
+  smsOptIn: z
+    .union([z.literal("true"), z.literal("false"), z.boolean()])
+    .default("false")
+    .transform((value) => value === true || value === "true"),
+});
+
 const reservationAccessSchema = z.object({
   userId: z.string(),
   canReserve: z
@@ -235,6 +271,11 @@ function redirectToAdminStadium(params: Record<string, string>): never {
 function redirectToAdminMatches(params: Record<string, string>): never {
   const query = new URLSearchParams(params);
   redirect(`/admin/meciuri?${query.toString()}`);
+}
+
+function redirectToAdminUsers(params: Record<string, string>): never {
+  const query = new URLSearchParams(params);
+  redirect(`/admin/utilizatori?${query.toString()}`);
 }
 
 function normalizeMatchDateTime(
@@ -2274,6 +2315,139 @@ export async function saveMatchSectorPricingAction(
     ok: true,
     message: "Preturile pe sectoare au fost salvate.",
   };
+}
+
+export async function createManagedUserAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+
+  if (!viewer.roles.includes("superadmin")) {
+    redirectToAdminUsers({
+      error: "Doar superadmin poate crea utilizatori si atribui roluri.",
+    });
+  }
+
+  const parsed = managedUserCreateSchema.safeParse({
+    email: formData.get("email") || "",
+    password: formData.get("password") || "",
+    fullName: formData.get("fullName") || "",
+    role: formData.get("role") || "user",
+    canReserve: formData.get("canReserve") ? "true" : "false",
+    phone: formData.get("phone") || "",
+    contactEmail: formData.get("contactEmail") || "",
+    locality: formData.get("locality") || "",
+    district: formData.get("district") || "",
+    birthDate: formData.get("birthDate") || "",
+    gender: formData.get("gender") || "unspecified",
+    preferredLanguage: formData.get("preferredLanguage") || "ro",
+    marketingOptIn: formData.get("marketingOptIn") ? "true" : "false",
+    smsOptIn: formData.get("smsOptIn") ? "true" : "false",
+  });
+
+  if (!parsed.success) {
+    redirectToAdminUsers({
+      error: "Verifica emailul, parola si campurile profilului. Parola trebuie sa aiba minimum 8 caractere.",
+    });
+  }
+
+  if (!isSupabaseConfigured() || !isSupabaseAdminConfigured()) {
+    redirectToAdminUsers({
+      error: "Crearea utilizatorilor necesita SUPABASE_SERVICE_ROLE_KEY setat in Vercel ca variabila server-side.",
+    });
+  }
+
+  const supabaseAdmin = createSupabaseAdminClient();
+
+  if (!supabaseAdmin) {
+    redirectToAdminUsers({
+      error: "Clientul Supabase Admin nu a putut fi initializat.",
+    });
+  }
+
+  const fullName =
+    parsed.data.fullName ||
+    parsed.data.email.split("@")[0]?.replace(/[._-]+/g, " ") ||
+    "Utilizator";
+  const contactEmail = parsed.data.contactEmail || parsed.data.email;
+
+  const { data: authData, error: authError } =
+    await supabaseAdmin.auth.admin.createUser({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
+        preferred_language: parsed.data.preferredLanguage,
+      },
+    });
+
+  if (authError || !authData.user) {
+    redirectToAdminUsers({
+      error:
+        authError?.message === "A user with this email address has already been registered"
+          ? "Exista deja un utilizator cu acest email."
+          : `Utilizatorul nu a putut fi creat: ${sanitizeUserFacingErrorMessage(authError?.message, "eroare necunoscuta")}`,
+    });
+  }
+
+  const userId = authData.user.id;
+
+  const { error: profileError } = await supabaseAdmin.from("profiles").upsert(
+    {
+      id: userId,
+      email: parsed.data.email,
+      contact_email: contactEmail,
+      full_name: fullName,
+      phone: parsed.data.phone || null,
+      locality: parsed.data.locality || null,
+      district: parsed.data.district || null,
+      birth_date: parsed.data.birthDate || null,
+      gender: parsed.data.gender,
+      preferred_language: parsed.data.preferredLanguage,
+      marketing_opt_in: parsed.data.marketingOptIn,
+      sms_opt_in: parsed.data.smsOptIn,
+      can_reserve: parsed.data.canReserve,
+    },
+    { onConflict: "id" },
+  );
+
+  if (profileError) {
+    await supabaseAdmin.auth.admin.deleteUser(userId);
+    redirectToAdminUsers({
+      error: `Profilul utilizatorului nu a putut fi salvat: ${sanitizeUserFacingErrorMessage(profileError.message, "eroare baza de date")}`,
+    });
+  }
+
+  const { error: deleteRolesError } = await supabaseAdmin
+    .from("user_roles")
+    .delete()
+    .eq("user_id", userId);
+
+  const { error: roleError } = deleteRolesError
+    ? { error: deleteRolesError }
+    : await supabaseAdmin.from("user_roles").insert({
+        user_id: userId,
+        role: parsed.data.role,
+      });
+
+  if (roleError) {
+    await supabaseAdmin.auth.admin.deleteUser(userId);
+    redirectToAdminUsers({
+      error: `Rolul utilizatorului nu a putut fi salvat: ${sanitizeUserFacingErrorMessage(roleError.message, "eroare baza de date")}`,
+    });
+  }
+
+  await logAudit(viewer.userId, "create_managed_user", "profiles", userId, {
+    email: parsed.data.email,
+    role: parsed.data.role,
+    canReserve: parsed.data.canReserve,
+    createdByAdmin: true,
+  });
+
+  revalidatePath("/admin/utilizatori");
+
+  redirectToAdminUsers({
+    notice: `Utilizatorul ${parsed.data.email} a fost creat cu rolul selectat.`,
+  });
 }
 
 export async function createUserBlockAction(formData: FormData) {
