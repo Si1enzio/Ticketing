@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRef } from "react";
 import Link from "next/link";
-import { Scanner } from "@yudiel/react-qr-scanner";
+import { Scanner, setZXingModuleOverrides } from "@yudiel/react-qr-scanner";
 import { ArrowLeft, Camera, ShieldAlert, ShieldCheck, TicketX, X } from "lucide-react";
 
 import type { ScanResponse, ScannerMatch } from "@/lib/domain/types";
@@ -13,6 +13,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const DEVICE_LABEL_STORAGE_KEY = "milsami-scanner-device-label";
+const LOCAL_ZXING_READER_WASM_PATH = "/vendor/zxing/zxing_reader.wasm";
+
+let isZxingWasmConfigured = false;
+
+function configureLocalZxingWasm() {
+  if (isZxingWasmConfigured || typeof window === "undefined") {
+    return;
+  }
+
+  setZXingModuleOverrides({
+    locateFile(fileName, prefix) {
+      if (fileName === "zxing_reader.wasm" || fileName.endsWith("/zxing_reader.wasm")) {
+        return LOCAL_ZXING_READER_WASM_PATH;
+      }
+
+      return `${prefix}${fileName}`;
+    },
+  });
+
+  isZxingWasmConfigured = true;
+}
 
 const resultStyles: Record<
   ScanResponse["result"],
@@ -98,6 +119,7 @@ export function ScannerConsole({
   const lastSubmittedRef = useRef<{ value: string; at: number } | null>(null);
 
   useEffect(() => {
+    configureLocalZxingWasm();
     window.localStorage.setItem(DEVICE_LABEL_STORAGE_KEY, deviceLabel);
   }, [deviceLabel]);
 
