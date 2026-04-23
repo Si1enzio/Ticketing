@@ -41,18 +41,27 @@ export function AdminUserCard({
   return (
     <details className="surface-panel group overflow-hidden rounded-[28px] border border-white/70 bg-white/92">
       <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fda4af_100%)]" />
-      <summary className="list-none cursor-pointer p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-[240px] flex-1">
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-lg font-semibold text-[#111111]">{displayName}</p>
+      <summary className="list-none cursor-pointer p-4 sm:p-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <p className="min-w-0 text-lg font-semibold leading-tight text-[#111111]">
+                {displayName}
+              </p>
               <StatusBadge
                 tone={user.activeBlockType ? "danger" : user.canReserve ? "success" : "neutral"}
                 text={user.activeBlockType ? "Restrictionat" : user.canReserve ? "Acces activ" : "Acces oprit"}
               />
             </div>
-            <p className="mt-1 text-sm text-neutral-500">{email}</p>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs uppercase tracking-[0.18em] text-neutral-500">
+            <p className="mt-1 truncate text-sm text-neutral-500">{email}</p>
+
+            <div className="mt-3 grid max-w-md grid-cols-3 gap-2 md:hidden">
+              <MobileMetric label="Bilete" value={user.totalReserved} />
+              <MobileMetric label="Intrari" value={user.totalScanned} />
+              <MobileMetric label="Abuz" value={formatMetric(user.abuseScore)} />
+            </div>
+
+            <div className="mt-3 hidden flex-wrap gap-x-4 gap-y-2 text-xs uppercase tracking-[0.18em] text-neutral-500 md:flex">
               <span>Roluri: {user.roles.join(", ")}</span>
               <span>Inregistrat: {registeredLabel}</span>
               <span>Bilete: {user.totalReserved}</span>
@@ -62,8 +71,8 @@ export function AdminUserCard({
             </div>
           </div>
 
-          <div className="flex min-w-[220px] flex-col items-end gap-3 text-right">
-            <div className="space-y-1 text-xs uppercase tracking-[0.18em] text-neutral-500">
+          <div className="flex shrink-0 flex-row items-center justify-end gap-3 md:min-w-[220px] md:flex-col md:items-end md:text-right">
+            <div className="hidden space-y-1 text-xs uppercase tracking-[0.18em] text-neutral-500 md:block">
               <p>Ultimul bilet: {lastTicketLabel}</p>
               <p>Ultima intrare: {lastScanLabel}</p>
             </div>
@@ -94,7 +103,12 @@ export function AdminUserCard({
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
+            <InfoCell label="Roluri" value={user.roles.join(", ") || "Fara rol"} />
             <InfoCell label="Cont creat" value={registeredLabel} />
+            <InfoCell label="Bilete total" value={String(user.totalReserved)} />
+            <InfoCell label="Intrari validate" value={String(user.totalScanned)} />
+            <InfoCell label="Abuse score" value={formatMetric(user.abuseScore)} />
+            <InfoCell label="No-show" value={`${Math.round(user.noShowRatio * 100)}%`} />
             <InfoCell label="Ultimul bilet" value={lastTicketLabel} />
             <InfoCell label="Ultima intrare" value={lastScanLabel} />
             <InfoCell
@@ -193,6 +207,15 @@ export function AdminUserCard({
         </form>
       </div>
     </details>
+  );
+}
+
+function MobileMetric({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-2xl border border-black/6 bg-neutral-50 px-2.5 py-2">
+      <p className="text-[0.65rem] uppercase tracking-[0.16em] text-neutral-500">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold text-[#111111]">{value}</p>
+    </div>
   );
 }
 
