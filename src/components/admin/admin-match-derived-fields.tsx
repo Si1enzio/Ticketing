@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { splitIsoToLocalDateTime } from "@/lib/date-time";
 
 type AdminMatchDerivedFieldsProps = {
   formId: string;
@@ -27,11 +28,6 @@ type AdminMatchDerivedFieldsProps = {
   reservationClosesAtName?: string;
   reservationClosesAtDateName?: string;
   reservationClosesAtTimeName?: string;
-};
-
-type SplitDateTime = {
-  date: string;
-  time: string;
 };
 
 const defaultStartTime = "18:00";
@@ -61,30 +57,43 @@ export function AdminMatchDerivedFields({
   reservationClosesAtDateName = "reservationClosesAtDate",
   reservationClosesAtTimeName = "reservationClosesAtTime",
 }: AdminMatchDerivedFieldsProps) {
-  const [homeTeam, setHomeTeam] = useState(defaultHomeTeam);
-  const [awayTeam, setAwayTeam] = useState(defaultAwayTeam);
-
-  const startDateTime = useMemo(() => {
-    const split = splitDateTime(defaultStartsAt);
+  const initialStartDateTime = useMemo(() => {
+    const split = splitIsoToLocalDateTime(defaultStartsAt);
     return {
       date: split.date,
       time: split.time || defaultStartTime,
     };
   }, [defaultStartsAt]);
-  const opensDateTime = useMemo(() => {
-    const split = splitDateTime(defaultReservationOpensAt);
+  const initialOpensDateTime = useMemo(() => {
+    const split = splitIsoToLocalDateTime(defaultReservationOpensAt);
     return {
       date: split.date,
       time: split.time || defaultOpensTime,
     };
   }, [defaultReservationOpensAt]);
-  const closesDateTime = useMemo(() => {
-    const split = splitDateTime(defaultReservationClosesAt);
+  const initialClosesDateTime = useMemo(() => {
+    const split = splitIsoToLocalDateTime(defaultReservationClosesAt);
     return {
       date: split.date,
       time: split.time || defaultClosesTime,
     };
   }, [defaultReservationClosesAt]);
+  const [homeTeam, setHomeTeam] = useState(defaultHomeTeam);
+  const [awayTeam, setAwayTeam] = useState(defaultAwayTeam);
+  const [startsAtDate, setStartsAtDate] = useState(initialStartDateTime.date);
+  const [startsAtTime, setStartsAtTime] = useState(initialStartDateTime.time);
+  const [reservationOpensAtDate, setReservationOpensAtDate] = useState(
+    initialOpensDateTime.date,
+  );
+  const [reservationOpensAtTime, setReservationOpensAtTime] = useState(
+    initialOpensDateTime.time,
+  );
+  const [reservationClosesAtDate, setReservationClosesAtDate] = useState(
+    initialClosesDateTime.date,
+  );
+  const [reservationClosesAtTime, setReservationClosesAtTime] = useState(
+    initialClosesDateTime.time,
+  );
 
   const generatedTitle = useMemo(
     () => buildMatchTitle(homeTeam, awayTeam),
@@ -98,20 +107,16 @@ export function AdminMatchDerivedFields({
       <input type="hidden" name={titleName} value={generatedTitle} />
       <input type="hidden" name={slugName} value={generatedSlug} />
       <input type="hidden" name={opponentNameName} value={awayTeam.trim()} />
-      <input
-        type="hidden"
-        name={startsAtName}
-        defaultValue={joinDateTime(startDateTime)}
-      />
+      <input type="hidden" name={startsAtName} value={joinDateTime(startsAtDate, startsAtTime)} />
       <input
         type="hidden"
         name={reservationOpensAtName}
-        defaultValue={joinDateTime(opensDateTime)}
+        value={joinDateTime(reservationOpensAtDate, reservationOpensAtTime)}
       />
       <input
         type="hidden"
         name={reservationClosesAtName}
-        defaultValue={joinDateTime(closesDateTime)}
+        value={joinDateTime(reservationClosesAtDate, reservationClosesAtTime)}
       />
 
       <TextField
@@ -152,7 +157,10 @@ export function AdminMatchDerivedFields({
         label="Start eveniment"
         dateName={startsAtDateName}
         timeName={startsAtTimeName}
-        defaultValue={startDateTime}
+        dateValue={startsAtDate}
+        timeValue={startsAtTime}
+        onDateChange={setStartsAtDate}
+        onTimeChange={setStartsAtTime}
         required
       />
       <DateTimeFieldGroup
@@ -160,14 +168,20 @@ export function AdminMatchDerivedFields({
         label="Deschidere ticketing"
         dateName={reservationOpensAtDateName}
         timeName={reservationOpensAtTimeName}
-        defaultValue={opensDateTime}
+        dateValue={reservationOpensAtDate}
+        timeValue={reservationOpensAtTime}
+        onDateChange={setReservationOpensAtDate}
+        onTimeChange={setReservationOpensAtTime}
       />
       <DateTimeFieldGroup
         prefix={`${formId}-reservation-closes`}
         label="Inchidere ticketing"
         dateName={reservationClosesAtDateName}
         timeName={reservationClosesAtTimeName}
-        defaultValue={closesDateTime}
+        dateValue={reservationClosesAtDate}
+        timeValue={reservationClosesAtTime}
+        onDateChange={setReservationClosesAtDate}
+        onTimeChange={setReservationClosesAtTime}
       />
 
       {teamSuggestions.length ? (
@@ -228,14 +242,20 @@ function DateTimeFieldGroup({
   label,
   dateName,
   timeName,
-  defaultValue,
+  dateValue,
+  timeValue,
+  onDateChange,
+  onTimeChange,
   required = false,
 }: {
   prefix: string;
   label: string;
   dateName: string;
   timeName: string;
-  defaultValue: SplitDateTime;
+  dateValue: string;
+  timeValue: string;
+  onDateChange: (value: string) => void;
+  onTimeChange: (value: string) => void;
   required?: boolean;
 }) {
   return (
@@ -246,7 +266,8 @@ function DateTimeFieldGroup({
           id={`${prefix}-date`}
           name={dateName}
           type="date"
-          defaultValue={defaultValue.date}
+          value={dateValue}
+          onChange={(event) => onDateChange(event.target.value)}
           required={required}
           className="rounded-2xl bg-white"
         />
@@ -254,8 +275,9 @@ function DateTimeFieldGroup({
           id={`${prefix}-time`}
           name={timeName}
           type="time"
-          defaultValue={defaultValue.time}
-          required={required && Boolean(defaultValue.date)}
+          value={timeValue}
+          onChange={(event) => onTimeChange(event.target.value)}
+          required={required && Boolean(dateValue)}
           className="rounded-2xl bg-white"
         />
       </div>
@@ -291,36 +313,10 @@ function slugifyMatchTitle(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-function splitDateTime(value?: string | null): SplitDateTime {
-  if (!value) {
-    return { date: "", time: "" };
-  }
-
-  const date = new Date(value);
-  if (!Number.isNaN(date.getTime())) {
-    return {
-      date: [
-        date.getFullYear().toString().padStart(4, "0"),
-        String(date.getMonth() + 1).padStart(2, "0"),
-        String(date.getDate()).padStart(2, "0"),
-      ].join("-"),
-      time: [String(date.getHours()).padStart(2, "0"), String(date.getMinutes()).padStart(2, "0")].join(
-        ":",
-      ),
-    };
-  }
-
-  const [datePart = "", timePart = ""] = value.split("T");
-  return {
-    date: datePart,
-    time: timePart.slice(0, 5),
-  };
-}
-
-function joinDateTime(value: SplitDateTime) {
-  if (!value.date) {
+function joinDateTime(date: string, time: string) {
+  if (!date) {
     return "";
   }
 
-  return `${value.date}T${value.time || "00:00"}`;
+  return `${date}T${time || "00:00"}`;
 }

@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { hasAnyRole } from "@/lib/auth/roles";
+import { localDateTimeToIsoString } from "@/lib/date-time";
 import { profileGenderSchema } from "@/lib/domain/types";
 import { isSupabaseConfigured } from "@/lib/env";
 import { isSupabaseAdminConfigured } from "@/lib/env.server";
@@ -318,9 +319,9 @@ function normalizeMatchDateTime(
   }
 
   const normalizedValue = rawValue.length === 16 ? `${rawValue}:00` : rawValue;
-  const parsedDate = new Date(normalizedValue);
+  const isoValue = localDateTimeToIsoString(normalizedValue);
 
-  if (Number.isNaN(parsedDate.getTime())) {
+  if (!isoValue) {
     return {
       ok: false,
       message: `Data sau ora selectata pentru „${label}” nu este valida.`,
@@ -329,7 +330,7 @@ function normalizeMatchDateTime(
 
   return {
     ok: true,
-    value: parsedDate.toISOString(),
+    value: isoValue,
   };
 }
 

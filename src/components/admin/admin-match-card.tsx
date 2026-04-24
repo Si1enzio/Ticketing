@@ -11,6 +11,7 @@ import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { deleteMatchAction, updateMatchAction } from "@/lib/actions/admin";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import type { AdminMatchOverview } from "@/lib/domain/types";
 
 type Option = {
@@ -121,6 +122,7 @@ export function AdminMatchCard({
                 defaultValue={match.stadiumId}
               />
               <AdminMatchDerivedFields
+                key={`${match.id}-${match.startsAt}-${match.reservationOpensAt ?? ""}-${match.reservationClosesAt ?? ""}`}
                 formId={`match-${match.id}`}
                 defaultHomeTeam={deriveHomeTeam(match.title, match.opponentName)}
                 defaultAwayTeam={match.opponentName}
@@ -242,18 +244,7 @@ function formatMatchStatus(status: string) {
 }
 
 function formatMatchDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString("ro-RO", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTimeInTimeZone(value);
 }
 
 function Field({
