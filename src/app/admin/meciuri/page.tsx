@@ -101,20 +101,22 @@ export default async function AdminMatchesPage({
               defaultAwayTeam=""
               teamSuggestions={teamSuggestions}
             />
-            <input type="hidden" name="posterUrl" defaultValue="" />
-            <input type="hidden" name="bannerUrl" defaultValue="" />
             <MediaUploadField
               id="posterFile"
-              name="posterFile"
+              hiddenName="posterUrl"
               label="Poster / afis"
+              uploadFolder="matches/drafts"
+              mediaKind="poster"
               helpText="Alege un fisier imagine de pe computer. Recomandat: 1080x1350 px, raport 4:5."
               previewClassName="aspect-[4/5]"
               className="lg:col-span-2"
             />
             <MediaUploadField
               id="bannerFile"
-              name="bannerFile"
+              hiddenName="bannerUrl"
               label="Banner"
+              uploadFolder="matches/drafts"
+              mediaKind="banner"
               helpText="Alege un fisier imagine de pe computer. Recomandat: 1600x900 px, raport 16:9."
               previewClassName="aspect-[16/9]"
               className="lg:col-span-2"

@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 type MediaUploadFieldProps = {
   id: string;
-  name: string;
   label: string;
   helpText: string;
+  hiddenName: string;
+  uploadFolder: string;
+  mediaKind: "poster" | "banner";
   defaultPreviewUrl?: string | null;
   accept?: string;
   previewClassName?: string;
@@ -21,9 +24,11 @@ type MediaUploadFieldProps = {
 
 export function MediaUploadField({
   id,
-  name,
   label,
   helpText,
+  hiddenName,
+  uploadFolder,
+  mediaKind,
   defaultPreviewUrl,
   accept = "image/*",
   previewClassName,
@@ -32,8 +37,13 @@ export function MediaUploadField({
   maxFileSizeBytes = 12 * 1024 * 1024,
 }: MediaUploadFieldProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(defaultPreviewUrl ?? null);
+  const [uploadedUrl, setUploadedUrl] = useState(defaultPreviewUrl ?? "");
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const statusId = useId();
 
   useEffect(() => {
     return () => {
@@ -43,9 +53,33 @@ export function MediaUploadField({
     };
   }, [objectUrl]);
 
+  useEffect(() => {
+    const form = inputRef.current?.closest("form");
+
+    if (!form) {
+      return;
+    }
+
+    const handleSubmit = (event: Event) => {
+      if (!isUploading) {
+        return;
+      }
+
+      event.preventDefault();
+      setErrorMessage("Asteapta finalizarea incarcarii imaginii, apoi salveaza din nou.");
+    };
+
+    form.addEventListener("submit", handleSubmit);
+
+    return () => {
+      form.removeEventListener("submit", handleSubmit);
+    };
+  }, [isUploading]);
+
   return (
     <div className={cn("grid gap-2", className)}>
       <Label htmlFor={id}>{label}</Label>
+      <input type="hidden" name={hiddenName} value={uploadedUrl} />
       <div className="grid gap-3 rounded-[22px] border border-black/6 bg-neutral-50 p-4">
         <div
           className={cn(
@@ -70,13 +104,15 @@ export function MediaUploadField({
         <div className="grid gap-2">
           <Input
             id={id}
-            name={name}
             type="file"
             accept={accept}
             required={required}
-            onChange={(event) => {
+            ref={inputRef}
+            aria-describedby={statusId}
+            onChange={async (event) => {
               const file = event.currentTarget.files?.[0] ?? null;
               setErrorMessage(null);
+              setUploadNotice(null);
 
               if (objectUrl) {
                 URL.revokeObjectURL(objectUrl);
@@ -85,6 +121,7 @@ export function MediaUploadField({
 
               if (!file) {
                 setPreviewUrl(defaultPreviewUrl ?? null);
+                setUploadedUrl(defaultPreviewUrl ?? "");
                 return;
               }
 
@@ -97,16 +134,95 @@ export function MediaUploadField({
                 return;
               }
 
+              if (!file.type.startsWith("image/")) {
+                setPreviewUrl(defaultPreviewUrl ?? null);
+                setErrorMessage("Poti incarca doar fisiere imagine.");
+                event.currentTarget.value = "";
+                return;
+              }
+
               const nextObjectUrl = URL.createObjectURL(file);
               setObjectUrl(nextObjectUrl);
               setPreviewUrl(nextObjectUrl);
+
+              const supabase = createSupabaseBrowserClient();
+
+              if (!supabase) {
+                setErrorMessage("Upload-ul nu este disponibil pana cand conexiunea Supabase este configurata.");
+                return;
+              }
+
+              setIsUploading(true);
+
+              try {
+                const extension = getFileExtension(file);
+                const safeFolder = sanitizePathSegment(uploadFolder);
+                const path = `${safeFolder}/${mediaKind}-${Date.now()}-${crypto.randomUUID()}.${extension}`;
+
+                const { error: uploadError } = await supabase.storage
+                  .from("event-media")
+                  .upload(path, file, {
+                    cacheControl: "3600",
+                    upsert: false,
+                    contentType: file.type,
+                  });
+
+                if (uploadError) {
+                  throw uploadError;
+                }
+
+                const { data } = supabase.storage.from("event-media").getPublicUrl(path);
+                setUploadedUrl(data.publicUrl);
+                setPreviewUrl(data.publicUrl);
+                setUploadNotice("Imaginea a fost incarcata. Poti salva evenimentul.");
+                event.currentTarget.value = "";
+              } catch (error) {
+                console.error("Upload media esuat.", error);
+                setPreviewUrl(defaultPreviewUrl ?? null);
+                setUploadedUrl(defaultPreviewUrl ?? "");
+                setErrorMessage(
+                  error instanceof Error
+                    ? `Imaginea nu a putut fi incarcata: ${error.message}`
+                    : "Imaginea nu a putut fi incarcata. Incearca din nou.",
+                );
+              } finally {
+                setIsUploading(false);
+              }
             }}
             className="rounded-2xl bg-white"
           />
-          <p className="text-xs leading-relaxed text-neutral-500">{helpText}</p>
+          <p id={statusId} className="text-xs leading-relaxed text-neutral-500">
+            {helpText}
+          </p>
+          {isUploading ? (
+            <p className="text-xs font-medium text-amber-700">Se incarca imaginea...</p>
+          ) : null}
+          {uploadNotice ? (
+            <p className="text-xs font-medium text-emerald-700">{uploadNotice}</p>
+          ) : null}
           {errorMessage ? <p className="text-xs font-medium text-red-600">{errorMessage}</p> : null}
         </div>
       </div>
     </div>
   );
+}
+
+function getFileExtension(file: File) {
+  const fallback = file.type.split("/")[1]?.toLowerCase() || "bin";
+  const rawExtension = file.name.split(".").pop()?.toLowerCase();
+
+  if (!rawExtension) {
+    return fallback;
+  }
+
+  return rawExtension.replace(/[^a-z0-9]/g, "") || fallback;
+}
+
+function sanitizePathSegment(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9/_-]+/g, "-")
+    .replace(/\/{2,}/g, "/")
+    .replace(/^-+|-+$/g, "");
 }

@@ -20,14 +20,8 @@ type AdminMatchDerivedFieldsProps = {
   slugName?: string;
   opponentNameName?: string;
   startsAtName?: string;
-  startsAtDateName?: string;
-  startsAtTimeName?: string;
   reservationOpensAtName?: string;
-  reservationOpensAtDateName?: string;
-  reservationOpensAtTimeName?: string;
   reservationClosesAtName?: string;
-  reservationClosesAtDateName?: string;
-  reservationClosesAtTimeName?: string;
 };
 
 const defaultStartTime = "18:00";
@@ -48,14 +42,8 @@ export function AdminMatchDerivedFields({
   slugName = "slug",
   opponentNameName = "opponentName",
   startsAtName = "startsAt",
-  startsAtDateName = "startsAtDate",
-  startsAtTimeName = "startsAtTime",
   reservationOpensAtName = "reservationOpensAt",
-  reservationOpensAtDateName = "reservationOpensAtDate",
-  reservationOpensAtTimeName = "reservationOpensAtTime",
   reservationClosesAtName = "reservationClosesAt",
-  reservationClosesAtDateName = "reservationClosesAtDate",
-  reservationClosesAtTimeName = "reservationClosesAtTime",
 }: AdminMatchDerivedFieldsProps) {
   const initialStartDateTime = useMemo(() => {
     const split = splitIsoToLocalDateTime(defaultStartsAt);
@@ -155,8 +143,6 @@ export function AdminMatchDerivedFields({
       <DateTimeFieldGroup
         prefix={`${formId}-starts-at`}
         label="Start eveniment"
-        dateName={startsAtDateName}
-        timeName={startsAtTimeName}
         dateValue={startsAtDate}
         timeValue={startsAtTime}
         onDateChange={setStartsAtDate}
@@ -166,8 +152,6 @@ export function AdminMatchDerivedFields({
       <DateTimeFieldGroup
         prefix={`${formId}-reservation-opens`}
         label="Deschidere ticketing"
-        dateName={reservationOpensAtDateName}
-        timeName={reservationOpensAtTimeName}
         dateValue={reservationOpensAtDate}
         timeValue={reservationOpensAtTime}
         onDateChange={setReservationOpensAtDate}
@@ -176,8 +160,6 @@ export function AdminMatchDerivedFields({
       <DateTimeFieldGroup
         prefix={`${formId}-reservation-closes`}
         label="Inchidere ticketing"
-        dateName={reservationClosesAtDateName}
-        timeName={reservationClosesAtTimeName}
         dateValue={reservationClosesAtDate}
         timeValue={reservationClosesAtTime}
         onDateChange={setReservationClosesAtDate}
@@ -240,8 +222,6 @@ function TextField({
 function DateTimeFieldGroup({
   prefix,
   label,
-  dateName,
-  timeName,
   dateValue,
   timeValue,
   onDateChange,
@@ -250,8 +230,6 @@ function DateTimeFieldGroup({
 }: {
   prefix: string;
   label: string;
-  dateName: string;
-  timeName: string;
   dateValue: string;
   timeValue: string;
   onDateChange: (value: string) => void;
@@ -264,7 +242,6 @@ function DateTimeFieldGroup({
       <div className="grid gap-3 sm:grid-cols-2">
         <Input
           id={`${prefix}-date`}
-          name={dateName}
           type="date"
           value={dateValue}
           onChange={(event) => onDateChange(event.target.value)}
@@ -273,7 +250,6 @@ function DateTimeFieldGroup({
         />
         <Input
           id={`${prefix}-time`}
-          name={timeName}
           type="time"
           value={timeValue}
           onChange={(event) => onTimeChange(event.target.value)}

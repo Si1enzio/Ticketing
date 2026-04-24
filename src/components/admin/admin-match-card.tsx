@@ -112,8 +112,6 @@ export function AdminMatchCard({
               className="grid gap-4 lg:grid-cols-4"
             >
               <input type="hidden" name="matchId" value={match.id} />
-              <input type="hidden" name="posterUrl" value={match.posterUrl ?? ""} />
-              <input type="hidden" name="bannerUrl" value={match.bannerUrl ?? ""} />
               <SelectField
                 name={`stadium-${match.id}`}
                 htmlName="stadiumId"
@@ -132,18 +130,24 @@ export function AdminMatchCard({
                 defaultReservationClosesAt={match.reservationClosesAt}
               />
               <MediaUploadField
+                key={`poster-${match.id}-${match.posterUrl ?? ""}`}
                 id={`posterFile-${match.id}`}
-                name="posterFile"
+                hiddenName="posterUrl"
                 label="Poster / afis"
+                uploadFolder={`matches/${match.id}`}
+                mediaKind="poster"
                 defaultPreviewUrl={match.posterUrl ?? undefined}
                 helpText="Incarca o imagine noua doar daca vrei sa inlocuiesti posterul curent. Recomandat: 1080x1350 px, raport 4:5."
                 previewClassName="aspect-[4/5]"
                 className="lg:col-span-2"
               />
               <MediaUploadField
+                key={`banner-${match.id}-${match.bannerUrl ?? ""}`}
                 id={`bannerFile-${match.id}`}
-                name="bannerFile"
+                hiddenName="bannerUrl"
                 label="Banner"
+                uploadFolder={`matches/${match.id}`}
+                mediaKind="banner"
                 defaultPreviewUrl={match.bannerUrl ?? undefined}
                 helpText="Incarca o imagine noua doar daca vrei sa inlocuiesti bannerul curent. Recomandat: 1600x900 px, raport 16:9."
                 previewClassName="aspect-[16/9]"
