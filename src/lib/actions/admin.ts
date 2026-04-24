@@ -235,6 +235,7 @@ const ticketActionSchema = z.object({
 });
 
 const matchMediaBucket = "event-media";
+const maxMatchMediaFileSizeBytes = 12 * 1024 * 1024;
 const allowedImageMimeTypes = new Set([
   "image/jpeg",
   "image/png",
@@ -430,6 +431,14 @@ async function uploadMatchMediaFile(
 ): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
   if (!file) {
     return { ok: true, url: "" };
+  }
+
+  if (file.size > maxMatchMediaFileSizeBytes) {
+    return {
+      ok: false,
+      message:
+        "Imaginea este prea mare. Foloseste un fisier de maximum 12 MB pentru fiecare poster sau banner.",
+    };
   }
 
   if (!isSupabaseConfigured() || !isSupabaseAdminConfigured()) {

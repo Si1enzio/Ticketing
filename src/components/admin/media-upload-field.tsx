@@ -16,6 +16,7 @@ type MediaUploadFieldProps = {
   previewClassName?: string;
   required?: boolean;
   className?: string;
+  maxFileSizeBytes?: number;
 };
 
 export function MediaUploadField({
@@ -28,9 +29,11 @@ export function MediaUploadField({
   previewClassName,
   required = false,
   className,
+  maxFileSizeBytes = 12 * 1024 * 1024,
 }: MediaUploadFieldProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(defaultPreviewUrl ?? null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -73,6 +76,8 @@ export function MediaUploadField({
             required={required}
             onChange={(event) => {
               const file = event.currentTarget.files?.[0] ?? null;
+              setErrorMessage(null);
+
               if (objectUrl) {
                 URL.revokeObjectURL(objectUrl);
                 setObjectUrl(null);
@@ -83,6 +88,15 @@ export function MediaUploadField({
                 return;
               }
 
+              if (file.size > maxFileSizeBytes) {
+                setPreviewUrl(defaultPreviewUrl ?? null);
+                setErrorMessage(
+                  `Fisierul este prea mare. Limita maxima pentru acest camp este ${(maxFileSizeBytes / 1024 / 1024).toFixed(0)} MB.`,
+                );
+                event.currentTarget.value = "";
+                return;
+              }
+
               const nextObjectUrl = URL.createObjectURL(file);
               setObjectUrl(nextObjectUrl);
               setPreviewUrl(nextObjectUrl);
@@ -90,6 +104,7 @@ export function MediaUploadField({
             className="rounded-2xl bg-white"
           />
           <p className="text-xs leading-relaxed text-neutral-500">{helpText}</p>
+          {errorMessage ? <p className="text-xs font-medium text-red-600">{errorMessage}</p> : null}
         </div>
       </div>
     </div>
