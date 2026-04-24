@@ -2,8 +2,8 @@
   <title id="title">Ticket Hub</title>
   <rect width="720" height="160" fill="none"/>
   <g transform="translate(14 30)">
-    <path d="M0 10h58v20a18 18 0 0 0 0 36v20H0V66a18 18 0 0 0 0-36V10Z" fill="#0B1A33"/>
-    <path d="M82 10h58v20a18 18 0 0 0 0 36v20H82V66a18 18 0 0 1 0-36V10Z" fill="#C9A24F"/>
+    <path d="M0 10h58v84H0V70c9.94 0 18-8.06 18-18S9.94 34 0 34V10Z" fill="#0B1A33"/>
+    <path d="M82 10h58v24c-9.94 0-18 8.06-18 18s8.06 18 18 18v24H82V10Z" fill="#C9A24F"/>
     <circle cx="70" cy="52" r="24" fill="#fff"/>
     <circle cx="70" cy="52" r="11" fill="#C9A24F"/>
   </g>

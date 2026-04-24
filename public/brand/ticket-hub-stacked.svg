@@ -2,8 +2,8 @@
   <title id="title">Ticket Hub stacked logo</title>
   <rect width="640" height="640" fill="none"/>
   <g transform="translate(180 175)">
-    <path d="M0 0h118v44a38 38 0 0 0 0 76v44H0v-44a38 38 0 0 0 0-76V0Z" fill="#0B1A33"/>
-    <path d="M162 0h118v44a38 38 0 0 0 0 76v44H162v-44a38 38 0 0 1 0-76V0Z" fill="#C9A24F"/>
+    <path d="M0 0H118V164H0v-44c20.99 0 38-17.01 38-38S20.99 44 0 44V0Z" fill="#0B1A33"/>
+    <path d="M162 0H280v44c-20.99 0-38 17.01-38 38s17.01 38 38 38v44H162V0Z" fill="#C9A24F"/>
     <circle cx="140" cy="82" r="50" fill="#fff"/>
     <circle cx="140" cy="82" r="23" fill="#C9A24F"/>
   </g>
