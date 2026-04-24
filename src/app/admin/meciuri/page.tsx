@@ -2,6 +2,7 @@ import { connection } from "next/server";
 
 import { AdminMatchCard } from "@/components/admin/admin-match-card";
 import { AdminMatchDerivedFields } from "@/components/admin/admin-match-derived-fields";
+import { MediaUploadField } from "@/components/admin/media-upload-field";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -83,7 +84,11 @@ export default async function AdminMatchesPage({
       <Card className="surface-panel overflow-hidden rounded-[30px] border border-white/70 bg-white/94">
         <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
         <CardContent className="p-6">
-          <form action={createMatchAction} className="grid gap-4 lg:grid-cols-4">
+          <form
+            action={createMatchAction}
+            encType="multipart/form-data"
+            className="grid gap-4 lg:grid-cols-4"
+          >
             <SelectField
               name="stadiumId"
               label="Stadion"
@@ -96,17 +101,23 @@ export default async function AdminMatchesPage({
               defaultAwayTeam=""
               teamSuggestions={teamSuggestions}
             />
-            <Field
-              name="posterUrl"
-              label="Poster / afis URL"
-              placeholder="Recomandat: 1080x1350 px, raport 4:5"
-              required={false}
+            <input type="hidden" name="posterUrl" defaultValue="" />
+            <input type="hidden" name="bannerUrl" defaultValue="" />
+            <MediaUploadField
+              id="posterFile"
+              name="posterFile"
+              label="Poster / afis"
+              helpText="Alege un fisier imagine de pe computer. Recomandat: 1080x1350 px, raport 4:5."
+              previewClassName="aspect-[4/5]"
+              className="lg:col-span-2"
             />
-            <Field
-              name="bannerUrl"
-              label="Banner URL"
-              placeholder="Recomandat: 1600x900 px, raport 16:9"
-              required={false}
+            <MediaUploadField
+              id="bannerFile"
+              name="bannerFile"
+              label="Banner"
+              helpText="Alege un fisier imagine de pe computer. Recomandat: 1600x900 px, raport 16:9."
+              previewClassName="aspect-[16/9]"
+              className="lg:col-span-2"
             />
             <Field name="competitionName" label="Competitie" />
             <Field name="maxTicketsPerUser" label="Limita / user" type="number" defaultValue="4" />

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { AdminMatchDerivedFields } from "@/components/admin/admin-match-derived-fields";
+import { MediaUploadField } from "@/components/admin/media-upload-field";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Input } from "@/components/ui/input";
@@ -104,8 +105,14 @@ export function AdminMatchCard({
 
         {isExpanded ? (
           <div className="grid gap-4 border-t border-black/6 pt-4 lg:grid-cols-[1fr]">
-            <form action={updateMatchAction} className="grid gap-4 lg:grid-cols-4">
+            <form
+              action={updateMatchAction}
+              encType="multipart/form-data"
+              className="grid gap-4 lg:grid-cols-4"
+            >
               <input type="hidden" name="matchId" value={match.id} />
+              <input type="hidden" name="posterUrl" value={match.posterUrl ?? ""} />
+              <input type="hidden" name="bannerUrl" value={match.bannerUrl ?? ""} />
               <SelectField
                 name={`stadium-${match.id}`}
                 htmlName="stadiumId"
@@ -122,21 +129,23 @@ export function AdminMatchCard({
                 defaultReservationOpensAt={match.reservationOpensAt}
                 defaultReservationClosesAt={match.reservationClosesAt}
               />
-              <Field
-                name={`poster-${match.id}`}
-                htmlName="posterUrl"
-                label="Poster / afis URL"
-                defaultValue={match.posterUrl ?? ""}
-                placeholder="1080x1350 px, raport 4:5"
-                required={false}
+              <MediaUploadField
+                id={`posterFile-${match.id}`}
+                name="posterFile"
+                label="Poster / afis"
+                defaultPreviewUrl={match.posterUrl ?? undefined}
+                helpText="Incarca o imagine noua doar daca vrei sa inlocuiesti posterul curent. Recomandat: 1080x1350 px, raport 4:5."
+                previewClassName="aspect-[4/5]"
+                className="lg:col-span-2"
               />
-              <Field
-                name={`banner-${match.id}`}
-                htmlName="bannerUrl"
-                label="Banner URL"
-                defaultValue={match.bannerUrl ?? ""}
-                placeholder="1600x900 px, raport 16:9"
-                required={false}
+              <MediaUploadField
+                id={`bannerFile-${match.id}`}
+                name="bannerFile"
+                label="Banner"
+                defaultPreviewUrl={match.bannerUrl ?? undefined}
+                helpText="Incarca o imagine noua doar daca vrei sa inlocuiesti bannerul curent. Recomandat: 1600x900 px, raport 16:9."
+                previewClassName="aspect-[16/9]"
+                className="lg:col-span-2"
               />
               <Field
                 name={`competition-${match.id}`}

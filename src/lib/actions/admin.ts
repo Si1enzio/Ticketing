@@ -1,5 +1,7 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -232,6 +234,15 @@ const ticketActionSchema = z.object({
   reason: z.string().optional(),
 });
 
+const matchMediaBucket = "event-media";
+const allowedImageMimeTypes = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/avif",
+]);
+
 async function ensureAdmin(): Promise<
   Awaited<ReturnType<typeof getViewerContext>> & { userId: string }
 > {
@@ -388,6 +399,114 @@ function parseLeiAmountInput(
     ok: true,
     cents: Math.round(parsedAmount * 100),
   };
+}
+
+function getUploadedFile(formData: FormData, fieldName: string) {
+  const value = formData.get(fieldName);
+
+  if (value instanceof File && value.size > 0) {
+    return value;
+  }
+
+  return null;
+}
+
+function getFileExtension(file: File) {
+  const mimeToExtension: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "image/avif": "avif",
+  };
+
+  return mimeToExtension[file.type] ?? file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+}
+
+async function uploadMatchMediaFile(
+  file: File | null,
+  matchSlug: string,
+  mediaKind: "poster" | "banner",
+): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
+  if (!file) {
+    return { ok: true, url: "" };
+  }
+
+  if (!isSupabaseConfigured() || !isSupabaseAdminConfigured()) {
+    return {
+      ok: false,
+      message:
+        "Incarcarea imaginilor necesita configurarea completa a Supabase, inclusiv cheia de service role.",
+    };
+  }
+
+  if (!allowedImageMimeTypes.has(file.type)) {
+    return {
+      ok: false,
+      message: "Fisierul incarcat trebuie sa fie o imagine PNG, JPG, WEBP, GIF sau AVIF.",
+    };
+  }
+
+  const supabase = createSupabaseAdminClient();
+  if (!supabase) {
+    return {
+      ok: false,
+      message: "Nu am putut initializa incarcarea imaginilor.",
+    };
+  }
+
+  const extension = getFileExtension(file);
+  const safeSlug = matchSlug
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "match";
+  const path = `matches/${safeSlug}/${mediaKind}-${randomUUID()}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(matchMediaBucket)
+    .upload(path, await file.arrayBuffer(), {
+      contentType: file.type,
+      upsert: true,
+    });
+
+  if (uploadError) {
+    return {
+      ok: false,
+      message:
+        sanitizeUserFacingErrorMessage(
+          uploadError.message,
+          "Imaginea nu a putut fi incarcata. Incearca din nou.",
+        ) ?? "Imaginea nu a putut fi incarcata. Incearca din nou.",
+    };
+  }
+
+  const { data } = supabase.storage.from(matchMediaBucket).getPublicUrl(path);
+
+  return {
+    ok: true,
+    url: data.publicUrl,
+  };
+}
+
+async function resolveMatchMediaUrl(
+  formData: FormData,
+  inputName: string,
+  fallbackName: string,
+  matchSlug: string,
+  mediaKind: "poster" | "banner",
+): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
+  const fallbackUrl = String(formData.get(fallbackName) ?? "").trim();
+  const uploadedFile = getUploadedFile(formData, inputName);
+
+  if (!uploadedFile) {
+    return {
+      ok: true,
+      url: fallbackUrl,
+    };
+  }
+
+  return uploadMatchMediaFile(uploadedFile, matchSlug, mediaKind);
 }
 
 function redirectToAdminStadiumMap(params: Record<string, string>): never {
@@ -1304,6 +1423,28 @@ export async function createMatchAction(formData: FormData) {
     redirectToAdminMatches({ error: ticketPriceResult.message });
   }
 
+  const posterUrlResult = await resolveMatchMediaUrl(
+    formData,
+    "posterFile",
+    "posterUrl",
+    String(formData.get("slug") ?? ""),
+    "poster",
+  );
+  if (!posterUrlResult.ok) {
+    redirectToAdminMatches({ error: posterUrlResult.message });
+  }
+
+  const bannerUrlResult = await resolveMatchMediaUrl(
+    formData,
+    "bannerFile",
+    "bannerUrl",
+    String(formData.get("slug") ?? ""),
+    "banner",
+  );
+  if (!bannerUrlResult.ok) {
+    redirectToAdminMatches({ error: bannerUrlResult.message });
+  }
+
   const parsed = matchSchema.safeParse({
     stadiumId: formData.get("stadiumId"),
     homeTeam: formData.get("homeTeam"),
@@ -1312,8 +1453,8 @@ export async function createMatchAction(formData: FormData) {
     slug: formData.get("slug"),
     competitionName: formData.get("competitionName"),
     startsAt: formData.get("startsAt"),
-    posterUrl: formData.get("posterUrl") || "",
-    bannerUrl: formData.get("bannerUrl") || "",
+    posterUrl: posterUrlResult.url || String(formData.get("posterUrl") || ""),
+    bannerUrl: bannerUrlResult.url || String(formData.get("bannerUrl") || ""),
     status: formData.get("status"),
     maxTicketsPerUser: formData.get("maxTicketsPerUser"),
     reservationOpensAt: formData.get("reservationOpensAt") || undefined,
@@ -1726,6 +1867,28 @@ export async function updateMatchAction(formData: FormData) {
     redirectToAdminMatches({ error: ticketPriceResult.message });
   }
 
+  const posterUrlResult = await resolveMatchMediaUrl(
+    formData,
+    "posterFile",
+    "posterUrl",
+    String(formData.get("slug") ?? ""),
+    "poster",
+  );
+  if (!posterUrlResult.ok) {
+    redirectToAdminMatches({ error: posterUrlResult.message });
+  }
+
+  const bannerUrlResult = await resolveMatchMediaUrl(
+    formData,
+    "bannerFile",
+    "bannerUrl",
+    String(formData.get("slug") ?? ""),
+    "banner",
+  );
+  if (!bannerUrlResult.ok) {
+    redirectToAdminMatches({ error: bannerUrlResult.message });
+  }
+
   const parsed = matchUpdateSchema.safeParse({
     matchId: formData.get("matchId"),
     stadiumId: formData.get("stadiumId"),
@@ -1735,8 +1898,8 @@ export async function updateMatchAction(formData: FormData) {
     slug: formData.get("slug"),
     competitionName: formData.get("competitionName"),
     startsAt: formData.get("startsAt"),
-    posterUrl: formData.get("posterUrl") || "",
-    bannerUrl: formData.get("bannerUrl") || "",
+    posterUrl: posterUrlResult.url || String(formData.get("posterUrl") || ""),
+    bannerUrl: bannerUrlResult.url || String(formData.get("bannerUrl") || ""),
     status: formData.get("status"),
     maxTicketsPerUser: formData.get("maxTicketsPerUser"),
     reservationOpensAt: formData.get("reservationOpensAt") || undefined,
