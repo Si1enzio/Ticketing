@@ -16,10 +16,10 @@ export default async function AuthPage({
 
   return (
     <section className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-      <Card className="surface-dark overflow-hidden rounded-[32px] border border-black/8 bg-[radial-gradient(circle_at_top_left,rgba(239,68,68,0.26),transparent_28%),linear-gradient(180deg,#171717_0%,#101010_100%)]">
-        <div className="h-1.5 bg-[linear-gradient(90deg,#ffffff_0%,#fca5a5_36%,#ef4444_100%)]" />
+      <Card className="surface-dark overflow-hidden rounded-[32px] border border-black/8 bg-[radial-gradient(circle_at_top_left,rgba(201,162,79,0.26),transparent_28%),linear-gradient(180deg,#0B1A33_0%,#081326_100%)]">
+        <div className="h-1.5 bg-[linear-gradient(90deg,#ffffff_0%,#E7D6A5_36%,#C9A24F_100%)]" />
         <CardContent className="space-y-6 p-8">
-          <span className="inline-flex rounded-full border border-white/12 bg-white/8 px-4 py-2 text-xs font-semibold uppercase tracking-[0.32em] text-[#fca5a5]">
+          <span className="inline-flex rounded-full border border-white/12 bg-white/8 px-4 py-2 text-xs font-semibold uppercase tracking-[0.32em] text-[#E7D6A5]">
             {messages.authPage.badge}
           </span>
           <div className="space-y-4">

@@ -594,7 +594,7 @@ export async function createStadiumAction(formData: FormData) {
       name: parsed.data.name,
       slug: parsed.data.slug,
       city: parsed.data.city,
-      club_name: "FC Milsami Orhei",
+      club_name: "Organizator",
       created_by: viewer.userId,
     })
     .select("id")

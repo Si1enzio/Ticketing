@@ -64,12 +64,12 @@ const COMPACT_ACCESS_TOKEN_SIGNATURE_BYTES = 16;
 
 function getJwtSecret() {
   return encoder.encode(
-    process.env.SUPABASE_JWT_SECRET ?? "milsami-demo-secret-for-local-builds-only",
+    process.env.SUPABASE_JWT_SECRET ?? "ticket-hub-demo-secret-for-local-builds-only",
   );
 }
 
 function getHmacSecret() {
-  return process.env.SUPABASE_JWT_SECRET ?? "milsami-demo-secret-for-local-builds-only";
+  return process.env.SUPABASE_JWT_SECRET ?? "ticket-hub-demo-secret-for-local-builds-only";
 }
 
 function encodeCode(code: string) {
@@ -198,7 +198,7 @@ export async function generateTicketQrDataUrl(payload: TicketPayload) {
     errorCorrectionLevel: "M",
     margin: 2,
     color: {
-      dark: "#111111",
+      dark: "#0B1A33",
       light: "#ffffff",
     },
   });
@@ -211,7 +211,7 @@ export async function generateSubscriptionQrDataUrl(payload: SubscriptionPayload
     errorCorrectionLevel: "M",
     margin: 2,
     color: {
-      dark: "#111111",
+      dark: "#0B1A33",
       light: "#ffffff",
     },
   });

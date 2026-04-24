@@ -10,7 +10,7 @@ export const messages = {
       cabinet: "Cabinet",
       scanner: "Scanner",
       admin: "Admin",
-      matches: "Meciuri",
+      matches: "Evenimente",
       menu: "Meniu",
       language: "Limba",
       romanian: "Romana",
@@ -22,65 +22,66 @@ export const messages = {
       noGate: "Fara poarta alocata",
     },
     header: {
-      venue: "Stadionul Municipal Orhei",
-      menuDescription: "Navigatie rapida pentru suporteri, stewardi si administratori.",
+      venue: "Platforma independenta de ticketing",
+      menuDescription:
+        "Navigatie rapida pentru participanti, operatori de acces si administratori.",
       activeAccount: "Cont activ",
       stewardOnly: "Cont steward activ",
       reserveAccess: "Ticketing disponibil",
       cabinetActive: "Cabinet personal activ",
     },
     footer: {
-      title: "MVP ticketing pentru Stadionul Municipal Orhei",
+      title: "Ticket Hub",
       description:
-        "Experienta construita pentru bilete gratuite acum si pentru scalare spre fluxuri comerciale ulterior.",
-      pills: ["QR validare", "PDF printabil", "Moderare abuz", "Supabase RLS"],
+        "Platforma independenta pentru bilete gratuite acum si fluxuri cu plata ulterior, pregatita pentru sport, concerte, festivaluri si conferinte.",
+      pills: ["QR validare", "PDF printabil", "Multi-eveniment", "Supabase RLS"],
     },
     home: {
-      badge: "Stadionul Municipal Orhei",
-      titleLine1: "Ticketing alb pe rosu.",
-      titleLine2: "Matchday fara frictiune.",
+      badge: "Ticket Hub",
+      titleLine1: "Evenimente fara frictiune.",
+      titleLine2: "Acces sigur, bilete clare.",
       description:
-        "O interfata mai curata, mai directa si mai sportiva pentru suporteri, stewarzi si admini. Emitere rapida, acces sigur si control operational intr-o platforma unica.",
-      primaryCta: "Solicita bilete pentru urmatorul meci",
+        "O interfata curata si rapida pentru participanti, operatori de acces si organizatori. Emitere simpla, QR sigur si control operational intr-o platforma multi-eveniment.",
+      primaryCta: "Vezi evenimentele disponibile",
       secondaryCta: "Intra in cont",
       highlights: [
         {
           title: "Emitere controlata",
           description:
-            "Adminii pot acorda acces doar suporterilor eligibili, iar emiterea ramane simpla si rapida pe mobil.",
+            "Organizatorii pot emite bilete gratuite sau pot pregati fluxuri cu plata, fara sa schimbe arhitectura.",
         },
         {
           title: "Validare instant",
           description:
-            "Fiecare bilet are QR unic si raspuns imediat pentru steward la poarta.",
+            "Fiecare bilet are QR unic si raspuns imediat pentru operatorul de acces.",
         },
         {
           title: "Control operational",
           description:
-            "Adminii vad limite, no-show, scanari duplicate si indicatori de abuz intr-un singur flux.",
+            "Adminii vad limite, scanari, duplicate si indicatori de risc intr-un singur flux.",
         },
       ],
-      snapshotBadge: "Matchday snapshot",
-      snapshotFallback: "Meci demo pregatit",
+      snapshotBadge: "Snapshot ticketing",
+      snapshotFallback: "Eveniment demo pregatit",
       issued: "Bilete emise",
       available: "Disponibile",
       limit: "Limita",
       snapshotDescription:
-        "Designul nou pune accent pe contrast, lizibilitate si viteza de actiune, mai ales pe mobil in ziua meciului.",
-      exploreCta: "Exploreaza meciul",
-      publishedBadge: "Meciuri publicate",
-      publishedTitle: "Alege meciul si solicita-ti locul",
+        "Designul pune accent pe contrast, lizibilitate si viteza de actiune, mai ales pe mobil la intrare.",
+      exploreCta: "Exploreaza evenimentul",
+      publishedBadge: "Evenimente publicate",
+      publishedTitle: "Alege evenimentul si obtine biletul",
       publishedDescription:
         "Biletele gratuite si cele cu plata pot fi obtinute imediat dupa autentificare, iar locurile raman blocate doar temporar in timpul selectiei.",
     },
     authPage: {
-      badge: "Acces suporteri",
-      title: "Intra. Solicita. Acceseaza.",
+      badge: "Acces participanti",
+      title: "Intra. Alege. Acceseaza.",
       description:
-        "Contul tau este baza pentru cabinetul personal, biletele emise sau procurate, PDF, partajare si istoricul de acces la stadion.",
+        "Contul tau este baza pentru cabinetul personal, biletele emise sau procurate, PDF, partajare si istoricul de acces la evenimente.",
       bullets: [
         "Biletele gratuite sau cu plata pot fi obtinute imediat dupa autentificare",
-        "QR unic pentru fiecare loc si validare atomica la scanare",
+        "QR unic pentru fiecare loc sau acces si validare atomica la scanare",
         "Creare cont rapida, resetare parola si acces imediat prin Supabase Auth",
       ],
     },
@@ -124,10 +125,10 @@ export const messages = {
       title: "Biletele mele",
       description:
         "Aici vezi biletele emise, istoricul de scanare si accesul rapid spre PDF, print si pagina individuala a fiecarui loc.",
-      ticketingActive: "Ticketing activ pentru meciurile deschise publicului",
+      ticketingActive: "Ticketing activ pentru evenimentele deschise publicului",
       summary: {
         activeTickets: "Bilete active",
-        upcomingMatches: "Meciuri viitoare",
+        upcomingMatches: "Evenimente viitoare",
         history: "Istoric bilete",
         subscriptions: "Abonamente active",
       },
@@ -135,12 +136,12 @@ export const messages = {
         subscriptionsTitle: "Abonamente",
         subscriptionsSubtitle:
           "Daca ai primit un abonament anual sau semi-anual, il vezi aici.",
-        upcomingTitle: "Meciuri urmatoare",
+        upcomingTitle: "Evenimente urmatoare",
         upcomingSubtitle:
           "Biletele active apar aici imediat dupa confirmarea emiterii.",
         historyTitle: "Istoric si bilete folosite",
         historySubtitle:
-          "Aici apar biletele scanate, folosite sau meciurile deja trecute.",
+          "Aici apar biletele scanate, folosite sau evenimentele deja trecute.",
       },
       empty: {
         noSubscriptionsTitle: "Nu ai abonamente active",
@@ -151,7 +152,7 @@ export const messages = {
           "Dupa ce sunt emise bilete pentru contul tau, ele apar instant aici.",
         noHistoryTitle: "Istoricul este inca gol",
         noHistoryDescription:
-          "Biletele scanate sau meciurile trecute vor aparea aici.",
+          "Biletele scanate sau evenimentele trecute vor aparea aici.",
       },
       subscriptionValidUntil: "Valabil pana la",
       months: "luni",
@@ -178,7 +179,7 @@ export const messages = {
       freeOpen: "Bilet gratuit",
       paidOpen: "Procurare cu plata",
       defaultDescription:
-        "Bilet gratuit emis cu QR unic, acces steward si cabinet personal pentru suporteri.",
+        "Bilet emis cu QR unic, validare rapida si cabinet personal pentru participanti.",
       standardLimit: "Limita standard:",
       ticketsPerAccount: "bilete / cont",
       details: "Vezi detalii",
@@ -197,15 +198,15 @@ export const messages = {
       seat: "Loc",
       scannedAt: "Scanat la",
       openTicket: "Deschide biletul",
-      viewMatch: "Vezi meciul",
+      viewMatch: "Vezi evenimentul",
       pdf: "PDF",
     },
     scanner: {
       restrictedTitle: "Acces restrictionat",
       restrictedDescription:
         "Scannerul este disponibil doar pentru rolurile steward, admin sau superadmin.",
-      badge: "Matchday tools",
-      title: "Steward scanner",
+      badge: "Access tools",
+      title: "Scanner acces",
     },
   },
   ru: {
@@ -409,5 +410,57 @@ export const messages = {
 export type AppMessages = (typeof messages)[AppLocale];
 
 export function getMessages(locale: AppLocale): AppMessages {
-  return messages[locale];
+  const base = messages[locale];
+
+  if (locale !== "ru") {
+    return base;
+  }
+
+  return {
+    ...base,
+    common: {
+      ...base.common,
+      matches: "События",
+      roleCanReserve: "Расширенный доступ к билетам активен",
+    },
+    header: {
+      ...base.header,
+      venue: "Независимая ticketing-платформа",
+      menuDescription:
+        "Быстрая навигация для участников, операторов доступа и администраторов.",
+    },
+    footer: {
+      ...base.footer,
+      title: "Ticket Hub",
+      description:
+        "Независимая платформа для бесплатных билетов сейчас и платных сценариев позже: спорт, концерты, фестивали и конференции.",
+      pills: ["QR-проверка", "PDF для печати", "Мульти-события", "Supabase RLS"],
+    },
+    home: {
+      ...base.home,
+      badge: "Ticket Hub",
+      titleLine1: "События без трения.",
+      titleLine2: "Надежный доступ.",
+      description:
+        "Быстрый и понятный интерфейс для участников, операторов доступа и организаторов.",
+      primaryCta: "Смотреть события",
+      snapshotBadge: "Ticketing snapshot",
+      snapshotFallback: "Демо-событие готово",
+      exploreCta: "Открыть событие",
+      publishedBadge: "Опубликованные события",
+      publishedTitle: "Выбери событие и получи билет",
+    },
+    authPage: {
+      ...base.authPage,
+      badge: "Доступ участников",
+      title: "Войди. Выбери. Проходи.",
+      description:
+        "Аккаунт нужен для личного кабинета, билетов, PDF, шаринга и истории доступа.",
+    },
+    scanner: {
+      ...base.scanner,
+      badge: "Access tools",
+      title: "Сканер доступа",
+    },
+  } as unknown as AppMessages;
 }

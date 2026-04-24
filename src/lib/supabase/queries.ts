@@ -847,7 +847,7 @@ export async function getTeamCatalog(): Promise<TeamOption[]> {
   const fallbackNames = Array.from(
     new Set(
       [
-        "FC Milsami Orhei",
+        "Organizator principal",
         ...mockMatches.flatMap((match) => {
           const homeTeam = match.title.endsWith(` vs ${match.opponentName}`)
             ? match.title.slice(0, -(` vs ${match.opponentName}`).length)

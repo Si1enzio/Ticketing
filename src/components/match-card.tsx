@@ -25,16 +25,16 @@ export function MatchCard({
 
   return (
     <Card className="surface-panel overflow-hidden rounded-[28px] border border-white/60 bg-white/90">
-      <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_42%,#f87171_100%)]" />
+      <div className="h-1.5 bg-[linear-gradient(90deg,#0B1A33_0%,#C9A24F_42%,#E7D6A5_100%)]" />
       <CardHeader className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Badge className="rounded-full bg-[#111111] px-3 py-1 text-white hover:bg-[#111111]">
+          <Badge className="rounded-full bg-[#0B1A33] px-3 py-1 text-white hover:bg-[#0B1A33]">
             {match.competitionName}
           </Badge>
           <div className="flex flex-wrap gap-2">
             <Badge
               variant="outline"
-              className="rounded-full border-[#dc2626]/18 bg-[#dc2626]/6 text-[#b91c1c]"
+              className="rounded-full border-[#C9A24F]/25 bg-[#fffaf0] text-[#0B1A33]"
             >
               {match.ticketingMode === "paid"
                 ? t("matchCard.paidOpen")
@@ -42,7 +42,7 @@ export function MatchCard({
             </Badge>
             <Badge
               variant="outline"
-              className="rounded-full border-[#dc2626]/18 bg-[#dc2626]/6 text-[#b91c1c]"
+              className="rounded-full border-[#C9A24F]/25 bg-[#fffaf0] text-[#0B1A33]"
             >
               {match.availableEstimate} {t("matchCard.estimatedSeats")}
             </Badge>
@@ -60,7 +60,7 @@ export function MatchCard({
 
       <CardContent className="grid gap-3 text-sm text-neutral-600">
         <div className="flex items-center gap-3 rounded-2xl border border-black/6 bg-neutral-50 px-4 py-3">
-          <CalendarClock className="h-5 w-5 text-[#dc2626]" />
+          <CalendarClock className="h-5 w-5 text-[#C9A24F]" />
           <span>
             {format(startsAt, "EEEE, d MMMM yyyy - HH:mm", {
               locale: getDateFnsLocale(locale),
@@ -68,13 +68,13 @@ export function MatchCard({
           </span>
         </div>
         <div className="flex items-center gap-3 rounded-2xl border border-black/6 bg-neutral-50 px-4 py-3">
-          <MapPin className="h-5 w-5 text-[#dc2626]" />
+          <MapPin className="h-5 w-5 text-[#C9A24F]" />
           <span>
             {match.stadiumName}, {match.city}
           </span>
         </div>
         <div className="flex items-center gap-3 rounded-2xl border border-black/6 bg-neutral-50 px-4 py-3">
-          <ShieldCheck className="h-5 w-5 text-[#dc2626]" />
+          <ShieldCheck className="h-5 w-5 text-[#C9A24F]" />
           <span>
             {t("matchCard.standardLimit")} {match.maxTicketsPerUser}{" "}
             {t("matchCard.ticketsPerAccount")}
@@ -85,14 +85,14 @@ export function MatchCard({
       <CardFooter className="flex flex-col gap-3 border-t border-black/6 bg-gradient-to-r from-neutral-50 to-white sm:flex-row">
         <Button
           asChild
-          className="w-full rounded-full border border-[#111111] bg-[#111111] text-white hover:bg-black sm:flex-1"
+          className="w-full rounded-full border border-[#0B1A33] bg-[#0B1A33] text-white hover:bg-[#132641] sm:flex-1"
         >
           <Link href={`/meciuri/${match.slug}`}>{t("matchCard.details")}</Link>
         </Button>
         <Button
           asChild
           variant="outline"
-          className="w-full rounded-full border-[#dc2626] bg-white text-[#b91c1c] hover:bg-[#fef2f2] sm:flex-1"
+          className="w-full rounded-full border-[#C9A24F] bg-white text-[#0B1A33] hover:bg-[#fffaf0] sm:flex-1"
         >
           <Link href={`/meciuri/${match.slug}/rezerva`}>
             {match.ticketingMode === "paid" ? t("matchCard.buyPaid") : t("matchCard.getFree")}

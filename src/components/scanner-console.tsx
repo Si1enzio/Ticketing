@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const DEVICE_LABEL_STORAGE_KEY = "milsami-scanner-device-label";
+const DEVICE_LABEL_STORAGE_KEY = "ticket-hub-scanner-device-label";
 const LOCAL_ZXING_READER_WASM_PATH = "/vendor/zxing/zxing_reader.wasm";
 
 let isZxingWasmConfigured = false;
@@ -51,7 +51,7 @@ const resultStyles: Record<
     icon: ShieldAlert,
   },
   wrong_match: {
-    title: "Meci gresit",
+    title: "Eveniment gresit",
     className: "border-red-300 bg-red-600 text-white",
     icon: TicketX,
   },
@@ -199,7 +199,7 @@ export function ScannerConsole({
                 Scanner mobil
               </CardTitle>
               <p className="mt-2 text-sm leading-6 text-white/68">
-                Scanner fix pentru meciul selectat. La refresh ramai pe acelasi meci.
+                Scanner fix pentru evenimentul selectat. La refresh ramai pe acelasi eveniment.
               </p>
             </div>
             <Link
@@ -207,14 +207,14 @@ export function ScannerConsole({
               className="inline-flex items-center rounded-full border border-white/12 bg-white/6 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Inapoi la lista meciurilor
+              Inapoi la lista evenimentelor
             </Link>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-[1.1fr_0.9fr]">
             <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm text-white/72">
               <p className="text-xs uppercase tracking-[0.22em] text-white/50">
-                Meci selectat
+                Eveniment selectat
               </p>
               <p className="mt-2 font-semibold text-white">{match.title}</p>
               <p className="mt-1">{match.competitionName}</p>
@@ -370,7 +370,7 @@ export function ScannerConsole({
                     : {` ${lastResult.ticketCode}`}
                   </p>
                 ) : null}
-                {lastResult.matchTitle ? <p>Meci: {lastResult.matchTitle}</p> : null}
+                {lastResult.matchTitle ? <p>Eveniment: {lastResult.matchTitle}</p> : null}
                 {lastResult.sectorLabel ? <p>Sector: {lastResult.sectorLabel}</p> : null}
                 {hasSeatPosition(lastResult) ? (
                   <p>
@@ -396,7 +396,7 @@ export function ScannerConsole({
             </div>
           ) : (
             <div className="rounded-[26px] border border-dashed border-black/10 bg-neutral-50 p-8 text-sm leading-7 text-neutral-600">
-              Porneste camera si scaneaza QR-ul pentru meciul selectat. Rezultatul ramane
+              Porneste camera si scaneaza QR-ul pentru evenimentul selectat. Rezultatul ramane
               afisat mai jos chiar si dupa inchiderea overlay-ului temporar.
             </div>
           )}

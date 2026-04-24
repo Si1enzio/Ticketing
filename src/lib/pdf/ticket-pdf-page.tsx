@@ -1,9 +1,10 @@
 /* eslint-disable jsx-a11y/alt-text */
 import path from "node:path";
 
-import { Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Circle, Font, Image, Page, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 
 import type { StadiumSponsor, TicketCard } from "@/lib/domain/types";
+import { brand } from "@/lib/brand";
 
 const pdfFontFamily = "GeistPdf";
 const geistPdfFontPath = path.join(
@@ -49,7 +50,7 @@ export const ticketPdfStyles = StyleSheet.create({
   },
   band: {
     height: 6,
-    backgroundColor: "#dc2626",
+    backgroundColor: brand.colors.gold,
   },
   ticketLayout: {
     flexDirection: "row",
@@ -61,7 +62,7 @@ export const ticketPdfStyles = StyleSheet.create({
     flexBasis: 0,
   },
   topPanel: {
-    backgroundColor: "#111111",
+    backgroundColor: brand.colors.navy,
     color: "#ffffff",
     paddingTop: 9,
     paddingRight: 12,
@@ -73,8 +74,34 @@ export const ticketPdfStyles = StyleSheet.create({
     fontSize: 8,
     textTransform: "uppercase",
     letterSpacing: 1.4,
-    color: "#fecaca",
+    color: brand.colors.goldSoft,
     marginBottom: 4,
+  },
+  pdfLogoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 7,
+  },
+  pdfLogoIcon: {
+    width: 34,
+    height: 18,
+  },
+  pdfLogoTextRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  pdfLogoTicket: {
+    fontSize: 7.4,
+    fontWeight: 700,
+    letterSpacing: 1.8,
+    color: "#ffffff",
+  },
+  pdfLogoHub: {
+    fontSize: 7.4,
+    fontWeight: 700,
+    letterSpacing: 1.8,
+    color: brand.colors.goldSoft,
   },
   title: {
     fontSize: 15,
@@ -96,7 +123,7 @@ export const ticketPdfStyles = StyleSheet.create({
   },
   sponsorLabel: {
     fontSize: 6.6,
-    color: "#fecaca",
+    color: brand.colors.goldSoft,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
@@ -137,7 +164,7 @@ export const ticketPdfStyles = StyleSheet.create({
   qrBadge: {
     fontSize: 7.8,
     textTransform: "uppercase",
-    color: "#7f1d1d",
+    color: brand.colors.navy,
     letterSpacing: 1.2,
     textAlign: "center",
     marginBottom: 14,
@@ -213,8 +240,8 @@ export const ticketPdfStyles = StyleSheet.create({
     minHeight: 40,
   },
   cardPriority: {
-    borderColor: "#fecaca",
-    backgroundColor: "#fff7f7",
+    borderColor: brand.colors.goldSoft,
+    backgroundColor: "#fffaf0",
   },
   label: {
     color: "#6b7280",
@@ -230,9 +257,30 @@ export const ticketPdfStyles = StyleSheet.create({
   valuePriority: {
     fontSize: 9.4,
     fontWeight: 600,
-    color: "#111111",
+    color: brand.colors.navy,
   },
 });
+
+export function TicketHubPdfLogo({ compact = false }: { compact?: boolean }) {
+  return (
+    <View style={ticketPdfStyles.pdfLogoRow}>
+      <Svg viewBox="0 0 120 64" style={ticketPdfStyles.pdfLogoIcon}>
+        <Rect x="0" y="4" width="54" height="56" fill={brand.colors.navy} />
+        <Circle cx="0" cy="32" r="13" fill="#ffffff" />
+        <Rect x="66" y="4" width="54" height="56" fill={brand.colors.gold} />
+        <Circle cx="120" cy="32" r="13" fill="#ffffff" />
+        <Circle cx="60" cy="32" r="20" fill="#ffffff" />
+        <Circle cx="60" cy="32" r="10" fill={brand.colors.gold} />
+      </Svg>
+      {!compact ? (
+        <View style={ticketPdfStyles.pdfLogoTextRow}>
+          <Text style={ticketPdfStyles.pdfLogoTicket}>TICKET</Text>
+          <Text style={ticketPdfStyles.pdfLogoHub}>HUB</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 export function TicketPdfPage({
   ticket,
@@ -250,12 +298,13 @@ export function TicketPdfPage({
         <View style={ticketPdfStyles.ticketLayout}>
           <View style={ticketPdfStyles.mainColumn}>
             <View style={ticketPdfStyles.topPanel}>
-              <Text style={ticketPdfStyles.eyebrow}>Stadionul Municipal Orhei</Text>
+              <TicketHubPdfLogo />
+              <Text style={ticketPdfStyles.eyebrow}>{brand.operationalTagline}</Text>
               <Text style={ticketPdfStyles.title}>{ticket.matchTitle}</Text>
               <Text style={ticketPdfStyles.subtitle}>{ticket.competitionName}</Text>
               {sponsors.length ? (
                 <View style={ticketPdfStyles.sponsorRow}>
-                  <Text style={ticketPdfStyles.sponsorLabel}>Sponsori club gazda</Text>
+                  <Text style={ticketPdfStyles.sponsorLabel}>Sponsori organizator</Text>
                   {sponsors.slice(0, 4).map((sponsor) => (
                     <View key={sponsor.id} style={ticketPdfStyles.sponsorBadge}>
                       <Image src={sponsor.logoUrl} style={ticketPdfStyles.sponsorLogo} />

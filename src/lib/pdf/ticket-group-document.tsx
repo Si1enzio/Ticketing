@@ -2,7 +2,8 @@
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 import type { StadiumSponsor, TicketCard } from "@/lib/domain/types";
-import { TicketPdfPage } from "@/lib/pdf/ticket-pdf-page";
+import { brand } from "@/lib/brand";
+import { TicketHubPdfLogo, TicketPdfPage } from "@/lib/pdf/ticket-pdf-page";
 
 export type TicketGroupLayout = "full-page" | "cut-sheet";
 export type TicketsPerSheet = 3 | 4 | 6;
@@ -40,7 +41,7 @@ const sheetStyles = StyleSheet.create({
   ticket: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#fecaca",
+    borderColor: brand.colors.goldSoft,
     borderStyle: "solid",
     borderRadius: 12,
     overflow: "hidden",
@@ -57,21 +58,21 @@ const sheetStyles = StyleSheet.create({
     flexBasis: 0,
   },
   header: {
-    backgroundColor: "#111111",
+    backgroundColor: brand.colors.navy,
     color: "#ffffff",
     paddingTop: 8,
     paddingRight: 9,
     paddingBottom: 8,
     paddingLeft: 9,
     borderTopWidth: 5,
-    borderTopColor: "#dc2626",
+    borderTopColor: brand.colors.gold,
     borderTopStyle: "solid",
   },
   stadium: {
     fontSize: 6.8,
     letterSpacing: 1.6,
     textTransform: "uppercase",
-    color: "#fecaca",
+    color: brand.colors.goldSoft,
     marginBottom: 4,
   },
   title: {
@@ -94,7 +95,7 @@ const sheetStyles = StyleSheet.create({
     fontSize: 5.8,
     letterSpacing: 1,
     textTransform: "uppercase",
-    color: "#fecaca",
+    color: brand.colors.goldSoft,
   },
   sponsorBadge: {
     width: 36,
@@ -127,10 +128,10 @@ const sheetStyles = StyleSheet.create({
   fieldCard: {
     minHeight: 30,
     borderWidth: 1,
-    borderColor: "#f5d0d0",
+    borderColor: brand.colors.goldSoft,
     borderStyle: "solid",
     borderRadius: 8,
-    backgroundColor: "#fffafa",
+    backgroundColor: "#fffaf0",
     paddingTop: 5,
     paddingRight: 6,
     paddingBottom: 5,
@@ -157,14 +158,14 @@ const sheetStyles = StyleSheet.create({
     paddingBottom: 8,
     paddingLeft: 8,
     borderLeftWidth: 1,
-    borderLeftColor: "#f5d0d0",
+    borderLeftColor: brand.colors.goldSoft,
     borderLeftStyle: "solid",
   },
   qrTitle: {
     fontSize: 7,
     letterSpacing: 1.5,
     textTransform: "uppercase",
-    color: "#7f1d1d",
+    color: brand.colors.navy,
     textAlign: "center",
     marginBottom: 5,
   },
@@ -213,8 +214,8 @@ export function TicketGroupDocument({
   if (layout === "cut-sheet") {
     return (
       <Document
-        title={`Bundle print ${tickets[0]?.matchTitle ?? "Meci"}`}
-        author="Milsami Ticketing"
+        title={`Bundle print ${tickets[0]?.matchTitle ?? "Eveniment"}`}
+        author={brand.displayName}
         subject={tickets[0]?.matchTitle ?? "Bundle print"}
       >
         {chunkTickets(tickets, qrDataUrls, ticketsPerSheet).map((chunk, pageIndex) => (
@@ -231,8 +232,8 @@ export function TicketGroupDocument({
 
   return (
     <Document
-      title={`Bilete grupate ${tickets[0]?.matchTitle ?? "Meci"}`}
-      author="Milsami Ticketing"
+      title={`Bilete grupate ${tickets[0]?.matchTitle ?? "Eveniment"}`}
+      author={brand.displayName}
       subject={tickets[0]?.matchTitle ?? "Bilete grupate"}
     >
       {tickets.map((ticket, index) => (
@@ -300,6 +301,7 @@ function CompactTicketCard({
       <View style={sheetStyles.ticketInner}>
         <View style={sheetStyles.details}>
           <View style={sheetStyles.header}>
+            <TicketHubPdfLogo compact />
             <Text style={sheetStyles.stadium}>{ticket.stadiumName}</Text>
             <Text style={sheetStyles.title}>{ticket.matchTitle}</Text>
             <Text style={sheetStyles.competition}>{ticket.competitionName}</Text>

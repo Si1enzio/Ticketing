@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "@/components/providers";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { brand } from "@/lib/brand";
 import { getServerI18n } from "@/lib/i18n/server";
 
 const bodyFont = Sora({
@@ -19,9 +20,8 @@ const headingFont = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Milsami Ticketing",
-  description:
-    "Platforma MVP pentru rezervarea biletelor gratuite la Stadionul Municipal Orhei.",
+  title: brand.displayName,
+  description: brand.description,
 };
 
 export default async function RootLayout({
@@ -36,10 +36,10 @@ export default async function RootLayout({
       lang={locale}
       className={`${bodyFont.variable} ${headingFont.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-[#f7f7f8] text-[#161616]">
+      <body className="min-h-full bg-[#f7f8fa] text-[#101827]">
         <Providers locale={locale} messages={messages}>
           <div className="relative flex min-h-screen flex-col">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(135deg,rgba(220,38,38,0.14),rgba(255,255,255,0))]" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(135deg,rgba(11,26,51,0.13),rgba(201,162,79,0.10),rgba(255,255,255,0))]" />
             <SiteHeader />
             <main className="relative flex flex-1 flex-col">{children}</main>
             <SiteFooter />

@@ -19,7 +19,7 @@ export default async function HomePage() {
       <section className="border-b border-black/6">
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:px-8 lg:py-18">
           <div className="space-y-6">
-            <span className="inline-flex rounded-full border border-[#dc2626]/15 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.32em] text-[#b91c1c] shadow-sm">
+            <span className="inline-flex rounded-full border border-[#C9A24F]/25 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.32em] text-[#0B1A33] shadow-sm">
               {messages.home.badge}
             </span>
 
@@ -38,9 +38,9 @@ export default async function HomePage() {
               <Button
                 asChild
                 size="lg"
-                className="rounded-full border border-[#dc2626] bg-[#dc2626] px-8 text-white hover:bg-[#b91c1c]"
+                className="rounded-full border border-[#0B1A33] bg-[#0B1A33] px-8 text-white hover:bg-[#132641]"
               >
-                <Link href={featuredMatch ? `/meciuri/${featuredMatch.slug}/rezerva` : "/"}>
+                <Link href={featuredMatch ? `/meciuri/${featuredMatch.slug}` : "/"}>
                   {messages.home.primaryCta}
                 </Link>
               </Button>
@@ -64,7 +64,7 @@ export default async function HomePage() {
                     className="surface-panel rounded-[26px] border border-white/60 bg-white/80"
                   >
                     <CardContent className="space-y-3 p-5">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#111111] text-white">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0B1A33] text-[#E7D6A5]">
                         <Icon className="h-5 w-5" />
                       </div>
                       <div>
@@ -82,11 +82,11 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <Card className="surface-dark overflow-hidden rounded-[32px] border border-black/8 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.22),transparent_34%),linear-gradient(180deg,#171717_0%,#0f0f10_100%)]">
-            <div className="h-1.5 bg-[linear-gradient(90deg,#ffffff_0%,#fca5a5_32%,#ef4444_100%)]" />
+          <Card className="surface-dark overflow-hidden rounded-[32px] border border-black/8 bg-[radial-gradient(circle_at_top_right,rgba(201,162,79,0.24),transparent_34%),linear-gradient(180deg,#0B1A33_0%,#081326_100%)]">
+            <div className="h-1.5 bg-[linear-gradient(90deg,#ffffff_0%,#E7D6A5_32%,#C9A24F_100%)]" />
             <CardContent className="space-y-6 p-6">
               <div className="space-y-2">
-                <p className="text-sm uppercase tracking-[0.24em] text-[#fca5a5]">
+                <p className="text-sm uppercase tracking-[0.24em] text-[#E7D6A5]">
                   {messages.home.snapshotBadge}
                 </p>
                 <h2 className="font-heading text-4xl uppercase tracking-[0.12em] text-white">
@@ -123,7 +123,7 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              <div className="rounded-[28px] border border-[#ef4444]/25 bg-[#ef4444]/10 p-4 text-sm leading-6 text-white/78">
+              <div className="rounded-[28px] border border-[#C9A24F]/25 bg-[#C9A24F]/10 p-4 text-sm leading-6 text-white/78">
                 {messages.home.snapshotDescription}
               </div>
 
@@ -144,7 +144,7 @@ export default async function HomePage() {
       <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#b91c1c]">
+            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#C9A24F]">
               {messages.home.publishedBadge}
             </p>
             <h2 className="mt-2 font-heading text-4xl uppercase tracking-[0.12em] text-[#111111]">

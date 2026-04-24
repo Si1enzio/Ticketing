@@ -41,7 +41,7 @@ export default async function AdminMatchesPage({
   ]);
 
   const defaultStadium = stadiums[0];
-  const defaultHomeTeam = "FC Milsami Orhei";
+  const defaultHomeTeam = "Organizator principal";
   const teamSuggestions = teamCatalog.map((team) => team.name);
   const stadiumOptions = stadiums.map((stadium) => ({
     value: stadium.id,
@@ -73,10 +73,10 @@ export default async function AdminMatchesPage({
 
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#b91c1c]">
-          Management meciuri
+          Management evenimente
         </p>
         <h1 className="mt-2 font-heading text-5xl uppercase tracking-[0.08em] text-[#111111]">
-          Creeaza, editeaza si publica meciuri
+          Creeaza, editeaza si publica evenimente
         </h1>
       </div>
 

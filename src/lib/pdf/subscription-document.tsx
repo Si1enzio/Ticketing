@@ -3,8 +3,10 @@ import path from "node:path";
 
 import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
+import { brand } from "@/lib/brand";
 import type { UserSubscription } from "@/lib/domain/types";
 import { formatSeatPosition } from "@/lib/format/seat";
+import { TicketHubPdfLogo } from "@/lib/pdf/ticket-pdf-page";
 
 const pdfFontFamily = "GeistSubscriptionPdf";
 const geistPdfFontPath = path.join(
@@ -45,7 +47,7 @@ const styles = StyleSheet.create({
   },
   band: {
     height: 8,
-    backgroundColor: "#dc2626",
+    backgroundColor: brand.colors.gold,
   },
   body: {
     padding: 20,
@@ -58,7 +60,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textTransform: "uppercase",
     letterSpacing: 2.2,
-    color: "#b91c1c",
+    color: brand.colors.navy,
   },
   title: {
     fontSize: 30,
@@ -72,17 +74,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     borderWidth: 1,
-    borderColor: "#fecaca",
+    borderColor: brand.colors.goldSoft,
     borderStyle: "solid",
     borderRadius: 18,
-    backgroundColor: "#fff7f7",
+    backgroundColor: "#fffaf0",
     padding: 18,
   },
   qrTitle: {
     fontSize: 12,
     textTransform: "uppercase",
     letterSpacing: 2,
-    color: "#7f1d1d",
+    color: brand.colors.navy,
   },
   qrImage: {
     width: 220,
@@ -152,7 +154,7 @@ export function SubscriptionDocument({
   return (
     <Document
       title={`Abonament ${subscription.subscriptionCode}`}
-      author="Milsami Ticketing"
+      author={brand.displayName}
       subject={subscription.product.name}
     >
       <Page size="A4" style={styles.page}>
@@ -160,7 +162,8 @@ export function SubscriptionDocument({
           <View style={styles.band} />
           <View style={styles.body}>
             <View style={styles.heading}>
-              <Text style={styles.eyebrow}>Abonament stadion</Text>
+              <TicketHubPdfLogo compact />
+              <Text style={styles.eyebrow}>Abonament evenimente</Text>
               <Text style={styles.title}>{subscription.product.name}</Text>
               <Text style={styles.subtitle}>
                 Valabil pentru toate meciurile de pe stadionul {subscription.stadiumName}

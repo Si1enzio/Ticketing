@@ -4,12 +4,12 @@ type RateLimitEntry = {
 };
 
 declare global {
-  var __milsamiRateLimitStore__: Map<string, RateLimitEntry> | undefined;
+  var __ticketHubRateLimitStore__: Map<string, RateLimitEntry> | undefined;
 }
 
 const rateLimitStore =
-  globalThis.__milsamiRateLimitStore__ ??
-  (globalThis.__milsamiRateLimitStore__ = new Map<string, RateLimitEntry>());
+  globalThis.__ticketHubRateLimitStore__ ??
+  (globalThis.__ticketHubRateLimitStore__ = new Map<string, RateLimitEntry>());
 
 export function checkRateLimit({
   key,

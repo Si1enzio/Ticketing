@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 160" role="img" aria-labelledby="title">
+  <title id="title">Ticket Hub</title>
+  <rect width="720" height="160" fill="none"/>
+  <g transform="translate(14 30)">
+    <path d="M0 10h58v20a18 18 0 0 0 0 36v20H0V66a18 18 0 0 0 0-36V10Z" fill="#0B1A33"/>
+    <path d="M82 10h58v20a18 18 0 0 0 0 36v20H82V66a18 18 0 0 1 0-36V10Z" fill="#C9A24F"/>
+    <circle cx="70" cy="52" r="28" fill="#fff"/>
+    <circle cx="70" cy="52" r="13" fill="#C9A24F"/>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="66" font-weight="600" letter-spacing="16">
+    <text x="190" y="102" fill="#0B1A33">TICKET</text>
+    <text x="514" y="102" fill="#C9A24F">HUB</text>
+  </g>
+</svg>

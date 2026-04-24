@@ -103,7 +103,7 @@ export function AdminMatchDerivedFields({
         name={homeTeamName}
         label="Gazda"
         value={homeTeam}
-        placeholder="Ex: FC Milsami Orhei"
+        placeholder="Ex: Organizator / club gazda"
         listId={datalistId}
         onChange={setHomeTeam}
         required
@@ -113,7 +113,7 @@ export function AdminMatchDerivedFields({
         name={awayTeamName}
         label="Oaspeti"
         value={awayTeam}
-        placeholder="Ex: FC Petrocub Hancesti"
+        placeholder="Ex: Oaspete / artist / invitat"
         listId={datalistId}
         onChange={setAwayTeam}
         required
@@ -133,7 +133,7 @@ export function AdminMatchDerivedFields({
 
       <DateTimeFieldGroup
         prefix={`${formId}-starts-at`}
-        label="Start meci"
+        label="Start eveniment"
         value={startDateTime}
         onChange={setStartDateTime}
         required

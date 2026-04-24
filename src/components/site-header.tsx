@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, Menu } from "lucide-react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { useI18n } from "@/components/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -162,18 +163,18 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-black/8 bg-white/75 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-[#0B1A33]/10 bg-white/82 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#dc2626]/20 bg-[linear-gradient(135deg,#ef4444,#991b1b)] text-sm font-black uppercase tracking-[0.2em] text-white shadow-[0_12px_30px_-18px_rgba(220,38,38,0.8)]">
-              MO
-            </div>
+            <BrandLogo variant="icon" priority className="h-12 w-12 object-contain" />
             <div>
-              <p className="font-heading text-lg uppercase tracking-[0.26em] text-[#111111]">
-                Milsami Ticketing
-              </p>
-              <p className="text-xs text-neutral-500">{t("header.venue")}</p>
+              <BrandLogo
+                variant="horizontal"
+                priority
+                className="h-8 w-[180px] object-contain object-left"
+              />
+              <p className="mt-0.5 text-xs text-neutral-500">{t("header.venue")}</p>
             </div>
           </Link>
 
@@ -189,7 +190,7 @@ export function SiteHeader() {
                     "rounded-full px-4 py-2 text-sm font-medium transition",
                     disabled
                       ? "pointer-events-none bg-neutral-100 text-neutral-400"
-                      : "text-neutral-600 hover:bg-[#dc2626]/8 hover:text-[#b91c1c]",
+                      : "text-neutral-600 hover:bg-[#C9A24F]/12 hover:text-[#0B1A33]",
                   )}
                 >
                   {item.label}
@@ -259,7 +260,7 @@ export function SiteHeader() {
                           "rounded-[22px] border px-4 py-4 text-base font-medium transition",
                           disabled
                             ? "pointer-events-none border-black/6 bg-neutral-100 text-neutral-400"
-                            : "border-black/8 bg-white text-[#111111] hover:border-[#dc2626]/18 hover:bg-[#fff1f2] hover:text-[#b91c1c]",
+                            : "border-black/8 bg-white text-[#111111] hover:border-[#C9A24F]/35 hover:bg-[#fbf7ec] hover:text-[#0B1A33]",
                         )}
                       >
                         {item.label}
@@ -271,7 +272,7 @@ export function SiteHeader() {
 
               {viewer.isAuthenticated ? (
                 <div className="mt-auto border-t border-black/6 px-5 py-5">
-                  <Badge className="rounded-full border border-[#dc2626]/12 bg-[#dc2626]/8 px-3 py-1 text-[#b91c1c] hover:bg-[#dc2626]/8">
+                  <Badge className="rounded-full border border-[#C9A24F]/25 bg-[#C9A24F]/12 px-3 py-1 text-[#0B1A33] hover:bg-[#C9A24F]/12">
                     {roleLabels[highestRole]}
                   </Badge>
                   <p className="mt-3 text-sm font-semibold text-[#111111]">
@@ -289,7 +290,7 @@ export function SiteHeader() {
                       <SheetClose asChild>
                         <Button
                           asChild
-                        className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+                        className="w-full rounded-full border border-[#0B1A33] bg-[#0B1A33] text-white hover:bg-[#132641]"
                       >
                           <Link href="/cabinet">{t("common.tickets")}</Link>
                         </Button>
@@ -315,7 +316,7 @@ export function SiteHeader() {
                   <SheetClose asChild>
                     <Button
                       asChild
-                      className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+                      className="w-full rounded-full border border-[#0B1A33] bg-[#0B1A33] text-white hover:bg-[#132641]"
                     >
                       <Link href="/autentificare">{t("common.login")}</Link>
                     </Button>
@@ -348,7 +349,7 @@ export function SiteHeader() {
             <>
               <Badge
                 variant="secondary"
-                className="hidden rounded-full border border-[#dc2626]/12 bg-[#dc2626]/8 px-3 py-1 text-[#b91c1c] sm:inline-flex"
+                className="hidden rounded-full border border-[#C9A24F]/25 bg-[#C9A24F]/12 px-3 py-1 text-[#0B1A33] sm:inline-flex"
               >
                 {roleLabels[highestRole]}
               </Badge>
@@ -367,7 +368,7 @@ export function SiteHeader() {
               {!stewardOnly ? (
                 <Button
                   asChild
-                  className="hidden rounded-full border border-[#dc2626] bg-[#dc2626] px-5 text-white hover:bg-[#b91c1c] sm:inline-flex"
+                  className="hidden rounded-full border border-[#0B1A33] bg-[#0B1A33] px-5 text-white hover:bg-[#132641] sm:inline-flex"
                 >
                   <Link href="/cabinet">{t("common.tickets")}</Link>
                 </Button>
@@ -376,7 +377,7 @@ export function SiteHeader() {
           ) : (
             <Button
               asChild
-              className="hidden rounded-full border border-[#dc2626] bg-[#dc2626] px-5 text-white hover:bg-[#b91c1c] sm:inline-flex"
+              className="hidden rounded-full border border-[#0B1A33] bg-[#0B1A33] px-5 text-white hover:bg-[#132641] sm:inline-flex"
             >
               <Link href="/autentificare">{t("common.login")}</Link>
             </Button>

@@ -7,6 +7,7 @@ import { createElement as h } from "react";
 
 import { withNoStoreHeaders } from "@/lib/security/http";
 import { generateTicketQrDataUrl } from "@/lib/security/tickets";
+import { brand } from "@/lib/brand";
 import { getTicketByCode, getViewerContext } from "@/lib/supabase/queries";
 
 const geistFontPath = path.join(
@@ -49,8 +50,8 @@ function renderField({
         minHeight: 126,
         padding: "18px 20px",
         borderRadius: 24,
-        border: priority ? "2px solid #fecaca" : "1px solid #e5e7eb",
-        background: priority ? "#fff7f7" : "#fafafa",
+        border: priority ? `2px solid ${brand.colors.goldSoft}` : "1px solid #e5e7eb",
+        background: priority ? "#fffaf0" : "#fafafa",
       },
     },
     h(
@@ -73,7 +74,7 @@ function renderField({
           display: "flex",
           fontSize: priority ? 34 : 28,
           lineHeight: 1.2,
-          color: "#111111",
+          color: brand.colors.ink,
           fontWeight: priority ? 700 : 500,
         },
       },
@@ -121,7 +122,7 @@ export async function GET(
           display: "flex",
           padding: 30,
           background: "#f5f5f5",
-          color: "#111111",
+          color: brand.colors.ink,
           fontFamily: "GeistTicket",
         },
       },
@@ -143,7 +144,7 @@ export async function GET(
           style: {
             height: 12,
             width: "100%",
-            background: "#dc2626",
+            background: brand.colors.gold,
           },
         }),
         h(
@@ -153,10 +154,25 @@ export async function GET(
               display: "flex",
               flexDirection: "column",
               padding: "28px 28px 20px",
-              background: "#111111",
+              background: brand.colors.navy,
               color: "#ffffff",
             },
           },
+          h("img", {
+            src: new URL(brand.assets.horizontal, request.url).toString(),
+            alt: brand.displayName,
+            width: 280,
+            height: 62,
+            style: {
+              width: 280,
+              height: 62,
+              objectFit: "contain",
+              marginBottom: 18,
+              background: "#ffffff",
+              borderRadius: 999,
+              padding: "10px 18px",
+            },
+          }),
           h(
             "div",
             {
@@ -165,11 +181,11 @@ export async function GET(
                 fontSize: 22,
                 letterSpacing: 4,
                 textTransform: "uppercase",
-                color: "#fecaca",
+                color: brand.colors.goldSoft,
                 marginBottom: 10,
               },
             },
-            "Stadionul Municipal Orhei",
+            brand.operationalTagline,
           ),
           h(
             "div",
@@ -241,7 +257,7 @@ export async function GET(
                     fontSize: 24,
                     textTransform: "uppercase",
                     letterSpacing: 4,
-                    color: "#7f1d1d",
+                color: brand.colors.navy,
                   },
                 },
                 "QR unic de acces",
@@ -290,7 +306,7 @@ export async function GET(
                       display: "flex",
                       fontSize: 48,
                       fontWeight: 700,
-                      color: "#111111",
+                      color: brand.colors.ink,
                     },
                   },
                   ticket.ticketCode,
@@ -387,13 +403,13 @@ export async function GET(
                 width: "100%",
                 padding: "18px 20px",
                 borderRadius: 24,
-                background: "#fff1f2",
-                color: "#991b1b",
+                background: "#fffaf0",
+                color: brand.colors.navy,
                 fontSize: 24,
                 lineHeight: 1.35,
               },
             },
-            "Pastreaza aceasta imagine salvata in telefon pentru acces rapid la stadion chiar si daca semnalul este slab. Pentru scanare reusita, afiseaza QR-ul la luminozitate mare.",
+            "Pastreaza aceasta imagine salvata in telefon pentru acces rapid la eveniment chiar si daca semnalul este slab. Pentru scanare reusita, afiseaza QR-ul la luminozitate mare.",
           ),
         ),
       ),

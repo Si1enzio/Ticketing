@@ -1,5 +1,6 @@
 import { Document } from "@react-pdf/renderer";
 
+import { brand } from "@/lib/brand";
 import type { StadiumSponsor, TicketCard } from "@/lib/domain/types";
 import { TicketPdfPage } from "@/lib/pdf/ticket-pdf-page";
 
@@ -15,7 +16,7 @@ export function TicketDocument({
   return (
     <Document
       title={`Bilet ${ticket.ticketCode}`}
-      author="Milsami Ticketing"
+      author={brand.displayName}
       subject={ticket.matchTitle}
     >
       <TicketPdfPage ticket={ticket} qrDataUrl={qrDataUrl} sponsors={sponsors} />

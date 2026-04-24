@@ -1,22 +1,22 @@
-# Milsami Ticketing MVP
+# Ticket Hub MVP
 
-Platforma MVP de ticketing pentru Stadionul Municipal "Orhei", construita cu Next.js 16 App Router, TypeScript, Tailwind CSS, shadcn/ui si Supabase.
+Platforma independenta de ticketing pentru evenimente, construita cu Next.js 16 App Router, TypeScript, Tailwind CSS, shadcn/ui si Supabase.
 
-Aplicatia este gandita pentru bilete gratuite in prezent, dar schema, rolurile, statusurile si fluxurile server-side sunt pregatite pentru a suporta ulterior bilete platite, transferuri, campanii, membership si integrare cu turnicheti.
+Aplicatia este gandita pentru bilete gratuite in prezent, dar schema, rolurile, statusurile si fluxurile server-side sunt pregatite pentru a suporta ulterior bilete platite, transferuri, campanii, abonamente, membership si integrare cu turnicheti. Primul demo operational este sportiv, cu Stadionul Municipal "Orhei", dar produsul nu este legat de un singur club, stadion sau tip de eveniment.
 
 ## Ce include
 
 - autentificare cu Supabase Auth: inregistrare, login, reset parola
-- pagina publica cu meciuri publicate
-- pagina de meci cu harta interactiva de locuri
+- pagina publica cu evenimente publicate
+- pagina de eveniment cu harta interactiva de locuri
 - hold temporar pe locuri si confirmare de rezervare
 - generare de bilete individuale cu QR semnat
 - cabinet personal cu bilete active si istoric
 - pagina individuala de bilet, print, PDF si share
 - scanner mobil pentru stewardi cu validare server-side
-- admin panel pentru meciuri, stadion, locuri, moderare si export CSV
+- admin panel pentru evenimente, venue-uri/stadioane, locuri, moderare si export CSV
 - schema SQL modulara cu RLS, view-uri de raportare si functii tranzactionale
-- seed demo pentru Stadionul Municipal "Orhei"
+- seed demo pentru Stadionul Municipal "Orhei" ca prima configuratie sportiva
 
 ## Stack
 
@@ -89,10 +89,10 @@ View-urile de raportare folosite de UI:
 
 ## Roluri
 
-- `guest`: vede meciurile publice si disponibilitatea generala
-- `user`: poate rezerva pana la limita configurata pe meci, isi vede biletele si istoricul
+- `guest`: vede evenimentele publice si disponibilitatea generala
+- `user`: poate obtine bilete pana la limita configurata pe eveniment, isi vede biletele si istoricul
 - `steward`: foloseste scannerul si valideaza accesul
-- `admin`: gestioneaza meciuri, stadion, locuri, moderare si rapoarte
+- `admin`: gestioneaza evenimente, venue-uri/stadioane, locuri, moderare si rapoarte
 - `superadmin`: are toate drepturile, inclusiv acordarea de roluri si override la limite
 
 Rolurile sunt stocate in `public.user_roles`, iar validarea se face server-side in query-uri, Server Actions si functii SQL.
@@ -167,7 +167,7 @@ Flux recomandat:
 - sectoare: V1, V2, E1, N
 - locuri generate automat din `rows_count x seats_per_row`
 - locuri dezactivate, obstructionate si interne
-- 3 meciuri demo:
+- evenimente sportive demo:
   - unul publicat cu scanner activ
   - unul publicat cu override pe sectoare
   - unul finalizat pentru rapoarte si no-show
@@ -178,7 +178,7 @@ Flux recomandat:
 
 ### Rezervare
 
-1. utilizatorul intra pe pagina unui meci
+1. utilizatorul intra pe pagina unui eveniment
 2. selecteaza locurile disponibile din harta
 3. sistemul creeaza un hold temporar
 4. utilizatorul confirma rezervarea
@@ -289,9 +289,9 @@ Cand scorul depaseste pragul, functia `sync_abuse_flags_for_user` creeaza sau ac
 
 ## Pagini importante
 
-- `/` - homepage cu meciuri publicate
+- `/` - homepage cu evenimente publicate
 - `/autentificare` - login, signup, reset
-- `/meciuri/[slug]` - detalii meci
+- `/meciuri/[slug]` - detalii eveniment
 - `/meciuri/[slug]/rezerva` - seat map si selectie locuri
 - `/confirmare/[reservationId]` - confirmare rezervare
 - `/cabinet` - cabinet personal
@@ -299,7 +299,7 @@ Cand scorul depaseste pragul, functia `sync_abuse_flags_for_user` creeaza sau ac
 - `/bilete/[ticketCode]/pdf` - export PDF
 - `/scanner` - steward scanner
 - `/admin` - dashboard admin
-- `/admin/meciuri` - management meciuri
+- `/admin/meciuri` - management evenimente
 - `/admin/stadion` - builder stadion si editare locuri
 - `/admin/stadion/harta` - builder pentru overview SVG si configuratia reutilizabila a hartii stadionului
 - `/admin/utilizatori` - moderare si roluri

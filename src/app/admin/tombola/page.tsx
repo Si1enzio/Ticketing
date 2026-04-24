@@ -28,21 +28,21 @@ export default async function AdminRafflePage({
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#b91c1c]">
-            Concurs matchday
+            Concurs eveniment
           </p>
           <h1 className="mt-2 font-heading text-5xl uppercase tracking-[0.08em] text-[#111111]">
-            Tombola suporteri prezenti
+            Tombola participanti prezenti
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-neutral-600">
-            Selecteaza un meci, apoi extrage intre 1 si 20 castigatori din lista celor
-            care au intrat efectiv pe stadion cu scanare valida.
+            Selecteaza un eveniment, apoi extrage intre 1 si 20 castigatori din lista celor
+            care au intrat efectiv cu scanare valida.
           </p>
         </div>
         <Button
           asChild
           className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
         >
-          <Link href="/admin/meciuri">Inapoi la meciuri</Link>
+          <Link href="/admin/meciuri">Inapoi la evenimente</Link>
         </Button>
       </div>
 
@@ -51,7 +51,7 @@ export default async function AdminRafflePage({
         <CardContent className="grid gap-5 p-6 lg:grid-cols-[1.1fr_0.9fr]">
           <form action="/admin/tombola" className="grid gap-3">
             <label className="text-sm font-semibold text-[#111111]" htmlFor="matchId">
-              Meci pentru tombola
+              Eveniment pentru tombola
             </label>
             <select
               id="matchId"
@@ -78,7 +78,7 @@ export default async function AdminRafflePage({
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
             <MetricCard
               icon={Gift}
-              label="Meci selectat"
+              label="Eveniment selectat"
               value={selectedMatch?.title ?? "Neselectat"}
               compact
             />
@@ -98,7 +98,7 @@ export default async function AdminRafflePage({
       ) : (
         <Card className="rounded-[28px] border border-dashed border-black/10 bg-white/78">
           <CardContent className="p-8 text-sm text-neutral-600">
-            Nu exista meciuri disponibile pentru tombola.
+            Nu exista evenimente disponibile pentru tombola.
           </CardContent>
         </Card>
       )}

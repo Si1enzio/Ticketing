@@ -6,6 +6,7 @@ import { ro } from "date-fns/locale";
 import { BadgeCheck, DownloadCloud, ShieldCheck, Sparkles } from "lucide-react";
 
 import { cancelTicketAction, reissueTicketAction } from "@/lib/actions/admin";
+import { BrandLogo } from "@/components/brand-logo";
 import { DownloadTicketImageButton } from "@/components/download-ticket-image-button";
 import { PrintTicketButton } from "@/components/print-ticket-button";
 import { ShareActions } from "@/components/share-actions";
@@ -98,9 +99,13 @@ export default async function TicketPage({
   const ticketContent = (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <Card className="surface-dark overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.26),transparent_34%),linear-gradient(180deg,#171717_0%,#101010_100%)] text-white">
-          <div className="h-1.5 bg-[linear-gradient(90deg,#ffffff_0%,#fca5a5_36%,#ef4444_100%)]" />
+        <Card className="surface-dark overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(201,162,79,0.26),transparent_34%),linear-gradient(180deg,#0B1A33_0%,#081326_100%)] text-white">
+          <div className="h-1.5 bg-[linear-gradient(90deg,#ffffff_0%,#E7D6A5_36%,#C9A24F_100%)]" />
           <CardContent className="flex flex-col items-center gap-6 p-8 text-center">
+            <BrandLogo
+              variant="horizontal"
+              className="h-10 w-[190px] rounded-full bg-white px-4 py-2 object-contain"
+            />
             <Badge className="rounded-full border border-white/12 bg-white/8 px-4 py-2 text-white hover:bg-white/8">
               {ticketStatusMap[ticket.status]}
             </Badge>
@@ -111,7 +116,7 @@ export default async function TicketPage({
             </div>
             <div className="w-full rounded-[28px] border border-white/10 bg-white/6 p-4 text-left">
               <div className="flex items-start gap-3">
-                <ShieldCheck className="mt-0.5 h-5 w-5 text-[#fca5a5]" />
+                <ShieldCheck className="mt-0.5 h-5 w-5 text-[#E7D6A5]" />
                 <p className="text-sm leading-7 text-white/76">
                   Afiseaza acest QR la intrare. Dupa o validare reusita, biletul trece
                   automat in statusul folosit si nu mai poate fi reutilizat.
@@ -123,11 +128,11 @@ export default async function TicketPage({
 
         <div className="grid gap-6">
           <Card className="surface-panel overflow-hidden rounded-[32px] border border-white/70 bg-white/94">
-            <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
+            <div className="h-1.5 bg-[linear-gradient(90deg,#0B1A33_0%,#C9A24F_45%,#E7D6A5_100%)]" />
             <CardContent className="space-y-5 p-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-[#b91c1c]">
+                  <p className="text-sm uppercase tracking-[0.24em] text-[#C9A24F]">
                     Bilet electronic
                   </p>
                   <h1 className="mt-2 font-heading text-5xl uppercase tracking-[0.08em] text-[#111111]">
@@ -138,7 +143,7 @@ export default async function TicketPage({
                   <Link
                     href={pdfDownloadUrl}
                     target="_blank"
-                    className="inline-flex items-center rounded-full border border-[#dc2626]/18 bg-[#fff1f2] px-4 py-2 text-sm font-medium text-[#b91c1c] transition hover:bg-[#fee2e2]"
+                    className="inline-flex items-center rounded-full border border-[#C9A24F]/25 bg-[#fffaf0] px-4 py-2 text-sm font-medium text-[#0B1A33] transition hover:bg-[#f7edcf]"
                   >
                     <DownloadCloud className="mr-2 h-4 w-4" />
                     Descarca PDF
@@ -147,7 +152,7 @@ export default async function TicketPage({
                     <Link
                       href={groupedPdfDownloadUrl}
                       target="_blank"
-                      className="inline-flex items-center rounded-full border border-[#dc2626]/18 bg-[#fff1f2] px-4 py-2 text-sm font-medium text-[#b91c1c] transition hover:bg-[#fee2e2]"
+                      className="inline-flex items-center rounded-full border border-[#C9A24F]/25 bg-[#fffaf0] px-4 py-2 text-sm font-medium text-[#0B1A33] transition hover:bg-[#f7edcf]"
                     >
                       <DownloadCloud className="mr-2 h-4 w-4" />
                       PDF grupat
@@ -157,7 +162,7 @@ export default async function TicketPage({
                     <Link
                       href={reservationBundlePdfDownloadUrl}
                       target="_blank"
-                      className="inline-flex items-center rounded-full border border-[#dc2626]/18 bg-[#fff1f2] px-4 py-2 text-sm font-medium text-[#b91c1c] transition hover:bg-[#fee2e2]"
+                      className="inline-flex items-center rounded-full border border-[#C9A24F]/25 bg-[#fffaf0] px-4 py-2 text-sm font-medium text-[#0B1A33] transition hover:bg-[#f7edcf]"
                     >
                       <DownloadCloud className="mr-2 h-4 w-4" />
                       Bundle rezervare
@@ -169,8 +174,7 @@ export default async function TicketPage({
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Info title="Competitie" value={ticket.competitionName} />
-                <Info title="Adversar" value={ticket.opponentName} />
+                <Info title="Categorie / competitie" value={ticket.competitionName} />
                 <Info
                   title="Data si ora"
                   value={format(new Date(ticket.startsAt), "EEEE, d MMMM yyyy - HH:mm", {
@@ -190,10 +194,10 @@ export default async function TicketPage({
           </Card>
 
           <Card className="surface-panel overflow-hidden rounded-[32px] border border-white/70 bg-white/94">
-            <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
+            <div className="h-1.5 bg-[linear-gradient(90deg,#0B1A33_0%,#C9A24F_45%,#E7D6A5_100%)]" />
             <CardContent className="space-y-5 p-6">
               <div className="flex items-center gap-3">
-                <BadgeCheck className="h-5 w-5 text-[#dc2626]" />
+                <BadgeCheck className="h-5 w-5 text-[#C9A24F]" />
                 <h2 className="font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
                   Actiuni rapide
                 </h2>
@@ -207,25 +211,25 @@ export default async function TicketPage({
               />
               <div className="rounded-[26px] border border-black/6 bg-neutral-50 p-4 text-sm leading-7 text-neutral-600">
                 Poti partaja pagina biletului, descarca PDF-ul sau salva varianta verticala ca
-                imagine in telefon pentru acces rapid la stadion. Pentru steward este suficient
+                imagine in telefon pentru acces rapid la eveniment. Pentru steward este suficient
                 QR-ul semnat.
               </div>
             </CardContent>
           </Card>
 
           <Card className="surface-panel overflow-hidden rounded-[32px] border border-white/70 bg-white/94">
-            <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
+            <div className="h-1.5 bg-[linear-gradient(90deg,#0B1A33_0%,#C9A24F_45%,#E7D6A5_100%)]" />
             <CardContent className="space-y-4 p-6">
               <div className="flex items-center gap-3">
-                <Sparkles className="h-5 w-5 text-[#dc2626]" />
+                <Sparkles className="h-5 w-5 text-[#C9A24F]" />
                 <h2 className="font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
-                  Acces in ziua meciului
+                  Acces la eveniment
                 </h2>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <TipCard
                   label="1. Deschide biletul"
-                  text="Pastreaza pagina sau PDF-ul la indemana inainte sa ajungi la poarta."
+                  text="Pastreaza pagina sau PDF-ul la indemana inainte sa ajungi la acces."
                 />
                 <TipCard
                   label="2. Afiseaza QR-ul"
@@ -241,7 +245,7 @@ export default async function TicketPage({
 
           {viewer.isAdmin ? (
             <Card className="surface-panel overflow-hidden rounded-[32px] border border-white/70 bg-white/94">
-              <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
+              <div className="h-1.5 bg-[linear-gradient(90deg,#0B1A33_0%,#C9A24F_45%,#E7D6A5_100%)]" />
               <CardContent className="space-y-4 p-6">
                 <h2 className="font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
                   Control admin
