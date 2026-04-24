@@ -19,8 +19,14 @@ type AdminMatchDerivedFieldsProps = {
   slugName?: string;
   opponentNameName?: string;
   startsAtName?: string;
+  startsAtDateName?: string;
+  startsAtTimeName?: string;
   reservationOpensAtName?: string;
+  reservationOpensAtDateName?: string;
+  reservationOpensAtTimeName?: string;
   reservationClosesAtName?: string;
+  reservationClosesAtDateName?: string;
+  reservationClosesAtTimeName?: string;
 };
 
 type SplitDateTime = {
@@ -46,8 +52,14 @@ export function AdminMatchDerivedFields({
   slugName = "slug",
   opponentNameName = "opponentName",
   startsAtName = "startsAt",
+  startsAtDateName = "startsAtDate",
+  startsAtTimeName = "startsAtTime",
   reservationOpensAtName = "reservationOpensAt",
+  reservationOpensAtDateName = "reservationOpensAtDate",
+  reservationOpensAtTimeName = "reservationOpensAtTime",
   reservationClosesAtName = "reservationClosesAt",
+  reservationClosesAtDateName = "reservationClosesAtDate",
+  reservationClosesAtTimeName = "reservationClosesAtTime",
 }: AdminMatchDerivedFieldsProps) {
   const [homeTeam, setHomeTeam] = useState(defaultHomeTeam);
   const [awayTeam, setAwayTeam] = useState(defaultAwayTeam);
@@ -134,6 +146,8 @@ export function AdminMatchDerivedFields({
       <DateTimeFieldGroup
         prefix={`${formId}-starts-at`}
         label="Start eveniment"
+        dateName={startsAtDateName}
+        timeName={startsAtTimeName}
         value={startDateTime}
         onChange={setStartDateTime}
         required
@@ -141,12 +155,16 @@ export function AdminMatchDerivedFields({
       <DateTimeFieldGroup
         prefix={`${formId}-reservation-opens`}
         label="Deschidere ticketing"
+        dateName={reservationOpensAtDateName}
+        timeName={reservationOpensAtTimeName}
         value={opensDateTime}
         onChange={setOpensDateTime}
       />
       <DateTimeFieldGroup
         prefix={`${formId}-reservation-closes`}
         label="Inchidere ticketing"
+        dateName={reservationClosesAtDateName}
+        timeName={reservationClosesAtTimeName}
         value={closesDateTime}
         onChange={setClosesDateTime}
       />
@@ -207,12 +225,16 @@ function TextField({
 function DateTimeFieldGroup({
   prefix,
   label,
+  dateName,
+  timeName,
   value,
   onChange,
   required = false,
 }: {
   prefix: string;
   label: string;
+  dateName: string;
+  timeName: string;
   value: SplitDateTime;
   onChange: (value: SplitDateTime) => void;
   required?: boolean;
@@ -223,6 +245,7 @@ function DateTimeFieldGroup({
       <div className="grid gap-3 sm:grid-cols-2">
         <Input
           id={`${prefix}-date`}
+          name={dateName}
           type="date"
           value={value.date}
           required={required}
@@ -236,6 +259,7 @@ function DateTimeFieldGroup({
         />
         <Input
           id={`${prefix}-time`}
+          name={timeName}
           type="time"
           value={value.time}
           required={required && Boolean(value.date)}
