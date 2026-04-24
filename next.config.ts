@@ -1,27 +1,43 @@
 import type { NextConfig } from "next";
 
 function normalizeAllowedOriginHost(value: string | undefined) {
-  if (!value) {
+  const normalizedValue = value?.trim();
+
+  if (!normalizedValue) {
     return null;
   }
 
   try {
-    return new URL(value).host;
+    return new URL(normalizedValue).host;
   } catch {
-    return value.replace(/^https?:\/\//, "").replace(/\/.*$/, "") || null;
+    return (
+      normalizedValue.replace(/^https?:\/\//, "").replace(/\/.*$/, "") || null
+    );
   }
 }
 
-const allowedOrigins = Array.from(
-  new Set(
-    [
-      normalizeAllowedOriginHost(process.env.NEXT_PUBLIC_SITE_URL),
-      normalizeAllowedOriginHost(
-        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
-      ),
-    ].filter((value): value is string => Boolean(value)),
-  ),
-);
+function collectAllowedOriginHosts() {
+  const configuredOrigins = [
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.SITE_URL,
+    process.env.NEXT_PUBLIC_ADDITIONAL_ALLOWED_ORIGINS,
+    process.env.ADDITIONAL_ALLOWED_ORIGINS,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : undefined,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+    "https://tickethub.md",
+    "https://www.tickethub.md",
+  ]
+    .flatMap((value) => value?.split(",") ?? [])
+    .map((value) => normalizeAllowedOriginHost(value));
+
+  return Array.from(
+    new Set(configuredOrigins.filter((value): value is string => Boolean(value))),
+  );
+}
+
+const allowedOrigins = collectAllowedOriginHosts();
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,

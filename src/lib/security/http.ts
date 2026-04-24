@@ -8,15 +8,32 @@ const DATABASE_ERROR_PATTERN =
   /\b(select|insert|update|delete|join|outer join|constraint|relation|schema|syntax|column|postgres|supabase|rpc|query|violates|duplicate key|null(?:able)? side)\b/i;
 
 function normalizeOrigin(candidate: string | null | undefined) {
-  if (!candidate) {
+  const normalizedCandidate = candidate?.trim();
+
+  if (!normalizedCandidate) {
     return null;
   }
 
   try {
-    return new URL(candidate).origin;
+    return new URL(normalizedCandidate).origin;
   } catch {
     return null;
   }
+}
+
+function getRequestOriginFromHeaders(requestHeaders: Headers) {
+  const forwardedHost = requestHeaders.get("x-forwarded-host")?.trim();
+  const forwardedProto = requestHeaders.get("x-forwarded-proto")?.trim();
+  const host = forwardedHost || requestHeaders.get("host")?.trim();
+
+  if (!host) {
+    return null;
+  }
+
+  const protocol =
+    forwardedProto || (host.includes("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
+
+  return normalizeOrigin(`${protocol}://${host}`);
 }
 
 export function getAllowedOrigins(requestUrl?: string) {
@@ -53,12 +70,17 @@ export async function ensureTrustedServerActionRequest() {
   const requestHeaders = await headers();
   const origin = requestHeaders.get("origin");
   const referer = requestHeaders.get("referer");
+  const requestOrigin = getRequestOriginFromHeaders(requestHeaders);
 
-  if (origin && isTrustedOriginValue(origin)) {
+  if (origin && (isTrustedOriginValue(origin, requestOrigin ?? undefined) || normalizeOrigin(origin) === requestOrigin)) {
     return;
   }
 
-  if (referer && isTrustedOriginValue(referer)) {
+  if (
+    referer &&
+    (isTrustedOriginValue(referer, requestOrigin ?? undefined) ||
+      normalizeOrigin(referer) === requestOrigin)
+  ) {
     return;
   }
 
