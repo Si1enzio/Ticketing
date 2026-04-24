@@ -64,27 +64,27 @@ export function AdminMatchDerivedFields({
   const [homeTeam, setHomeTeam] = useState(defaultHomeTeam);
   const [awayTeam, setAwayTeam] = useState(defaultAwayTeam);
 
-  const [startDateTime, setStartDateTime] = useState<SplitDateTime>(() => {
+  const startDateTime = useMemo(() => {
     const split = splitDateTime(defaultStartsAt);
     return {
       date: split.date,
       time: split.time || defaultStartTime,
     };
-  });
-  const [opensDateTime, setOpensDateTime] = useState<SplitDateTime>(() => {
+  }, [defaultStartsAt]);
+  const opensDateTime = useMemo(() => {
     const split = splitDateTime(defaultReservationOpensAt);
     return {
       date: split.date,
       time: split.time || defaultOpensTime,
     };
-  });
-  const [closesDateTime, setClosesDateTime] = useState<SplitDateTime>(() => {
+  }, [defaultReservationOpensAt]);
+  const closesDateTime = useMemo(() => {
     const split = splitDateTime(defaultReservationClosesAt);
     return {
       date: split.date,
       time: split.time || defaultClosesTime,
     };
-  });
+  }, [defaultReservationClosesAt]);
 
   const generatedTitle = useMemo(
     () => buildMatchTitle(homeTeam, awayTeam),
@@ -98,16 +98,20 @@ export function AdminMatchDerivedFields({
       <input type="hidden" name={titleName} value={generatedTitle} />
       <input type="hidden" name={slugName} value={generatedSlug} />
       <input type="hidden" name={opponentNameName} value={awayTeam.trim()} />
-      <input type="hidden" name={startsAtName} value={joinDateTime(startDateTime)} />
+      <input
+        type="hidden"
+        name={startsAtName}
+        defaultValue={joinDateTime(startDateTime)}
+      />
       <input
         type="hidden"
         name={reservationOpensAtName}
-        value={joinDateTime(opensDateTime)}
+        defaultValue={joinDateTime(opensDateTime)}
       />
       <input
         type="hidden"
         name={reservationClosesAtName}
-        value={joinDateTime(closesDateTime)}
+        defaultValue={joinDateTime(closesDateTime)}
       />
 
       <TextField
@@ -148,8 +152,7 @@ export function AdminMatchDerivedFields({
         label="Start eveniment"
         dateName={startsAtDateName}
         timeName={startsAtTimeName}
-        value={startDateTime}
-        onChange={setStartDateTime}
+        defaultValue={startDateTime}
         required
       />
       <DateTimeFieldGroup
@@ -157,16 +160,14 @@ export function AdminMatchDerivedFields({
         label="Deschidere ticketing"
         dateName={reservationOpensAtDateName}
         timeName={reservationOpensAtTimeName}
-        value={opensDateTime}
-        onChange={setOpensDateTime}
+        defaultValue={opensDateTime}
       />
       <DateTimeFieldGroup
         prefix={`${formId}-reservation-closes`}
         label="Inchidere ticketing"
         dateName={reservationClosesAtDateName}
         timeName={reservationClosesAtTimeName}
-        value={closesDateTime}
-        onChange={setClosesDateTime}
+        defaultValue={closesDateTime}
       />
 
       {teamSuggestions.length ? (
@@ -227,16 +228,14 @@ function DateTimeFieldGroup({
   label,
   dateName,
   timeName,
-  value,
-  onChange,
+  defaultValue,
   required = false,
 }: {
   prefix: string;
   label: string;
   dateName: string;
   timeName: string;
-  value: SplitDateTime;
-  onChange: (value: SplitDateTime) => void;
+  defaultValue: SplitDateTime;
   required?: boolean;
 }) {
   return (
@@ -247,28 +246,16 @@ function DateTimeFieldGroup({
           id={`${prefix}-date`}
           name={dateName}
           type="date"
-          value={value.date}
+          defaultValue={defaultValue.date}
           required={required}
-          onChange={(event) =>
-            onChange({
-              ...value,
-              date: event.target.value,
-            })
-          }
           className="rounded-2xl bg-white"
         />
         <Input
           id={`${prefix}-time`}
           name={timeName}
           type="time"
-          value={value.time}
-          required={required && Boolean(value.date)}
-          onChange={(event) =>
-            onChange({
-              ...value,
-              time: event.target.value,
-            })
-          }
+          defaultValue={defaultValue.time}
+          required={required && Boolean(defaultValue.date)}
           className="rounded-2xl bg-white"
         />
       </div>
