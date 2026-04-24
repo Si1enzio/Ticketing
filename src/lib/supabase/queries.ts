@@ -70,9 +70,23 @@ export async function getViewerContext(): Promise<ViewerContext> {
 
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
 
-    if (!user) {
+    let resolvedUser = user;
+
+    if (!resolvedUser) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      resolvedUser = session?.user ?? null;
+    }
+
+    if (!resolvedUser) {
+      if (userError) {
+        console.error("Nu am putut valida utilizatorul autentificat pe server.", userError);
+      }
       return mockViewer;
     }
 
@@ -80,13 +94,13 @@ export async function getViewerContext(): Promise<ViewerContext> {
       supabase
         .from("profiles")
         .select("full_name, can_reserve")
-        .eq("id", user.id)
+        .eq("id", resolvedUser.id)
         .maybeSingle(),
-      supabase.from("user_roles").select("role").eq("user_id", user.id),
+      supabase.from("user_roles").select("role").eq("user_id", resolvedUser.id),
       supabase
         .from("user_blocks")
         .select("type, ends_at, reason")
-        .eq("user_id", user.id)
+        .eq("user_id", resolvedUser.id)
         .eq("is_active", true)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -101,8 +115,8 @@ export async function getViewerContext(): Promise<ViewerContext> {
     const activeBlock = block as { ends_at?: string | null; reason?: string | null } | null;
 
     return enrichViewer({
-      userId: user.id,
-      email: user.email ?? null,
+      userId: resolvedUser.id,
+      email: resolvedUser.email ?? null,
       fullName: profileRecord?.full_name ?? null,
       canReserve: Boolean(profileRecord?.can_reserve),
       roles: normalizeRoles(roleRows.map((item) => item.role)),
