@@ -287,13 +287,15 @@ function splitDateTime(value?: string | null): SplitDateTime {
 
   const date = new Date(value);
   if (!Number.isNaN(date.getTime())) {
-    const offset = date.getTimezoneOffset();
-    const localDate = new Date(date.getTime() - offset * 60_000);
-    const iso = localDate.toISOString();
-
     return {
-      date: iso.slice(0, 10),
-      time: iso.slice(11, 16),
+      date: [
+        date.getFullYear().toString().padStart(4, "0"),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0"),
+      ].join("-"),
+      time: [String(date.getHours()).padStart(2, "0"), String(date.getMinutes()).padStart(2, "0")].join(
+        ":",
+      ),
     };
   }
 
