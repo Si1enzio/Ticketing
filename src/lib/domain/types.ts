@@ -216,6 +216,8 @@ export const adminMatchOverviewSchema = z.object({
   competitionName: z.string(),
   opponentName: z.string(),
   stadiumName: z.string(),
+  posterUrl: z.string().nullable().default(null),
+  bannerUrl: z.string().nullable().default(null),
   startsAt: z.string(),
   status: matchStatusSchema,
   scannerEnabled: z.boolean(),

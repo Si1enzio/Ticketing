@@ -96,6 +96,18 @@ export default async function AdminMatchesPage({
               defaultAwayTeam=""
               teamSuggestions={teamSuggestions}
             />
+            <Field
+              name="posterUrl"
+              label="Poster / afis URL"
+              placeholder="Recomandat: 1080x1350 px, raport 4:5"
+              required={false}
+            />
+            <Field
+              name="bannerUrl"
+              label="Banner URL"
+              placeholder="Recomandat: 1600x900 px, raport 16:9"
+              required={false}
+            />
             <Field name="competitionName" label="Competitie" />
             <Field name="maxTicketsPerUser" label="Limita / user" type="number" defaultValue="4" />
             <SelectField
@@ -158,7 +170,9 @@ function Field({
   defaultValue,
   step,
   min,
+  placeholder,
   readOnly = false,
+  required = true,
 }: {
   name: string;
   label: string;
@@ -166,7 +180,9 @@ function Field({
   defaultValue?: string;
   step?: string;
   min?: string;
+  placeholder?: string;
   readOnly?: boolean;
+  required?: boolean;
 }) {
   return (
     <div className="grid gap-2">
@@ -178,7 +194,8 @@ function Field({
         defaultValue={defaultValue}
         step={step}
         min={min}
-        required
+        placeholder={placeholder}
+        required={required}
         readOnly={readOnly}
         className="rounded-2xl bg-white"
       />

@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" role="img" aria-labelledby="title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 150" role="img" aria-labelledby="title">
   <title id="title">Ticket Hub icon</title>
-  <rect width="180" height="120" fill="none"/>
-  <path d="M20 24h58v20a18 18 0 0 0 0 36v20H20V80a18 18 0 0 0 0-36V24Z" fill="#0B1A33"/>
-  <path d="M102 24h58v20a18 18 0 0 0 0 36v20h-58V80a18 18 0 0 1 0-36V24Z" fill="#C9A24F"/>
-  <circle cx="90" cy="62" r="28" fill="#fff"/>
-  <circle cx="90" cy="62" r="13" fill="#C9A24F"/>
+  <rect width="240" height="150" fill="none"/>
+  <path d="M30 35h82v27a24 24 0 0 0 0 48v27H30v-27a24 24 0 0 0 0-48V35Z" fill="#0B1A33"/>
+  <path d="M128 35h82v27a24 24 0 0 0 0 48v27h-82v-27a24 24 0 0 1 0-48V35Z" fill="#C9A24F"/>
+  <circle cx="120" cy="86" r="34" fill="#fff"/>
+  <circle cx="120" cy="86" r="15" fill="#C9A24F"/>
 </svg>

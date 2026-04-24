@@ -22,10 +22,24 @@ export function MatchCard({
 }) {
   const startsAt = new Date(match.startsAt);
   const t = (key: string) => translate(messages, key);
+  const visualUrl = match.bannerUrl ?? match.posterUrl;
 
   return (
     <Card className="surface-panel overflow-hidden rounded-[28px] border border-white/60 bg-white/90">
       <div className="h-1.5 bg-[linear-gradient(90deg,#0B1A33_0%,#C9A24F_42%,#E7D6A5_100%)]" />
+      {visualUrl ? (
+        <div
+          className="aspect-[16/9] border-b border-black/6 bg-cover bg-center"
+          style={{ backgroundImage: `url("${visualUrl}")` }}
+          aria-label={`Imagine eveniment ${match.title}`}
+        />
+      ) : (
+        <div className="flex aspect-[16/9] items-center justify-center border-b border-black/6 bg-[radial-gradient(circle_at_top_left,rgba(201,162,79,0.22),transparent_32%),linear-gradient(135deg,#0B1A33,#132641)] px-6 text-center">
+          <p className="font-heading text-3xl uppercase tracking-[0.18em] text-white/92">
+            {match.title}
+          </p>
+        </div>
+      )}
       <CardHeader className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Badge className="rounded-full bg-[#0B1A33] px-3 py-1 text-white hover:bg-[#0B1A33]">

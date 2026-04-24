@@ -40,7 +40,7 @@ export default async function HomePage() {
                 size="lg"
                 className="rounded-full border border-[#0B1A33] bg-[#0B1A33] px-8 text-white hover:bg-[#132641]"
               >
-                <Link href={featuredMatch ? `/meciuri/${featuredMatch.slug}` : "/"}>
+                <Link href="#evenimente">
                   {messages.home.primaryCta}
                 </Link>
               </Button>
@@ -141,7 +141,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">
+      <section
+        id="evenimente"
+        className="mx-auto flex w-full max-w-7xl flex-1 scroll-mt-28 flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8"
+      >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#C9A24F]">

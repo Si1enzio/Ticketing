@@ -4,8 +4,8 @@
   <g transform="translate(180 175)">
     <path d="M0 0h118v44a38 38 0 0 0 0 76v44H0v-44a38 38 0 0 0 0-76V0Z" fill="#0B1A33"/>
     <path d="M162 0h118v44a38 38 0 0 0 0 76v44H162v-44a38 38 0 0 1 0-76V0Z" fill="#C9A24F"/>
-    <circle cx="140" cy="82" r="58" fill="#fff"/>
-    <circle cx="140" cy="82" r="27" fill="#C9A24F"/>
+    <circle cx="140" cy="82" r="50" fill="#fff"/>
+    <circle cx="140" cy="82" r="23" fill="#C9A24F"/>
   </g>
   <g font-family="Arial, Helvetica, sans-serif" font-size="54" font-weight="600" letter-spacing="20">
     <text x="82" y="435" fill="#0B1A33">TICKET</text>

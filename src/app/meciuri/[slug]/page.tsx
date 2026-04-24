@@ -39,19 +39,26 @@ export default async function MatchDetailPage({
   }));
 
   const isPaid = match.ticketingMode === "paid";
+  const visualUrl = match.bannerUrl ?? match.posterUrl;
 
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card className="surface-dark overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(239,68,68,0.28),transparent_30%),linear-gradient(180deg,#171717_0%,#101010_100%)] text-white">
-          <div className="h-1.5 bg-[linear-gradient(90deg,#ffffff_0%,#fca5a5_36%,#ef4444_100%)]" />
+        <Card className="surface-dark overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(201,162,79,0.28),transparent_30%),linear-gradient(180deg,#0B1A33_0%,#081326_100%)] text-white">
+          <div className="h-1.5 bg-[linear-gradient(90deg,#ffffff_0%,#E7D6A5_36%,#C9A24F_100%)]" />
+          {visualUrl ? (
+            <div
+              className="aspect-[16/7] border-b border-white/10 bg-cover bg-center"
+              style={{ backgroundImage: `linear-gradient(180deg,rgba(11,26,51,0.18),rgba(11,26,51,0.72)),url("${visualUrl}")` }}
+            />
+          ) : null}
           <CardContent className="space-y-7 p-8">
             <div className="flex flex-wrap items-center gap-3">
-              <Badge className="rounded-full border border-white/12 bg-white/8 px-4 py-2 text-xs uppercase tracking-[0.3em] text-[#fecaca] hover:bg-white/8">
+              <Badge className="rounded-full border border-white/12 bg-white/8 px-4 py-2 text-xs uppercase tracking-[0.3em] text-[#E7D6A5] hover:bg-white/8">
                 {match.competitionName}
               </Badge>
-              <Badge className="rounded-full border border-[#fecaca]/20 bg-[#dc2626]/12 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white hover:bg-[#dc2626]/12">
-                {isPaid ? "Meci cu plata" : "Meci gratuit"}
+              <Badge className="rounded-full border border-[#E7D6A5]/20 bg-[#C9A24F]/12 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white hover:bg-[#C9A24F]/12">
+                {isPaid ? "Eveniment cu plata" : "Eveniment gratuit"}
               </Badge>
             </div>
 
@@ -90,7 +97,7 @@ export default async function MatchDetailPage({
                     ? `Pana la ${format(new Date(match.reservationClosesAt), "d MMMM - HH:mm", {
                         locale: ro,
                       })}`
-                    : "Conform setarilor meciului"
+                    : "Conform setarilor evenimentului"
                 }
               />
             </div>
@@ -98,10 +105,10 @@ export default async function MatchDetailPage({
         </Card>
 
         <Card className="surface-panel overflow-hidden rounded-[34px] border border-white/70 bg-white/95">
-          <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
+          <div className="h-1.5 bg-[linear-gradient(90deg,#0B1A33_0%,#C9A24F_45%,#E7D6A5_100%)]" />
           <CardContent className="space-y-5 p-6">
             <div>
-              <p className="text-sm uppercase tracking-[0.24em] text-[#b91c1c]">
+              <p className="text-sm uppercase tracking-[0.24em] text-[#C9A24F]">
                 Snapshot ticketing
               </p>
               <h2 className="mt-2 font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
@@ -128,7 +135,7 @@ export default async function MatchDetailPage({
 
             <Button
               asChild
-              className="w-full rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+              className="w-full rounded-full border border-[#0B1A33] bg-[#0B1A33] text-white hover:bg-[#132641]"
             >
               <Link href={`/meciuri/${match.slug}/rezerva`}>
                 {isPaid ? (
@@ -199,7 +206,7 @@ function InfoRow({
   return (
     <div className="rounded-[26px] border border-white/10 bg-white/5 p-4">
       <div className="flex items-center gap-3">
-        <Icon className="h-5 w-5 text-[#fca5a5]" />
+        <Icon className="h-5 w-5 text-[#E7D6A5]" />
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-white/50">{label}</p>
           <p className="mt-1 text-sm text-white/78">{value}</p>

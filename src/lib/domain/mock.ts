@@ -183,6 +183,8 @@ export const mockAdminMatches: AdminMatchOverview[] = mockMatches.map((match) =>
   competitionName: match.competitionName,
   opponentName: match.opponentName,
   stadiumName: match.stadiumName,
+  posterUrl: match.posterUrl,
+  bannerUrl: match.bannerUrl,
   startsAt: match.startsAt,
   status: match.status,
   scannerEnabled: match.scannerEnabled,

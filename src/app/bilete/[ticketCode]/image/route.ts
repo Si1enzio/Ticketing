@@ -161,16 +161,16 @@ export async function GET(
           h("img", {
             src: new URL(brand.assets.horizontal, request.url).toString(),
             alt: brand.displayName,
-            width: 280,
-            height: 62,
+            width: 420,
+            height: 92,
             style: {
-              width: 280,
-              height: 62,
+              width: 420,
+              height: 92,
               objectFit: "contain",
               marginBottom: 18,
               background: "#ffffff",
               borderRadius: 999,
-              padding: "10px 18px",
+              padding: "16px 26px",
             },
           }),
           h(

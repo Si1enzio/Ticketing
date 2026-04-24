@@ -81,27 +81,34 @@ export const ticketPdfStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    alignSelf: "flex-start",
+    backgroundColor: "#ffffff",
+    borderRadius: 999,
+    paddingTop: 4,
+    paddingRight: 9,
+    paddingBottom: 4,
+    paddingLeft: 8,
     marginBottom: 7,
   },
   pdfLogoIcon: {
-    width: 34,
-    height: 18,
+    width: 46,
+    height: 24,
   },
   pdfLogoTextRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   pdfLogoTicket: {
-    fontSize: 7.4,
+    fontSize: 8.6,
     fontWeight: 700,
-    letterSpacing: 1.8,
-    color: "#ffffff",
+    letterSpacing: 1.9,
+    color: brand.colors.navy,
   },
   pdfLogoHub: {
-    fontSize: 7.4,
+    fontSize: 8.6,
     fontWeight: 700,
-    letterSpacing: 1.8,
-    color: brand.colors.goldSoft,
+    letterSpacing: 1.9,
+    color: brand.colors.gold,
   },
   title: {
     fontSize: 15,
@@ -130,7 +137,7 @@ export const ticketPdfStyles = StyleSheet.create({
   sponsorBadge: {
     height: 18,
     minWidth: 44,
-    maxWidth: 62,
+    maxWidth: 72,
     borderRadius: 9,
     backgroundColor: "#ffffff",
     paddingTop: 3,
@@ -142,8 +149,14 @@ export const ticketPdfStyles = StyleSheet.create({
   },
   sponsorLogo: {
     width: 48,
-    height: 12,
+    height: 10,
     objectFit: "contain",
+  },
+  sponsorName: {
+    marginTop: 1,
+    fontSize: 4.2,
+    color: brand.colors.navy,
+    textAlign: "center",
   },
   body: {
     paddingTop: 10,
@@ -269,8 +282,8 @@ export function TicketHubPdfLogo({ compact = false }: { compact?: boolean }) {
         <Circle cx="0" cy="32" r="13" fill="#ffffff" />
         <Rect x="66" y="4" width="54" height="56" fill={brand.colors.gold} />
         <Circle cx="120" cy="32" r="13" fill="#ffffff" />
-        <Circle cx="60" cy="32" r="20" fill="#ffffff" />
-        <Circle cx="60" cy="32" r="10" fill={brand.colors.gold} />
+        <Circle cx="60" cy="32" r="17" fill="#ffffff" />
+        <Circle cx="60" cy="32" r="8" fill={brand.colors.gold} />
       </Svg>
       {!compact ? (
         <View style={ticketPdfStyles.pdfLogoTextRow}>
@@ -308,6 +321,7 @@ export function TicketPdfPage({
                   {sponsors.slice(0, 4).map((sponsor) => (
                     <View key={sponsor.id} style={ticketPdfStyles.sponsorBadge}>
                       <Image src={sponsor.logoUrl} style={ticketPdfStyles.sponsorLogo} />
+                      <Text style={ticketPdfStyles.sponsorName}>{sponsor.name}</Text>
                     </View>
                   ))}
                 </View>

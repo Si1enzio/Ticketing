@@ -99,7 +99,7 @@ const sheetStyles = StyleSheet.create({
   },
   sponsorBadge: {
     width: 36,
-    height: 13,
+    height: 16,
     borderRadius: 7,
     backgroundColor: "#ffffff",
     alignItems: "center",
@@ -108,8 +108,14 @@ const sheetStyles = StyleSheet.create({
   },
   sponsorLogo: {
     width: 31,
-    height: 9,
+    height: 8,
     objectFit: "contain",
+  },
+  sponsorName: {
+    marginTop: 1,
+    fontSize: 3.6,
+    color: brand.colors.navy,
+    textAlign: "center",
   },
   fields: {
     paddingTop: 7,
@@ -311,6 +317,7 @@ function CompactTicketCard({
                 {sponsors.slice(0, 2).map((sponsor) => (
                   <View key={sponsor.id} style={sheetStyles.sponsorBadge}>
                     <Image src={sponsor.logoUrl} style={sheetStyles.sponsorLogo} />
+                    <Text style={sheetStyles.sponsorName}>{sponsor.name}</Text>
                   </View>
                 ))}
               </View>

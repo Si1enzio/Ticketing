@@ -166,13 +166,12 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-[#0B1A33]/10 bg-white/82 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-3">
-            <BrandLogo variant="icon" priority className="h-12 w-12 object-contain" />
+          <Link href="/" className="flex items-center">
             <div>
               <BrandLogo
                 variant="horizontal"
                 priority
-                className="h-8 w-[180px] object-contain object-left"
+                className="h-10 w-[220px] object-contain object-left"
               />
               <p className="mt-0.5 text-xs text-neutral-500">{t("header.venue")}</p>
             </div>

@@ -686,6 +686,8 @@ export async function getAdminMatchOverview(): Promise<AdminMatchOverview[]> {
         competitionName: item.competition_name,
         opponentName: item.opponent_name,
         stadiumName: item.stadium_name,
+        posterUrl: item.poster_url ?? null,
+        bannerUrl: item.banner_url ?? null,
         startsAt: item.starts_at,
         status: item.status,
         scannerEnabled: item.scanner_enabled,
