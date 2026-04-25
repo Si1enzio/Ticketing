@@ -20,7 +20,7 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [mode, setMode] = useState("signin");
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const signInSchema = z.object({
     email: z.string().email(t("auth.validation.email")),
@@ -29,6 +29,15 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
 
   const signUpSchema = signInSchema.extend({
     fullName: z.string().min(3, t("auth.validation.fullName")),
+    phone: z
+      .string()
+      .trim()
+      .min(8, t("auth.validation.phone"))
+      .max(32, t("auth.validation.phone"))
+      .regex(/^[+0-9()\\s-]+$/, t("auth.validation.phone")),
+    locality: z.string().trim().max(120).optional().or(z.literal("")),
+    marketingOptIn: z.boolean().default(false),
+    smsOptIn: z.boolean().default(false),
   });
 
   const resetSchema = z.object({
@@ -87,6 +96,10 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
       fullName: formData.get("signup-name"),
       email: formData.get("signup-email"),
       password: formData.get("signup-password"),
+      phone: formData.get("signup-phone"),
+      locality: formData.get("signup-locality") || "",
+      marketingOptIn: formData.get("signup-marketing-opt-in") === "on",
+      smsOptIn: formData.get("signup-sms-opt-in") === "on",
     });
 
     if (!parsed.success) {
@@ -107,6 +120,12 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
       options: {
         data: {
           full_name: parsed.data.fullName,
+          phone: parsed.data.phone,
+          locality: parsed.data.locality || null,
+          contact_email: parsed.data.email,
+          preferred_language: locale,
+          marketing_opt_in: parsed.data.marketingOptIn,
+          sms_opt_in: parsed.data.smsOptIn,
         },
         emailRedirectTo: `${siteOrigin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
@@ -221,11 +240,36 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
             >
               <Field name="signup-name" label={t("auth.fields.fullName")} />
               <Field name="signup-email" label={t("auth.fields.email")} type="email" />
+              <Field name="signup-phone" label={t("auth.fields.phone")} type="tel" />
+              <Field
+                name="signup-locality"
+                label={t("auth.fields.locality")}
+                required={false}
+              />
               <Field
                 name="signup-password"
                 label={t("auth.fields.password")}
                 type="password"
               />
+              <div className="grid gap-3 rounded-[24px] border border-black/6 bg-neutral-50 p-4 text-sm text-neutral-700">
+                <p className="text-xs leading-5 text-neutral-500">{t("auth.signupHelp")}</p>
+                <label className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    name="signup-marketing-opt-in"
+                    className="mt-0.5 h-4 w-4 rounded border-black/20 accent-[#dc2626]"
+                  />
+                  <span>{t("auth.fields.marketingConsent")}</span>
+                </label>
+                <label className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    name="signup-sms-opt-in"
+                    className="mt-0.5 h-4 w-4 rounded border-black/20 accent-[#dc2626]"
+                  />
+                  <span>{t("auth.fields.smsConsent")}</span>
+                </label>
+              </div>
               <Button
                 type="submit"
                 disabled={isPending}
@@ -267,10 +311,12 @@ function Field({
   name,
   label,
   type = "text",
+  required = true,
 }: {
   name: string;
   label: string;
   type?: string;
+  required?: boolean;
 }) {
   return (
     <div className="grid gap-2">
@@ -281,7 +327,7 @@ function Field({
         id={name}
         name={name}
         type={type}
-        required
+        required={required}
         className="rounded-2xl border-black/8 bg-neutral-50 focus-visible:border-[#dc2626] focus-visible:ring-[#dc2626]/20"
       />
     </div>

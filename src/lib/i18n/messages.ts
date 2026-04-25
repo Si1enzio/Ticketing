@@ -98,7 +98,13 @@ export const messages = {
         email: "Email",
         password: "Parola",
         fullName: "Nume complet",
+        phone: "Telefon",
+        locality: "Localitate",
+        marketingConsent: "Sunt de acord sa primesc informari si oferte de marketing.",
+        smsConsent: "Sunt de acord sa primesc SMS-uri despre acces, update-uri si evenimente relevante.",
       },
+      signupHelp:
+        "La creare cont cerem nume, email si telefon pentru emitere, suport si comunicare operationala. Consimtamantele pentru marketing si SMS sunt optionale.",
       actions: {
         signin: "Autentificare",
         signup: "Creeaza cont",
@@ -108,6 +114,7 @@ export const messages = {
         email: "Introdu o adresa de email valida.",
         password: "Parola trebuie sa aiba minimum 6 caractere.",
         fullName: "Introdu numele complet.",
+        phone: "Introdu un numar de telefon valid.",
         invalidData: "Date invalide.",
       },
       toasts: {
@@ -305,7 +312,13 @@ export const messages = {
         email: "Email",
         password: "Пароль",
         fullName: "Полное имя",
+        phone: "Телефон",
+        locality: "Город",
+        marketingConsent: "Согласен получать маркетинговые сообщения и предложения.",
+        smsConsent: "Согласен получать SMS о доступе, обновлениях и релевантных событиях.",
       },
+      signupHelp:
+        "При создании аккаунта мы запрашиваем имя, email и телефон для выдачи билетов, поддержки и операционных уведомлений. Согласия на маркетинг и SMS необязательны.",
       actions: {
         signin: "Войти",
         signup: "Создать аккаунт",
@@ -315,6 +328,7 @@ export const messages = {
         email: "Введите корректный email.",
         password: "Пароль должен содержать минимум 6 символов.",
         fullName: "Введите полное имя.",
+        phone: "Введите корректный номер телефона.",
         invalidData: "Неверные данные.",
       },
       toasts: {
