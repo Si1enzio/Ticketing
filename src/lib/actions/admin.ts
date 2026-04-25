@@ -381,19 +381,38 @@ export async function createOrganizerAction(formData: FormData) {
     });
   }
 
-  const { data, error } = await supabase
+  const organizerInsertPayload = {
+    name: parsed.data.name,
+    slug: parsed.data.slug,
+    category: parsed.data.category,
+    description: parsed.data.description || null,
+    logo_url: parsed.data.logoUrl || null,
+    created_by: viewer.userId,
+    updated_by: viewer.userId,
+  };
+
+  let insertResult = await supabase
     .from("organizers")
-    .insert({
-      name: parsed.data.name,
-      slug: parsed.data.slug,
-      category: parsed.data.category,
-      description: parsed.data.description || null,
-      logo_url: parsed.data.logoUrl || null,
-      created_by: viewer.userId,
-      updated_by: viewer.userId,
-    })
+    .insert(organizerInsertPayload)
     .select("id")
     .maybeSingle();
+
+  if (insertResult.error && isOptionalSchemaError(insertResult.error)) {
+    insertResult = await supabase
+      .from("organizers")
+      .insert({
+        name: parsed.data.name,
+        slug: parsed.data.slug,
+        category: parsed.data.category,
+        description: parsed.data.description || null,
+        logo_url: parsed.data.logoUrl || null,
+        created_by: viewer.userId,
+      })
+      .select("id")
+      .maybeSingle();
+  }
+
+  const { data, error } = insertResult;
 
   if (error || !data?.id) {
     redirectToAdminOrganizers({
@@ -438,7 +457,7 @@ export async function updateOrganizerAction(formData: FormData) {
     });
   }
 
-  const { error } = await supabase
+  let updateResult = await supabase
     .from("organizers")
     .update({
       name: parsed.data.name,
@@ -449,6 +468,21 @@ export async function updateOrganizerAction(formData: FormData) {
       updated_by: viewer.userId,
     })
     .eq("id", parsed.data.organizerId);
+
+  if (updateResult.error && isOptionalSchemaError(updateResult.error)) {
+    updateResult = await supabase
+      .from("organizers")
+      .update({
+        name: parsed.data.name,
+        slug: parsed.data.slug,
+        category: parsed.data.category,
+        description: parsed.data.description || null,
+        logo_url: parsed.data.logoUrl || null,
+      })
+      .eq("id", parsed.data.organizerId);
+  }
+
+  const { error } = updateResult;
 
   if (error) {
     redirectToAdminOrganizers({
