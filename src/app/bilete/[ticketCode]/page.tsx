@@ -14,9 +14,9 @@ import { TicketQr } from "@/components/ticket-qr";
 import { TicketSwipeShell } from "@/components/ticket-swipe-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { env } from "@/lib/env";
 import { formatSeatPosition } from "@/lib/format/seat";
 import { getServerI18n } from "@/lib/i18n/server";
+import { getServerSiteOrigin } from "@/lib/site-url";
 import type { TicketCard } from "@/lib/domain/types";
 import { getTicketByCode, getViewerContext, getViewerTickets } from "@/lib/supabase/queries";
 
@@ -36,6 +36,7 @@ export default async function TicketPage({
   const { ticketCode } = await params;
   const viewer = await getViewerContext();
   const { locale } = await getServerI18n();
+  const siteOrigin = await getServerSiteOrigin();
   const viewerTickets = viewer.userId ? await getViewerTickets(viewer) : [];
   const ownTicket = viewerTickets.find((item) => item.ticketCode === ticketCode) ?? null;
   const ticket = ownTicket ?? (await getTicketByCode(ticketCode, viewer));
@@ -81,17 +82,17 @@ export default async function TicketPage({
           counter: "Biletul {current} din {total}",
         };
 
-  const ticketUrl = `${env.siteUrl}/bilete/${ticket.ticketCode}`;
-  const pdfUrl = `${env.siteUrl}/bilete/${ticket.ticketCode}/pdf`;
-  const imageUrl = `${env.siteUrl}/bilete/${ticket.ticketCode}/image`;
+  const ticketUrl = `${siteOrigin}/bilete/${ticket.ticketCode}`;
+  const pdfUrl = `${siteOrigin}/bilete/${ticket.ticketCode}/pdf`;
+  const imageUrl = `${siteOrigin}/bilete/${ticket.ticketCode}/image`;
   const pdfDownloadUrl = `${pdfUrl}?download=1`;
   const groupedPdfDownloadUrl =
     sameMatchTickets.length > 1
-      ? `${env.siteUrl}/cabinet/meciuri/${ticket.matchId}/pdf?download=1`
+      ? `${siteOrigin}/cabinet/meciuri/${ticket.matchId}/pdf?download=1`
       : null;
   const reservationBundlePdfUrl =
     isSuperadmin && sameReservationTickets.length > 1
-      ? `${env.siteUrl}/cabinet/rezervari/${ticket.reservationId}/pdf`
+      ? `${siteOrigin}/cabinet/rezervari/${ticket.reservationId}/pdf`
       : null;
   const reservationBundlePdfDownloadUrl =
     reservationBundlePdfUrl ? `${reservationBundlePdfUrl}?download=1` : null;

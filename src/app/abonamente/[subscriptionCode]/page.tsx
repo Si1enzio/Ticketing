@@ -6,8 +6,8 @@ import { DownloadCloud, Printer, ShieldCheck } from "lucide-react";
 import { SubscriptionQr } from "@/components/subscription-qr";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { env } from "@/lib/env";
 import { formatSeatPosition } from "@/lib/format/seat";
+import { getServerSiteOrigin } from "@/lib/site-url";
 import { getSubscriptionByCode, getViewerContext } from "@/lib/supabase/queries";
 
 const statusMap = {
@@ -24,13 +24,14 @@ export default async function SubscriptionPage({
   await connection();
   const { subscriptionCode } = await params;
   const viewer = await getViewerContext();
+  const siteOrigin = await getServerSiteOrigin();
   const subscription = await getSubscriptionByCode(subscriptionCode, viewer);
 
   if (!subscription) {
     notFound();
   }
 
-  const pdfUrl = `${env.siteUrl}/abonamente/${subscription.subscriptionCode}/pdf`;
+  const pdfUrl = `${siteOrigin}/abonamente/${subscription.subscriptionCode}/pdf`;
 
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">

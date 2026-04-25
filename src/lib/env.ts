@@ -21,7 +21,11 @@ export const env = {
     parsedEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
     parsedEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
     "",
-  siteUrl: parsedEnv.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  siteUrl:
+    parsedEnv.NEXT_PUBLIC_SITE_URL ??
+    (process.env.NODE_ENV === "production"
+      ? "https://tickethub.md"
+      : "http://localhost:3000"),
 };
 
 export function getMissingSupabasePublicEnvVars() {

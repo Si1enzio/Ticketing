@@ -4,7 +4,6 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 type MediaUploadFieldProps = {
@@ -142,40 +141,36 @@ export function MediaUploadField({
               }
 
               const nextObjectUrl = URL.createObjectURL(file);
+              const inputElement = event.currentTarget;
               setObjectUrl(nextObjectUrl);
               setPreviewUrl(nextObjectUrl);
-
-              const supabase = createSupabaseBrowserClient();
-
-              if (!supabase) {
-                setErrorMessage("Upload-ul nu este disponibil pana cand conexiunea Supabase este configurata.");
-                return;
-              }
 
               setIsUploading(true);
 
               try {
-                const extension = getFileExtension(file);
-                const safeFolder = sanitizePathSegment(uploadFolder);
-                const path = `${safeFolder}/${mediaKind}-${Date.now()}-${crypto.randomUUID()}.${extension}`;
+                const uploadFormData = new FormData();
+                uploadFormData.set("file", file);
+                uploadFormData.set("uploadFolder", uploadFolder);
+                uploadFormData.set("mediaKind", mediaKind);
 
-                const { error: uploadError } = await supabase.storage
-                  .from("event-media")
-                  .upload(path, file, {
-                    cacheControl: "3600",
-                    upsert: false,
-                    contentType: file.type,
-                  });
+                const response = await fetch("/api/admin/event-media/upload", {
+                  method: "POST",
+                  body: uploadFormData,
+                  credentials: "same-origin",
+                });
 
-                if (uploadError) {
-                  throw uploadError;
+                const result = (await response.json().catch(() => null)) as
+                  | { ok?: boolean; url?: string; message?: string }
+                  | null;
+
+                if (!response.ok || !result?.ok || !result.url) {
+                  throw new Error(result?.message || "Imaginea nu a putut fi incarcata.");
                 }
 
-                const { data } = supabase.storage.from("event-media").getPublicUrl(path);
-                setUploadedUrl(data.publicUrl);
-                setPreviewUrl(data.publicUrl);
+                setUploadedUrl(result.url);
+                setPreviewUrl(result.url);
                 setUploadNotice("Imaginea a fost incarcata. Poti salva evenimentul.");
-                event.currentTarget.value = "";
+                inputElement.value = "";
               } catch (error) {
                 console.error("Upload media esuat.", error);
                 setPreviewUrl(defaultPreviewUrl ?? null);
@@ -205,24 +200,4 @@ export function MediaUploadField({
       </div>
     </div>
   );
-}
-
-function getFileExtension(file: File) {
-  const fallback = file.type.split("/")[1]?.toLowerCase() || "bin";
-  const rawExtension = file.name.split(".").pop()?.toLowerCase();
-
-  if (!rawExtension) {
-    return fallback;
-  }
-
-  return rawExtension.replace(/[^a-z0-9]/g, "") || fallback;
-}
-
-function sanitizePathSegment(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9/_-]+/g, "-")
-    .replace(/\/{2,}/g, "/")
-    .replace(/^-+|-+$/g, "");
 }

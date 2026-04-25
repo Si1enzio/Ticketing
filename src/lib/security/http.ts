@@ -50,6 +50,9 @@ export function getAllowedOrigins(requestUrl?: string) {
     allowedOrigins.add(requestOrigin);
   }
 
+  allowedOrigins.add("https://tickethub.md");
+  allowedOrigins.add("https://www.tickethub.md");
+
   return allowedOrigins;
 }
 

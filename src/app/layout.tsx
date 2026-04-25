@@ -7,6 +7,7 @@ import { Providers } from "@/components/providers";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { brand } from "@/lib/brand";
+import { env } from "@/lib/env";
 import { getServerI18n } from "@/lib/i18n/server";
 
 const bodyFont = Sora({
@@ -20,6 +21,7 @@ const headingFont = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(env.siteUrl),
   title: brand.displayName,
   description: brand.description,
 };
