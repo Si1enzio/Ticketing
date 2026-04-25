@@ -759,6 +759,46 @@ export async function getAdminMatchOverview(): Promise<AdminMatchOverview[]> {
       return mockAdminMatches;
     }
 
+    let matchMediaById = new Map<
+      string,
+      {
+        organizerId: string | null;
+        posterUrl: string | null;
+        bannerUrl: string | null;
+      }
+    >();
+
+    const matchIds = rows
+      .map((item) => String(item.id ?? ""))
+      .filter(Boolean);
+
+    if (matchIds.length) {
+      const { data: directMatches, error: directMatchesError } = await supabase
+        .from("matches")
+        .select("id, stadium_id, organizer_id, poster_url, banner_url")
+        .in("id", matchIds);
+
+      if (directMatchesError && !isOptionalSchemaError(directMatchesError)) {
+        throw directMatchesError;
+      }
+
+      matchMediaById = new Map(
+        ((directMatches ?? []) as Array<{
+          id: string;
+          organizer_id?: string | null;
+          poster_url?: string | null;
+          banner_url?: string | null;
+        }>).map((item) => [
+          item.id,
+          {
+            organizerId: item.organizer_id ?? null,
+            posterUrl: item.poster_url ?? null,
+            bannerUrl: item.banner_url ?? null,
+          },
+        ]),
+      );
+    }
+
     const parsedRows = rows.map((item) =>
       adminMatchOverviewSchema.parse({
         id: item.id,
@@ -768,8 +808,14 @@ export async function getAdminMatchOverview(): Promise<AdminMatchOverview[]> {
         competitionName: item.competition_name,
         opponentName: item.opponent_name,
         stadiumName: item.stadium_name,
-        posterUrl: item.poster_url ?? null,
-        bannerUrl: item.banner_url ?? null,
+        posterUrl:
+          item.poster_url ??
+          matchMediaById.get(String(item.id ?? ""))?.posterUrl ??
+          null,
+        bannerUrl:
+          item.banner_url ??
+          matchMediaById.get(String(item.id ?? ""))?.bannerUrl ??
+          null,
         startsAt: item.starts_at,
         status: item.status,
         scannerEnabled: item.scanner_enabled,
@@ -790,25 +836,12 @@ export async function getAdminMatchOverview(): Promise<AdminMatchOverview[]> {
       return parsedRows;
     }
 
-    const matchIds = parsedRows.map((item) => item.id);
-    const { data: scopedMatches, error: scopedMatchesError } = await supabase
-      .from("matches")
-      .select("id, stadium_id, organizer_id")
-      .in("id", matchIds);
-
-    if (scopedMatchesError && !isOptionalSchemaError(scopedMatchesError)) {
-      throw scopedMatchesError;
-    }
-
-    const organizerIdByMatch = new Map(
-      ((scopedMatches ?? []) as Array<{
-        id: string;
-        organizer_id?: string | null;
-      }>).map((item) => [item.id, item.organizer_id ?? null]),
-    );
-
     return parsedRows.filter((item) =>
-      canAccessLocation(viewer, item.stadiumId, organizerIdByMatch.get(item.id) ?? null),
+      canAccessLocation(
+        viewer,
+        item.stadiumId,
+        matchMediaById.get(item.id)?.organizerId ?? null,
+      ),
     );
   } catch (error) {
     console.error("Nu am putut încărca dashboard-ul admin.", error);
