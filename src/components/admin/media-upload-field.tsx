@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 type MediaUploadFieldProps = {
@@ -43,6 +44,7 @@ export function MediaUploadField({
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const statusId = useId();
+  const supabase = createSupabaseBrowserClient();
 
   useEffect(() => {
     return () => {
@@ -109,6 +111,7 @@ export function MediaUploadField({
             ref={inputRef}
             aria-describedby={statusId}
             onChange={async (event) => {
+              const inputElement = event.currentTarget;
               const file = event.currentTarget.files?.[0] ?? null;
               setErrorMessage(null);
               setUploadNotice(null);
@@ -129,46 +132,33 @@ export function MediaUploadField({
                 setErrorMessage(
                   `Fisierul este prea mare. Limita maxima pentru acest camp este ${(maxFileSizeBytes / 1024 / 1024).toFixed(0)} MB.`,
                 );
-                event.currentTarget.value = "";
+                inputElement.value = "";
                 return;
               }
 
               if (!file.type.startsWith("image/")) {
                 setPreviewUrl(defaultPreviewUrl ?? null);
                 setErrorMessage("Poti incarca doar fisiere imagine.");
-                event.currentTarget.value = "";
+                inputElement.value = "";
                 return;
               }
 
               const nextObjectUrl = URL.createObjectURL(file);
-              const inputElement = event.currentTarget;
               setObjectUrl(nextObjectUrl);
               setPreviewUrl(nextObjectUrl);
 
               setIsUploading(true);
 
               try {
-                const uploadFormData = new FormData();
-                uploadFormData.set("file", file);
-                uploadFormData.set("uploadFolder", uploadFolder);
-                uploadFormData.set("mediaKind", mediaKind);
-
-                const response = await fetch("/api/admin/event-media/upload", {
-                  method: "POST",
-                  body: uploadFormData,
-                  credentials: "same-origin",
+                const uploadedMediaUrl = await uploadEventMedia({
+                  file,
+                  uploadFolder,
+                  mediaKind,
+                  supabase,
                 });
 
-                const result = (await response.json().catch(() => null)) as
-                  | { ok?: boolean; url?: string; message?: string }
-                  | null;
-
-                if (!response.ok || !result?.ok || !result.url) {
-                  throw new Error(result?.message || "Imaginea nu a putut fi incarcata.");
-                }
-
-                setUploadedUrl(result.url);
-                setPreviewUrl(result.url);
+                setUploadedUrl(uploadedMediaUrl);
+                setPreviewUrl(uploadedMediaUrl);
                 setUploadNotice("Imaginea a fost incarcata. Poti salva evenimentul.");
                 inputElement.value = "";
               } catch (error) {
@@ -200,4 +190,114 @@ export function MediaUploadField({
       </div>
     </div>
   );
+}
+
+async function uploadEventMedia({
+  file,
+  uploadFolder,
+  mediaKind,
+  supabase,
+}: {
+  file: File;
+  uploadFolder: string;
+  mediaKind: "poster" | "banner";
+  supabase: ReturnType<typeof createSupabaseBrowserClient>;
+}) {
+  const directUploadError = await tryBrowserStorageUpload({
+    file,
+    uploadFolder,
+    mediaKind,
+    supabase,
+  });
+
+  if (directUploadError.ok) {
+    return directUploadError.url;
+  }
+
+  const uploadFormData = new FormData();
+  uploadFormData.set("file", file);
+  uploadFormData.set("uploadFolder", uploadFolder);
+  uploadFormData.set("mediaKind", mediaKind);
+
+  const response = await fetch("/api/admin/event-media/upload", {
+    method: "POST",
+    body: uploadFormData,
+    credentials: "same-origin",
+  });
+
+  const result = (await response.json().catch(() => null)) as
+    | { ok?: boolean; url?: string; message?: string }
+    | null;
+
+  if (!response.ok || !result?.ok || !result.url) {
+    const fallbackMessage = result?.message || "Imaginea nu a putut fi incarcata.";
+    const combinedMessage = directUploadError.message
+      ? `${fallbackMessage} (${directUploadError.message})`
+      : fallbackMessage;
+    throw new Error(combinedMessage);
+  }
+
+  return result.url;
+}
+
+async function tryBrowserStorageUpload({
+  file,
+  uploadFolder,
+  mediaKind,
+  supabase,
+}: {
+  file: File;
+  uploadFolder: string;
+  mediaKind: "poster" | "banner";
+  supabase: ReturnType<typeof createSupabaseBrowserClient>;
+}): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
+  if (!supabase) {
+    return {
+      ok: false,
+      message: "Clientul de upload din browser nu este disponibil.",
+    };
+  }
+
+  const extension = getFileExtension(file);
+  const path = `${sanitizePathSegment(uploadFolder || "matches/drafts")}/${mediaKind}-${Date.now()}-${crypto.randomUUID()}.${extension}`;
+  const { error: uploadError } = await supabase.storage.from("event-media").upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+    contentType: file.type,
+  });
+
+  if (uploadError) {
+    return {
+      ok: false,
+      message: uploadError.message,
+    };
+  }
+
+  const { data } = supabase.storage.from("event-media").getPublicUrl(path);
+
+  return {
+    ok: true,
+    url: data.publicUrl,
+  };
+}
+
+function getFileExtension(file: File) {
+  const mimeToExtension: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "image/avif": "avif",
+  };
+
+  return mimeToExtension[file.type] ?? file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+}
+
+function sanitizePathSegment(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9/_-]+/g, "-")
+    .replace(/\/{2,}/g, "/")
+    .replace(/^-+|-+$/g, "");
 }

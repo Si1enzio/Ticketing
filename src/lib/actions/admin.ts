@@ -334,6 +334,22 @@ function normalizeMatchDateTime(
   };
 }
 
+function getDateTimeValueFromFormData(
+  formData: FormData,
+  fieldName: string,
+  dateFieldName: string,
+  timeFieldName: string,
+) {
+  const explicitDate = String(formData.get(dateFieldName) ?? "").trim();
+  const explicitTime = String(formData.get(timeFieldName) ?? "").trim();
+
+  if (explicitDate) {
+    return `${explicitDate}T${explicitTime || "00:00"}`;
+  }
+
+  return String(formData.get(fieldName) ?? "").trim();
+}
+
 function validateMatchScheduleWindow(input: {
   startsAtIso: string;
   reservationOpensAtIso: string | null;
@@ -1462,13 +1478,30 @@ export async function createMatchAction(formData: FormData) {
     title: formData.get("title"),
     slug: formData.get("slug"),
     competitionName: formData.get("competitionName"),
-    startsAt: formData.get("startsAt"),
+    startsAt: getDateTimeValueFromFormData(
+      formData,
+      "startsAt",
+      "startsAtDate",
+      "startsAtTime",
+    ),
     posterUrl: posterUrlResult.url || String(formData.get("posterUrl") || ""),
     bannerUrl: bannerUrlResult.url || String(formData.get("bannerUrl") || ""),
     status: formData.get("status"),
     maxTicketsPerUser: formData.get("maxTicketsPerUser"),
-    reservationOpensAt: formData.get("reservationOpensAt") || undefined,
-    reservationClosesAt: formData.get("reservationClosesAt") || undefined,
+    reservationOpensAt:
+      getDateTimeValueFromFormData(
+        formData,
+        "reservationOpensAt",
+        "reservationOpensAtDate",
+        "reservationOpensAtTime",
+      ) || undefined,
+    reservationClosesAt:
+      getDateTimeValueFromFormData(
+        formData,
+        "reservationClosesAt",
+        "reservationClosesAtDate",
+        "reservationClosesAtTime",
+      ) || undefined,
     scannerEnabled: formData.get("scannerEnabled") === "on",
     ticketingMode: formData.get("ticketingMode") || "free",
     ticketPriceCents: ticketPriceResult.cents,
@@ -1907,13 +1940,30 @@ export async function updateMatchAction(formData: FormData) {
     title: formData.get("title"),
     slug: formData.get("slug"),
     competitionName: formData.get("competitionName"),
-    startsAt: formData.get("startsAt"),
+    startsAt: getDateTimeValueFromFormData(
+      formData,
+      "startsAt",
+      "startsAtDate",
+      "startsAtTime",
+    ),
     posterUrl: posterUrlResult.url || String(formData.get("posterUrl") || ""),
     bannerUrl: bannerUrlResult.url || String(formData.get("bannerUrl") || ""),
     status: formData.get("status"),
     maxTicketsPerUser: formData.get("maxTicketsPerUser"),
-    reservationOpensAt: formData.get("reservationOpensAt") || undefined,
-    reservationClosesAt: formData.get("reservationClosesAt") || undefined,
+    reservationOpensAt:
+      getDateTimeValueFromFormData(
+        formData,
+        "reservationOpensAt",
+        "reservationOpensAtDate",
+        "reservationOpensAtTime",
+      ) || undefined,
+    reservationClosesAt:
+      getDateTimeValueFromFormData(
+        formData,
+        "reservationClosesAt",
+        "reservationClosesAtDate",
+        "reservationClosesAtTime",
+      ) || undefined,
     scannerEnabled: formData.get("scannerEnabled") === "on",
     ticketingMode: formData.get("ticketingMode") || "free",
     ticketPriceCents: ticketPriceResult.cents,

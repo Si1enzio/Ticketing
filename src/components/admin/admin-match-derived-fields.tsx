@@ -22,6 +22,12 @@ type AdminMatchDerivedFieldsProps = {
   startsAtName?: string;
   reservationOpensAtName?: string;
   reservationClosesAtName?: string;
+  startsAtDateName?: string;
+  startsAtTimeName?: string;
+  reservationOpensAtDateName?: string;
+  reservationOpensAtTimeName?: string;
+  reservationClosesAtDateName?: string;
+  reservationClosesAtTimeName?: string;
 };
 
 const defaultStartTime = "18:00";
@@ -44,6 +50,12 @@ export function AdminMatchDerivedFields({
   startsAtName = "startsAt",
   reservationOpensAtName = "reservationOpensAt",
   reservationClosesAtName = "reservationClosesAt",
+  startsAtDateName = "startsAtDate",
+  startsAtTimeName = "startsAtTime",
+  reservationOpensAtDateName = "reservationOpensAtDate",
+  reservationOpensAtTimeName = "reservationOpensAtTime",
+  reservationClosesAtDateName = "reservationClosesAtDate",
+  reservationClosesAtTimeName = "reservationClosesAtTime",
 }: AdminMatchDerivedFieldsProps) {
   const initialStartDateTime = useMemo(() => {
     const split = splitIsoToLocalDateTime(defaultStartsAt);
@@ -147,6 +159,8 @@ export function AdminMatchDerivedFields({
         timeValue={startsAtTime}
         onDateChange={setStartsAtDate}
         onTimeChange={setStartsAtTime}
+        dateName={startsAtDateName}
+        timeName={startsAtTimeName}
         required
       />
       <DateTimeFieldGroup
@@ -156,6 +170,8 @@ export function AdminMatchDerivedFields({
         timeValue={reservationOpensAtTime}
         onDateChange={setReservationOpensAtDate}
         onTimeChange={setReservationOpensAtTime}
+        dateName={reservationOpensAtDateName}
+        timeName={reservationOpensAtTimeName}
       />
       <DateTimeFieldGroup
         prefix={`${formId}-reservation-closes`}
@@ -164,6 +180,8 @@ export function AdminMatchDerivedFields({
         timeValue={reservationClosesAtTime}
         onDateChange={setReservationClosesAtDate}
         onTimeChange={setReservationClosesAtTime}
+        dateName={reservationClosesAtDateName}
+        timeName={reservationClosesAtTimeName}
       />
 
       {teamSuggestions.length ? (
@@ -226,6 +244,8 @@ function DateTimeFieldGroup({
   timeValue,
   onDateChange,
   onTimeChange,
+  dateName,
+  timeName,
   required = false,
 }: {
   prefix: string;
@@ -234,6 +254,8 @@ function DateTimeFieldGroup({
   timeValue: string;
   onDateChange: (value: string) => void;
   onTimeChange: (value: string) => void;
+  dateName: string;
+  timeName: string;
   required?: boolean;
 }) {
   return (
@@ -242,6 +264,7 @@ function DateTimeFieldGroup({
       <div className="grid gap-3 sm:grid-cols-2">
         <Input
           id={`${prefix}-date`}
+          name={dateName}
           type="date"
           value={dateValue}
           onChange={(event) => onDateChange(event.target.value)}
@@ -250,6 +273,7 @@ function DateTimeFieldGroup({
         />
         <Input
           id={`${prefix}-time`}
+          name={timeName}
           type="time"
           value={timeValue}
           onChange={(event) => onTimeChange(event.target.value)}
