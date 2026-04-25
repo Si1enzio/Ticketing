@@ -21,6 +21,30 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
   const [isPending, setIsPending] = useState(false);
   const [mode, setMode] = useState("signin");
   const { t, locale } = useI18n();
+  const signupLabels =
+    locale === "ru"
+      ? {
+          contactEmail: "Контактный email",
+          district: "Район / округ",
+          birthDate: "Дата рождения",
+          gender: "Пол",
+          preferredLanguage: "Предпочитаемый язык",
+          unspecified: "Не указано",
+          male: "Мужской",
+          female: "Женский",
+          other: "Другой",
+        }
+      : {
+          contactEmail: "Email de contact",
+          district: "Raion / judet",
+          birthDate: "Data nasterii",
+          gender: "Sex",
+          preferredLanguage: "Limba preferata",
+          unspecified: "Nespecificat",
+          male: "Masculin",
+          female: "Feminin",
+          other: "Altul",
+        };
 
   const signInSchema = z.object({
     email: z.string().email(t("auth.validation.email")),
@@ -35,7 +59,17 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
       .min(8, t("auth.validation.phone"))
       .max(32, t("auth.validation.phone"))
       .regex(/^[+0-9()\\s-]+$/, t("auth.validation.phone")),
+    contactEmail: z.string().trim().email(t("auth.validation.email")).optional().or(z.literal("")),
     locality: z.string().trim().max(120).optional().or(z.literal("")),
+    district: z.string().trim().max(120).optional().or(z.literal("")),
+    birthDate: z
+      .string()
+      .trim()
+      .regex(/^$|^\d{4}-\d{2}-\d{2}$/, t("auth.validation.invalidData"))
+      .optional()
+      .or(z.literal("")),
+    gender: z.enum(["unspecified", "male", "female", "other"]).default("unspecified"),
+    preferredLanguage: z.enum(["ro", "ru"]).default(locale),
     marketingOptIn: z.boolean().default(false),
     smsOptIn: z.boolean().default(false),
   });
@@ -97,7 +131,12 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
       email: formData.get("signup-email"),
       password: formData.get("signup-password"),
       phone: formData.get("signup-phone"),
+      contactEmail: formData.get("signup-contact-email") || "",
       locality: formData.get("signup-locality") || "",
+      district: formData.get("signup-district") || "",
+      birthDate: formData.get("signup-birth-date") || "",
+      gender: formData.get("signup-gender") || "unspecified",
+      preferredLanguage: formData.get("signup-preferred-language") || locale,
       marketingOptIn: formData.get("signup-marketing-opt-in") === "on",
       smsOptIn: formData.get("signup-sms-opt-in") === "on",
     });
@@ -121,9 +160,12 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
         data: {
           full_name: parsed.data.fullName,
           phone: parsed.data.phone,
+          contact_email: parsed.data.contactEmail || parsed.data.email,
           locality: parsed.data.locality || null,
-          contact_email: parsed.data.email,
-          preferred_language: locale,
+          district: parsed.data.district || null,
+          birth_date: parsed.data.birthDate || null,
+          gender: parsed.data.gender,
+          preferred_language: parsed.data.preferredLanguage,
           marketing_opt_in: parsed.data.marketingOptIn,
           sms_opt_in: parsed.data.smsOptIn,
         },
@@ -242,9 +284,46 @@ export function AuthPanel({ nextPath = "/cabinet" }: { nextPath?: string }) {
               <Field name="signup-email" label={t("auth.fields.email")} type="email" />
               <Field name="signup-phone" label={t("auth.fields.phone")} type="tel" />
               <Field
+                name="signup-contact-email"
+                label={signupLabels.contactEmail}
+                type="email"
+                required={false}
+              />
+              <Field
                 name="signup-locality"
                 label={t("auth.fields.locality")}
                 required={false}
+              />
+              <Field
+                name="signup-district"
+                label={signupLabels.district}
+                required={false}
+              />
+              <Field
+                name="signup-birth-date"
+                label={signupLabels.birthDate}
+                type="date"
+                required={false}
+              />
+              <SelectField
+                name="signup-gender"
+                label={signupLabels.gender}
+                defaultValue="unspecified"
+                options={[
+                  { value: "unspecified", label: signupLabels.unspecified },
+                  { value: "male", label: signupLabels.male },
+                  { value: "female", label: signupLabels.female },
+                  { value: "other", label: signupLabels.other },
+                ]}
+              />
+              <SelectField
+                name="signup-preferred-language"
+                label={signupLabels.preferredLanguage}
+                defaultValue={locale}
+                options={[
+                  { value: "ro", label: t("common.romanian") },
+                  { value: "ru", label: t("common.russian") },
+                ]}
               />
               <Field
                 name="signup-password"
@@ -330,6 +409,36 @@ function Field({
         required={required}
         className="rounded-2xl border-black/8 bg-neutral-50 focus-visible:border-[#dc2626] focus-visible:ring-[#dc2626]/20"
       />
+    </div>
+  );
+}
+
+function SelectField({
+  name,
+  label,
+  defaultValue,
+  options,
+}: {
+  name: string;
+  label: string;
+  defaultValue: string;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={name}>{label}</Label>
+      <select
+        id={name}
+        name={name}
+        defaultValue={defaultValue}
+        className="h-10 rounded-2xl border border-black/8 bg-white px-3 text-sm text-[#111111] outline-none focus:border-[#dc2626]"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

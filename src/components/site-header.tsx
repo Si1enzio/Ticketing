@@ -47,6 +47,10 @@ function getHighestRole(viewer: ViewerContext) {
     return "admin";
   }
 
+  if (viewer.roles.includes("organizer_admin")) {
+    return "organizer_admin";
+  }
+
   if (viewer.roles.includes("steward")) {
     return "steward";
   }
@@ -87,7 +91,7 @@ export function SiteHeader() {
       return;
     }
 
-    const [{ data: profile }, { data: roles }, { data: block }] = await Promise.all([
+    const [{ data: profile }, { data: roles }, { data: block }, { data: scopes }] = await Promise.all([
       supabase
         .from("profiles")
         .select("full_name, can_reserve")
@@ -102,6 +106,10 @@ export function SiteHeader() {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from("user_access_scopes")
+        .select("organizer_id, stadium_id")
+        .eq("user_id", user.id),
     ]);
 
     const profileRecord = profile as {
@@ -109,6 +117,10 @@ export function SiteHeader() {
       can_reserve?: boolean | null;
     } | null;
     const roleRows = (roles ?? []) as Array<{ role: string }>;
+    const scopeRows = (scopes ?? []) as Array<{
+      organizer_id?: string | null;
+      stadium_id?: string | null;
+    }>;
     const activeBlock = block as { ends_at?: string | null; reason?: string | null } | null;
 
     setViewer(
@@ -118,6 +130,20 @@ export function SiteHeader() {
         fullName: profileRecord?.full_name ?? null,
         canReserve: Boolean(profileRecord?.can_reserve),
         roles: normalizeRoles(roleRows.map((item) => item.role)),
+        organizerIds: Array.from(
+          new Set(
+            scopeRows
+              .map((item) => item.organizer_id)
+              .filter((value): value is string => Boolean(value)),
+          ),
+        ),
+        locationIds: Array.from(
+          new Set(
+            scopeRows
+              .map((item) => item.stadium_id)
+              .filter((value): value is string => Boolean(value)),
+          ),
+        ),
         reservationBlockedUntil: activeBlock?.ends_at ?? null,
         reservationBlockReason: activeBlock?.reason ?? null,
       }),
@@ -391,6 +417,7 @@ function isNavItemDisabled(href: string, viewer: ViewerContext) {
   return (
     (href === "/scanner" &&
       !viewer.roles.includes("steward") &&
+      !viewer.roles.includes("organizer_admin") &&
       !viewer.roles.includes("admin") &&
       !viewer.roles.includes("superadmin")) ||
     (href === "/admin" && !viewer.isAdmin) ||
@@ -406,6 +433,7 @@ function shouldHideNavItem(href: string, viewer: ViewerContext) {
   if (
     href === "/scanner" &&
     !viewer.roles.includes("steward") &&
+    !viewer.roles.includes("organizer_admin") &&
     !viewer.roles.includes("admin") &&
     !viewer.roles.includes("superadmin")
   ) {

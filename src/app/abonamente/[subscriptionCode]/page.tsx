@@ -51,7 +51,7 @@ export default async function SubscriptionPage({
               <div className="flex items-start gap-3">
                 <ShieldCheck className="mt-0.5 h-5 w-5 text-[#fca5a5]" />
                 <p className="text-sm leading-7 text-white/76">
-                  Abonamentul este valabil pentru toate meciurile de pe stadionul alocat,
+                  Abonamentul este valabil pentru toate meciurile din locatia alocata,
                   in perioada selectata, cu o singura intrare la fiecare meci.
                 </p>
               </div>
@@ -66,7 +66,7 @@ export default async function SubscriptionPage({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm uppercase tracking-[0.24em] text-[#b91c1c]">
-                    Abonament stadion
+                    Abonament locatie
                   </p>
                   <h1 className="mt-2 font-heading text-5xl uppercase tracking-[0.08em] text-[#111111]">
                     {subscription.product.name}
@@ -100,7 +100,7 @@ export default async function SubscriptionPage({
                   label="Valabilitate"
                   value={`${new Date(subscription.startsAt).toLocaleDateString("ro-RO")} - ${new Date(subscription.endsAt).toLocaleDateString("ro-RO")}`}
                 />
-                <Info label="Stadion" value={subscription.stadiumName ?? "Nedefinit"} />
+                <Info label="Locatie" value={subscription.stadiumName ?? "Nedefinit"} />
                 <Info label="Poarta" value={subscription.gateName ?? "Libera"} />
                 <Info label="Sector" value={subscription.sectorName ?? "Fara sector"} />
                 <Info

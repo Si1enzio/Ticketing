@@ -3,11 +3,11 @@ import type { LocalizedLabel } from "@/lib/stadium/stadium-types";
 
 const stadiumMapMessages = {
   ro: {
-    overviewTitle: "Overview stadion",
+    overviewTitle: "Overview locatie",
     overviewDescription:
       "Alege mai intai tribuna sau sectorul din harta, apoi continua cu selectia locurilor.",
     flowStepOverviewTitle: "1. Alege zona",
-    flowStepOverviewDescription: "Porneste din harta stadionului sau direct din lista de tribune.",
+    flowStepOverviewDescription: "Porneste din harta locatiei sau direct din lista de tribune.",
     flowStepSectorTitle: "2. Alege sectorul",
     flowStepSectorDescription: "Deschide sectorul dorit si verifica rapid disponibilitatea.",
     flowStepSeatTitle: "3. Alege locurile",
@@ -20,7 +20,7 @@ const stadiumMapMessages = {
     tribunesTitle: "Tribune",
     sectorsTitle: "Sectoare",
     seatMapTitle: "Harta sectorului",
-    backToOverview: "Inapoi la stadion",
+    backToOverview: "Inapoi la locatie",
     backToTribune: "Inapoi la tribuna",
     selectedTribune: "Tribuna selectata",
     selectedSector: "Sector selectat",
@@ -59,14 +59,14 @@ const stadiumMapMessages = {
     zoomReset: "Reset zoom",
     zoomHint: "Poti mari harta din butoane sau cu pinch pe ecranele tactile.",
     stadiumFallback:
-      "Stadionul nu are inca o geometrie custom. Afisam o harta generata automat din sectoarele existente.",
+      "Locatia nu are inca o geometrie custom. Afisam o harta generata automat din sectoarele existente.",
   },
   ru: {
-    overviewTitle: "Obzor stadiona",
+    overviewTitle: "Obzor lokacii",
     overviewDescription:
       "Snachala vyberi tribunu ili sektor na karte, potom perehodi k vyboru mest.",
     flowStepOverviewTitle: "1. Vyberi zonu",
-    flowStepOverviewDescription: "Nachni s karty stadiona ili so spiska tribyun.",
+    flowStepOverviewDescription: "Nachni s karty lokacii ili so spiska tribyun.",
     flowStepSectorTitle: "2. Vyberi sektor",
     flowStepSectorDescription: "Otkroi nuzhnyy sektor i bystro prover dostupnost.",
     flowStepSeatTitle: "3. Vyberi mesta",
@@ -79,7 +79,7 @@ const stadiumMapMessages = {
     tribunesTitle: "Tribuny",
     sectorsTitle: "Sektory",
     seatMapTitle: "Karta sektora",
-    backToOverview: "Nazad k stadionu",
+    backToOverview: "Nazad k lokacii",
     backToTribune: "Nazad k tribune",
     selectedTribune: "Vybrannaya tribuna",
     selectedSector: "Vybrannyi sektor",
@@ -118,7 +118,7 @@ const stadiumMapMessages = {
     zoomReset: "Sbrosit masshtab",
     zoomHint: "Masshtab mozhno menyat knopkami ili zhestom pinch na touch-ekranah.",
     stadiumFallback:
-      "U stadiona poka net individualnoi geometrii. Pokazyvaem avtomaticheski sformirovannuyu kartu.",
+      "U lokacii poka net individualnoi geometrii. Pokazyvaem avtomaticheski sformirovannuyu kartu.",
   },
 } as const;
 

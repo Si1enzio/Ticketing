@@ -191,7 +191,7 @@ export function SeatMapBoard({
         <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
         <CardHeader className="gap-4">
           <CardTitle className="font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
-            Harta stadionului si locurilor
+            Harta locatiei si a locurilor
           </CardTitle>
           <p className="max-w-3xl text-sm leading-6 text-neutral-600">
             {ticketingMode === "paid"
@@ -283,7 +283,7 @@ export function SeatMapBoard({
               ))
             ) : (
               <p className="text-sm leading-6 text-white/65">
-                Nu ai selectat inca niciun loc. Incepe din harta stadionului, apoi atinge locurile
+                Nu ai selectat inca niciun loc. Incepe din harta locatiei, apoi atinge locurile
                 disponibile din sectorul ales.
               </p>
             )}

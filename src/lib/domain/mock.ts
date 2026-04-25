@@ -64,6 +64,8 @@ export const mockViewer: ViewerContext = {
   email: null,
   fullName: null,
   roles: ["guest"],
+  organizerIds: [],
+  locationIds: [],
   canReserve: false,
   reservationBlockedUntil: null,
   reservationBlockReason: null,

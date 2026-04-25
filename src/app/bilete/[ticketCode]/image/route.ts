@@ -349,7 +349,7 @@ export async function GET(
                 },
               },
               renderField({
-                label: "Stadion",
+                label: "Locatie",
                 value: ticket.stadiumName,
               }),
               renderField({

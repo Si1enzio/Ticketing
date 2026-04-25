@@ -115,7 +115,7 @@ export function AdminMatchCard({
               <SelectField
                 name={`stadium-${match.id}`}
                 htmlName="stadiumId"
-                label="Stadion"
+                label="Locatie"
                 options={stadiumOptions}
                 defaultValue={match.stadiumId}
               />

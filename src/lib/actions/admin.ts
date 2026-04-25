@@ -26,10 +26,23 @@ const stadiumSchema = z.object({
   name: z.string().min(3),
   slug: z.string().min(3),
   city: z.string().min(2),
+  organizerId: z.string().uuid().optional().or(z.literal("")),
 });
 
 const stadiumUpdateSchema = stadiumSchema.extend({
   stadiumId: z.string(),
+});
+
+const organizerSchema = z.object({
+  name: z.string().trim().min(2),
+  slug: z.string().trim().min(2),
+  category: z.string().trim().min(2).max(50).default("club"),
+  description: z.string().trim().max(1200).optional().or(z.literal("")),
+  logoUrl: z.string().trim().url().optional().or(z.literal("")),
+});
+
+const organizerUpdateSchema = organizerSchema.extend({
+  organizerId: z.string().uuid(),
 });
 
 const standSchema = z.object({
@@ -174,14 +187,14 @@ const userBlockSchema = z.object({
 
 const roleSchema = z.object({
   userId: z.string(),
-  role: z.enum(["steward", "admin", "superadmin", "user"]),
+  role: z.enum(["steward", "organizer_admin", "admin", "superadmin", "user"]),
 });
 
 const managedUserCreateSchema = z.object({
   email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),
   password: z.string().min(8).max(128),
   fullName: z.string().trim().min(2).max(120).optional().or(z.literal("")),
-  role: z.enum(["user", "steward", "admin", "superadmin"]),
+  role: z.enum(["user", "steward", "organizer_admin", "admin", "superadmin"]),
   canReserve: z
     .union([z.literal("true"), z.literal("false"), z.boolean()])
     .default("true")
@@ -215,6 +228,13 @@ const reservationAccessSchema = z.object({
     .transform((value) => value === true || value === "true"),
 });
 
+const userAccessScopeSchema = z.object({
+  userId: z.string().uuid(),
+  role: z.enum(["steward", "organizer_admin"]),
+  organizerId: z.string().uuid().optional().or(z.literal("")),
+  locationId: z.string().uuid().optional().or(z.literal("")),
+});
+
 const seatToggleSchema = z.object({
   seatId: z.string(),
   flag: z.enum(["is_disabled", "is_obstructed", "is_internal_only"]),
@@ -245,6 +265,42 @@ const allowedImageMimeTypes = new Set([
   "image/avif",
 ]);
 
+function isOptionalSchemaError(error: { code?: string | null; message?: string | null } | null | undefined) {
+  const code = error?.code ?? "";
+  const message = (error?.message ?? "").toLowerCase();
+  return (
+    code === "42703" ||
+    code === "42P01" ||
+    message.includes("column") ||
+    message.includes("relation")
+  );
+}
+
+async function getLocationOrganizerId(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  locationId: string,
+) {
+  if (!supabase || !locationId) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("stadiums")
+    .select("organizer_id")
+    .eq("id", locationId)
+    .maybeSingle();
+
+  if (error) {
+    if (isOptionalSchemaError(error)) {
+      return null;
+    }
+
+    throw error;
+  }
+
+  return data?.organizer_id ?? null;
+}
+
 async function ensureAdmin(): Promise<
   Awaited<ReturnType<typeof getViewerContext>> & { userId: string }
 > {
@@ -252,7 +308,10 @@ async function ensureAdmin(): Promise<
 
   const viewer = await getViewerContext();
 
-  if (!viewer.userId || !hasAnyRole(viewer.roles, ["admin", "superadmin"])) {
+  if (
+    !viewer.userId ||
+    !hasAnyRole(viewer.roles, ["organizer_admin", "admin", "superadmin"])
+  ) {
     throw new Error("Acces interzis pentru această acțiune.");
   }
 
@@ -288,9 +347,131 @@ function redirectToAdminMatches(params: Record<string, string>): never {
   redirect(`/admin/meciuri?${query.toString()}`);
 }
 
+function redirectToAdminOrganizers(params: Record<string, string>): never {
+  const query = new URLSearchParams(params);
+  redirect(`/admin/organizatori?${query.toString()}`);
+}
+
 function redirectToAdminUsers(params: Record<string, string>): never {
   const query = new URLSearchParams(params);
   redirect(`/admin/utilizatori?${query.toString()}`);
+}
+
+export async function createOrganizerAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = organizerSchema.safeParse({
+    name: formData.get("name"),
+    slug: formData.get("slug"),
+    category: formData.get("category") || "club",
+    description: formData.get("description") || "",
+    logoUrl: formData.get("logoUrl") || "",
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    redirectToAdminOrganizers({
+      error: "Datele organizatorului nu sunt valide.",
+    });
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    redirectToAdminOrganizers({
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
+
+  const { data, error } = await supabase
+    .from("organizers")
+    .insert({
+      name: parsed.data.name,
+      slug: parsed.data.slug,
+      category: parsed.data.category,
+      description: parsed.data.description || null,
+      logo_url: parsed.data.logoUrl || null,
+      created_by: viewer.userId,
+      updated_by: viewer.userId,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (error || !data?.id) {
+    redirectToAdminOrganizers({
+      error:
+        sanitizeUserFacingErrorMessage(
+          error?.message,
+          "Organizatorul nu a putut fi creat.",
+        ) ?? "Organizatorul nu a putut fi creat.",
+    });
+  }
+
+  await logAudit(viewer.userId, "create_organizer", "organizers", data.id, parsed.data);
+  revalidatePath("/admin/organizatori");
+  revalidatePath("/admin/stadion");
+  redirectToAdminOrganizers({
+    notice: `Organizatorul ${parsed.data.name} a fost creat.`,
+  });
+}
+
+export async function updateOrganizerAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = organizerUpdateSchema.safeParse({
+    organizerId: formData.get("organizerId"),
+    name: formData.get("name"),
+    slug: formData.get("slug"),
+    category: formData.get("category") || "club",
+    description: formData.get("description") || "",
+    logoUrl: formData.get("logoUrl") || "",
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    redirectToAdminOrganizers({
+      error: "Datele organizatorului nu sunt valide.",
+    });
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    redirectToAdminOrganizers({
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
+
+  const { error } = await supabase
+    .from("organizers")
+    .update({
+      name: parsed.data.name,
+      slug: parsed.data.slug,
+      category: parsed.data.category,
+      description: parsed.data.description || null,
+      logo_url: parsed.data.logoUrl || null,
+      updated_by: viewer.userId,
+    })
+    .eq("id", parsed.data.organizerId);
+
+  if (error) {
+    redirectToAdminOrganizers({
+      error:
+        sanitizeUserFacingErrorMessage(
+          error.message,
+          "Organizatorul nu a putut fi actualizat.",
+        ) ?? "Organizatorul nu a putut fi actualizat.",
+    });
+  }
+
+  await logAudit(
+    viewer.userId,
+    "update_organizer",
+    "organizers",
+    parsed.data.organizerId,
+    parsed.data,
+  );
+  revalidatePath("/admin/organizatori");
+  revalidatePath("/admin/stadion");
+  redirectToAdminOrganizers({
+    notice: `Organizatorul ${parsed.data.name} a fost actualizat.`,
+  });
 }
 
 function normalizeMatchDateTime(
@@ -726,6 +907,7 @@ export async function createStadiumAction(formData: FormData) {
     name: formData.get("name"),
     slug: formData.get("slug"),
     city: formData.get("city"),
+    organizerId: formData.get("organizerId") || "",
   });
 
   if (!parsed.success || !isSupabaseConfigured()) {
@@ -735,17 +917,32 @@ export async function createStadiumAction(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) return;
 
-  const { data } = await supabase
+  const baseLocationPayload = {
+    name: parsed.data.name,
+    slug: parsed.data.slug,
+    city: parsed.data.city,
+    club_name: "Organizator",
+    created_by: viewer.userId,
+  };
+
+  let insertResult = await supabase
     .from("stadiums")
     .insert({
-      name: parsed.data.name,
-      slug: parsed.data.slug,
-      city: parsed.data.city,
-      club_name: "Organizator",
-      created_by: viewer.userId,
+      ...baseLocationPayload,
+      organizer_id: parsed.data.organizerId || null,
     })
     .select("id")
     .maybeSingle();
+
+  if (insertResult.error && isOptionalSchemaError(insertResult.error)) {
+    insertResult = await supabase
+      .from("stadiums")
+      .insert(baseLocationPayload)
+      .select("id")
+      .maybeSingle();
+  }
+
+  const { data } = insertResult;
 
   if (data?.id) {
     await logAudit(viewer.userId, "create_stadium", "stadiums", data.id, parsed.data);
@@ -873,6 +1070,7 @@ export async function updateStadiumAction(formData: FormData) {
     name: formData.get("name"),
     slug: formData.get("slug"),
     city: formData.get("city"),
+    organizerId: formData.get("organizerId") || "",
   });
 
   if (!parsed.success || !isSupabaseConfigured()) {
@@ -882,14 +1080,26 @@ export async function updateStadiumAction(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) return;
 
-  await supabase
+  let updateResult = await supabase
     .from("stadiums")
     .update({
       name: parsed.data.name,
       slug: parsed.data.slug,
       city: parsed.data.city,
+      organizer_id: parsed.data.organizerId || null,
     })
     .eq("id", parsed.data.stadiumId);
+
+  if (updateResult.error && isOptionalSchemaError(updateResult.error)) {
+    updateResult = await supabase
+      .from("stadiums")
+      .update({
+        name: parsed.data.name,
+        slug: parsed.data.slug,
+        city: parsed.data.city,
+      })
+      .eq("id", parsed.data.stadiumId);
+  }
 
   await logAudit(viewer.userId, "update_stadium", "stadiums", parsed.data.stadiumId, parsed.data);
 
@@ -1558,6 +1768,8 @@ export async function createMatchAction(formData: FormData) {
     });
   }
 
+  const organizerId = await getLocationOrganizerId(supabase, parsed.data.stadiumId);
+
   try {
     await persistTeamsCatalog(supabase, viewer.userId, [
       parsed.data.homeTeam,
@@ -1570,24 +1782,39 @@ export async function createMatchAction(formData: FormData) {
     });
   }
 
-  const { data, error: insertError } = await supabase
+  const baseMatchPayload = {
+    stadium_id: parsed.data.stadiumId,
+    title: parsed.data.title,
+    slug: parsed.data.slug,
+    competition_name: parsed.data.competitionName,
+    opponent_name: parsed.data.awayTeam,
+    starts_at: startsAtResult.value,
+    poster_url: parsed.data.posterUrl || null,
+    banner_url: parsed.data.bannerUrl || null,
+    status: parsed.data.status,
+    scanner_enabled: parsed.data.scannerEnabled,
+    created_by: viewer.userId,
+    updated_by: viewer.userId,
+  };
+
+  let insertMatchResult = await supabase
     .from("matches")
     .insert({
-      stadium_id: parsed.data.stadiumId,
-      title: parsed.data.title,
-      slug: parsed.data.slug,
-      competition_name: parsed.data.competitionName,
-      opponent_name: parsed.data.awayTeam,
-      starts_at: startsAtResult.value,
-      poster_url: parsed.data.posterUrl || null,
-      banner_url: parsed.data.bannerUrl || null,
-      status: parsed.data.status,
-      scanner_enabled: parsed.data.scannerEnabled,
-      created_by: viewer.userId,
-      updated_by: viewer.userId,
+      ...baseMatchPayload,
+      organizer_id: organizerId,
     })
     .select("id")
     .maybeSingle();
+
+  if (insertMatchResult.error && isOptionalSchemaError(insertMatchResult.error)) {
+    insertMatchResult = await supabase
+      .from("matches")
+      .insert(baseMatchPayload)
+      .select("id")
+      .maybeSingle();
+  }
+
+  const { data, error: insertError } = insertMatchResult;
 
   if (insertError || !data?.id) {
     console.error("Nu am putut crea meciul.", insertError);
@@ -2020,6 +2247,8 @@ export async function updateMatchAction(formData: FormData) {
     });
   }
 
+  const organizerId = await getLocationOrganizerId(supabase, parsed.data.stadiumId);
+
   try {
     await persistTeamsCatalog(supabase, viewer.userId, [
       parsed.data.homeTeam,
@@ -2032,10 +2261,11 @@ export async function updateMatchAction(formData: FormData) {
     });
   }
 
-  const { error: updateError } = await supabase
+  let updateMatchResult = await supabase
     .from("matches")
     .update({
       stadium_id: parsed.data.stadiumId,
+      organizer_id: organizerId,
       title: parsed.data.title,
       slug: parsed.data.slug,
       competition_name: parsed.data.competitionName,
@@ -2048,6 +2278,27 @@ export async function updateMatchAction(formData: FormData) {
       updated_by: viewer.userId,
     })
     .eq("id", parsed.data.matchId);
+
+  if (updateMatchResult.error && isOptionalSchemaError(updateMatchResult.error)) {
+    updateMatchResult = await supabase
+      .from("matches")
+      .update({
+        stadium_id: parsed.data.stadiumId,
+        title: parsed.data.title,
+        slug: parsed.data.slug,
+        competition_name: parsed.data.competitionName,
+        opponent_name: parsed.data.awayTeam,
+        starts_at: startsAtResult.value,
+        poster_url: parsed.data.posterUrl || null,
+        banner_url: parsed.data.bannerUrl || null,
+        status: parsed.data.status,
+        scanner_enabled: parsed.data.scannerEnabled,
+        updated_by: viewer.userId,
+      })
+      .eq("id", parsed.data.matchId);
+  }
+
+  const { error: updateError } = updateMatchResult;
 
   if (updateError) {
     console.error("Nu am putut actualiza meciul.", updateError);
@@ -2757,6 +3008,112 @@ export async function assignRoleAction(formData: FormData) {
   await logAudit(viewer.userId, "assign_role", "user_roles", parsed.data.userId, parsed.data);
 
   revalidatePath("/admin/utilizatori");
+}
+
+export async function saveUserAccessScopeAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+
+  if (!viewer.roles.includes("superadmin")) {
+    redirectToAdminUsers({
+      error: "Doar superadmin poate gestiona scope-urile operationale.",
+    });
+  }
+
+  const parsed = userAccessScopeSchema.safeParse({
+    userId: formData.get("userId"),
+    role: formData.get("role"),
+    organizerId: formData.get("organizerId") || "",
+    locationId: formData.get("locationId") || "",
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    redirectToAdminUsers({
+      error: "Scope-ul operational nu este valid.",
+    });
+  }
+
+  if (!parsed.data.organizerId && !parsed.data.locationId) {
+    redirectToAdminUsers({
+      error: "Selecteaza cel putin un organizator sau o locatie pentru acest scope.",
+    });
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    redirectToAdminUsers({
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
+
+  const { error } = await supabase.from("user_access_scopes").insert({
+    user_id: parsed.data.userId,
+    role: parsed.data.role,
+    organizer_id: parsed.data.organizerId || null,
+    stadium_id: parsed.data.locationId || null,
+    created_by: viewer.userId,
+  });
+
+  if (error) {
+    redirectToAdminUsers({
+      error:
+        sanitizeUserFacingErrorMessage(
+          error.message,
+          "Scope-ul operational nu a putut fi salvat.",
+        ) ?? "Scope-ul operational nu a putut fi salvat.",
+    });
+  }
+
+  await logAudit(viewer.userId, "save_user_access_scope", "user_access_scopes", parsed.data.userId, parsed.data);
+  revalidatePath("/admin/utilizatori");
+  redirectToAdminUsers({
+    notice: "Scope-ul operational a fost salvat.",
+  });
+}
+
+export async function removeUserAccessScopeAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+
+  if (!viewer.roles.includes("superadmin")) {
+    redirectToAdminUsers({
+      error: "Doar superadmin poate sterge scope-urile operationale.",
+    });
+  }
+
+  const scopeId = String(formData.get("scopeId") ?? "").trim();
+  const userId = String(formData.get("userId") ?? "").trim();
+
+  if (!scopeId || !isSupabaseConfigured()) {
+    redirectToAdminUsers({
+      error: "Scope-ul selectat nu este valid.",
+    });
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    redirectToAdminUsers({
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
+
+  const { error } = await supabase.from("user_access_scopes").delete().eq("id", scopeId);
+
+  if (error) {
+    redirectToAdminUsers({
+      error:
+        sanitizeUserFacingErrorMessage(
+          error.message,
+          "Scope-ul operational nu a putut fi sters.",
+        ) ?? "Scope-ul operational nu a putut fi sters.",
+    });
+  }
+
+  await logAudit(viewer.userId, "remove_user_access_scope", "user_access_scopes", scopeId, {
+    userId,
+  });
+  revalidatePath("/admin/utilizatori");
+  redirectToAdminUsers({
+    notice: "Scope-ul operational a fost sters.",
+  });
 }
 
 export async function setReservationAccessAction(formData: FormData) {

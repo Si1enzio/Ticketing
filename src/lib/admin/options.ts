@@ -1,6 +1,12 @@
 import { roleLabels, type AppRole } from "@/lib/auth/roles";
 
-export const assignableRoles: AppRole[] = ["user", "steward", "admin", "superadmin"];
+export const assignableRoles: AppRole[] = [
+  "user",
+  "steward",
+  "organizer_admin",
+  "admin",
+  "superadmin",
+];
 
 export const restrictionTypeOptions = [
   { value: "warning", label: "Avertisment" },

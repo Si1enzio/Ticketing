@@ -81,7 +81,7 @@ export default async function MatchDetailPage({
               />
               <InfoRow
                 icon={MapPin}
-                label="Stadion"
+                label="Locatie"
                 value={`${match.stadiumName}, ${match.city}`}
               />
               <InfoRow
@@ -158,7 +158,7 @@ export default async function MatchDetailPage({
             Disponibilitate pe sectoare
           </p>
           <h2 className="mt-2 font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
-            Structura stadionului
+            Structura locatiei
           </h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

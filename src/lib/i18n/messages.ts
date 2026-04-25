@@ -99,12 +99,23 @@ export const messages = {
         password: "Parola",
         fullName: "Nume complet",
         phone: "Telefon",
+        contactEmail: "Email de contact",
         locality: "Localitate",
+        district: "Raion / judet",
+        birthDate: "Data nasterii",
+        gender: "Sex",
+        preferredLanguage: "Limba preferata",
         marketingConsent: "Sunt de acord sa primesc informari si oferte de marketing.",
         smsConsent: "Sunt de acord sa primesc SMS-uri despre acces, update-uri si evenimente relevante.",
       },
+      fieldOptions: {
+        unspecified: "Nespecificat",
+        male: "Masculin",
+        female: "Feminin",
+        other: "Altul",
+      },
       signupHelp:
-        "La creare cont cerem nume, email si telefon pentru emitere, suport si comunicare operationala. Consimtamantele pentru marketing si SMS sunt optionale.",
+        "La creare cont cerem nume, email si telefon. Restul campurilor CRM sunt optionale si ajuta la segmentare, suport si comunicare relevanta.",
       actions: {
         signin: "Autentificare",
         signup: "Creeaza cont",
@@ -115,6 +126,7 @@ export const messages = {
         password: "Parola trebuie sa aiba minimum 6 caractere.",
         fullName: "Introdu numele complet.",
         phone: "Introdu un numar de telefon valid.",
+        birthDate: "Introdu o data a nasterii valida.",
         invalidData: "Date invalide.",
       },
       toasts: {

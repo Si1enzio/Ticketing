@@ -182,7 +182,7 @@ export default async function TicketPage({
                     locale: ro,
                   })}
                 />
-                <Info title="Stadion" value={ticket.stadiumName} />
+                <Info title="Locatie" value={ticket.stadiumName} />
                 <Info title="Sector" value={ticket.sectorName} />
                 <Info title="Pozitie loc" value={formatSeatPosition(ticket)} />
                 <Info title="Poarta" value={ticket.gateName ?? "Nealocata"} />

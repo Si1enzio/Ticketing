@@ -7,6 +7,8 @@ import { ChevronDownIcon } from "lucide-react";
 import {
   assignRoleAction,
   createUserBlockAction,
+  removeUserAccessScopeAction,
+  saveUserAccessScopeAction,
   setReservationAccessAction,
 } from "@/lib/actions/admin";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,19 @@ type AdminUserCardProps = {
   roleOptions: Option[];
   restrictionTypeOptions: Option[];
   restrictionReasonOptions: Option[];
+  scopeOptions: {
+    organizers: Array<{ id: string; name: string }>;
+    locations: Array<{ id: string; name: string; organizerId: string | null }>;
+  };
+  accessScopes: Array<{
+    id: string;
+    role: string;
+    organizerId: string | null;
+    organizerName: string | null;
+    locationId: string | null;
+    locationName: string | null;
+  }>;
+  canManageScopes: boolean;
 };
 
 export function AdminUserCard({
@@ -31,6 +46,9 @@ export function AdminUserCard({
   roleOptions,
   restrictionTypeOptions,
   restrictionReasonOptions,
+  scopeOptions,
+  accessScopes,
+  canManageScopes,
 }: AdminUserCardProps) {
   const displayName = user.fullName ?? "Utilizator fara nume";
   const email = user.email ?? "Fara email";
@@ -164,6 +182,94 @@ export function AdminUserCard({
               Salveaza rolul
             </Button>
           </form>
+
+          {canManageScopes ? (
+            <div className="grid gap-3 rounded-[26px] border border-black/6 bg-neutral-50 p-4">
+              <div>
+                <Label>Scope operational</Label>
+                <p className="mt-1 text-sm leading-6 text-neutral-600">
+                  Leaga stewardii si adminii de organizator doar de organizatorul sau locatia pe care o gestioneaza.
+                </p>
+              </div>
+
+              {accessScopes.length ? (
+                <div className="grid gap-2">
+                  {accessScopes.map((scope) => (
+                    <form
+                      key={scope.id}
+                      action={removeUserAccessScopeAction}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-black/6 bg-white px-4 py-3"
+                    >
+                      <input type="hidden" name="scopeId" value={scope.id} />
+                      <input type="hidden" name="userId" value={user.userId} />
+                      <div className="text-sm text-[#111111]">
+                        <p className="font-semibold">
+                          {scope.role === "organizer_admin" ? "Admin organizator" : "Steward"}
+                        </p>
+                        <p className="text-neutral-500">
+                          {scope.organizerName ? `Organizator: ${scope.organizerName}` : "Fara organizator"}{" "}
+                          · {scope.locationName ? `Locatie: ${scope.locationName}` : "Toate locatiile din scope"}
+                        </p>
+                      </div>
+                      <Button
+                        type="submit"
+                        variant="outline"
+                        className="rounded-full border-[#dc2626]/18 bg-white text-[#b91c1c] hover:bg-[#fef2f2]"
+                      >
+                        Sterge
+                      </Button>
+                    </form>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-neutral-500">Nu exista inca scope-uri operationale atribuite.</p>
+              )}
+
+              <form action={saveUserAccessScopeAction} className="grid gap-3 rounded-[20px] border border-dashed border-black/10 bg-white p-4">
+                <input type="hidden" name="userId" value={user.userId} />
+                <SelectField
+                  name={`scope-role-${user.userId}`}
+                  htmlName="role"
+                  label="Rol operational"
+                  defaultValue={user.roles.includes("organizer_admin") ? "organizer_admin" : "steward"}
+                  options={[
+                    { value: "steward", label: "Steward" },
+                    { value: "organizer_admin", label: "Admin organizator" },
+                  ]}
+                />
+                <SelectField
+                  name={`scope-organizer-${user.userId}`}
+                  htmlName="organizerId"
+                  label="Organizator"
+                  defaultValue=""
+                  options={scopeOptions.organizers.map((item) => ({
+                    value: item.id,
+                    label: item.name,
+                  }))}
+                  allowEmpty
+                  emptyLabel="Orice organizator / nespecificat"
+                />
+                <SelectField
+                  name={`scope-location-${user.userId}`}
+                  htmlName="locationId"
+                  label="Locatie"
+                  defaultValue=""
+                  options={scopeOptions.locations.map((item) => ({
+                    value: item.id,
+                    label: item.name,
+                  }))}
+                  allowEmpty
+                  emptyLabel="Toate locatiile din scope"
+                />
+                <Button
+                  type="submit"
+                  className="rounded-full border border-[#111111] bg-[#111111] text-white hover:bg-black"
+                >
+                  Adauga scope
+                </Button>
+              </form>
+            </div>
+          ) : null}
         </div>
 
         <form
@@ -225,12 +331,16 @@ function SelectField({
   label,
   defaultValue,
   options,
+  allowEmpty = false,
+  emptyLabel = "Selecteaza",
 }: {
   name: string;
   htmlName?: string;
   label: string;
   defaultValue?: string;
   options: Option[];
+  allowEmpty?: boolean;
+  emptyLabel?: string;
 }) {
   return (
     <div className="grid gap-2">
@@ -241,6 +351,7 @@ function SelectField({
         defaultValue={defaultValue}
         className="h-10 rounded-2xl border border-black/8 bg-white px-3 text-sm text-[#111111] outline-none focus:border-[#dc2626]"
       >
+        {allowEmpty ? <option value="">{emptyLabel}</option> : null}
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}

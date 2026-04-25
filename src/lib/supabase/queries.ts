@@ -1,6 +1,6 @@
 import "server-only";
 
-import { hasMinimumRole, normalizeRoles } from "@/lib/auth/roles";
+import { hasAnyRole, normalizeRoles } from "@/lib/auth/roles";
 import {
   adminMatchOverviewSchema,
   adminUserOverviewSchema,
@@ -42,6 +42,17 @@ import {
   createSupabaseServerClient,
 } from "@/lib/supabase/server";
 
+function isOptionalSchemaError(error: { code?: string | null; message?: string | null } | null | undefined) {
+  const code = error?.code ?? "";
+  const message = (error?.message ?? "").toLowerCase();
+  return (
+    code === "42703" ||
+    code === "42P01" ||
+    message.includes("column") ||
+    message.includes("relation")
+  );
+}
+
 function enrichViewer(
   base: Omit<ViewerContext, "isAdmin" | "isAuthenticated" | "isPrivileged">,
 ): ViewerContext {
@@ -51,9 +62,41 @@ function enrichViewer(
     ...base,
     roles,
     isAuthenticated: Boolean(base.userId),
-    isPrivileged: hasMinimumRole(roles, "admin"),
-    isAdmin: hasMinimumRole(roles, "admin"),
+    isPrivileged: hasAnyRole(roles, ["organizer_admin", "admin", "superadmin"]),
+    isAdmin: hasAnyRole(roles, ["organizer_admin", "admin", "superadmin"]),
   };
+}
+
+function hasScopedOperationsAccess(viewer: ViewerContext) {
+  return hasAnyRole(viewer.roles, ["steward", "organizer_admin"]);
+}
+
+function isGlobalAdmin(viewer: ViewerContext) {
+  return hasAnyRole(viewer.roles, ["admin", "superadmin"]);
+}
+
+function canAccessLocation(
+  viewer: ViewerContext,
+  locationId: string | null | undefined,
+  organizerId: string | null | undefined,
+) {
+  if (!locationId) {
+    return false;
+  }
+
+  if (isGlobalAdmin(viewer)) {
+    return true;
+  }
+
+  if (!hasScopedOperationsAccess(viewer)) {
+    return false;
+  }
+
+  if (viewer.locationIds.includes(locationId)) {
+    return true;
+  }
+
+  return Boolean(organizerId && viewer.organizerIds.includes(organizerId));
 }
 
 export async function getViewerContext(): Promise<ViewerContext> {
@@ -90,7 +133,8 @@ export async function getViewerContext(): Promise<ViewerContext> {
       return mockViewer;
     }
 
-    const [{ data: profile }, { data: roles }, { data: block }] = await Promise.all([
+    const [{ data: profile }, { data: roles }, { data: block }, { data: scopes }] =
+      await Promise.all([
       supabase
         .from("profiles")
         .select("full_name, can_reserve")
@@ -105,13 +149,21 @@ export async function getViewerContext(): Promise<ViewerContext> {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
-    ]);
+        supabase
+          .from("user_access_scopes")
+          .select("organizer_id, stadium_id")
+          .eq("user_id", resolvedUser.id),
+      ]);
 
     const profileRecord = profile as {
       full_name?: string | null;
       can_reserve?: boolean | null;
     } | null;
     const roleRows = (roles ?? []) as Array<{ role: string }>;
+    const scopeRows = (scopes ?? []) as Array<{
+      organizer_id?: string | null;
+      stadium_id?: string | null;
+    }>;
     const activeBlock = block as { ends_at?: string | null; reason?: string | null } | null;
 
     return enrichViewer({
@@ -120,6 +172,20 @@ export async function getViewerContext(): Promise<ViewerContext> {
       fullName: profileRecord?.full_name ?? null,
       canReserve: Boolean(profileRecord?.can_reserve),
       roles: normalizeRoles(roleRows.map((item) => item.role)),
+      organizerIds: Array.from(
+        new Set(
+          scopeRows
+            .map((item) => item.organizer_id)
+            .filter((value): value is string => Boolean(value)),
+        ),
+      ),
+      locationIds: Array.from(
+        new Set(
+          scopeRows
+            .map((item) => item.stadium_id)
+            .filter((value): value is string => Boolean(value)),
+        ),
+      ),
       reservationBlockedUntil: activeBlock?.ends_at ?? null,
       reservationBlockReason: activeBlock?.reason ?? null,
     });
@@ -171,6 +237,7 @@ export async function getViewerProfileDetails(
   }
 
   try {
+    const viewer = await getViewerContext();
     const supabase = await createSupabaseServerClient();
 
     if (!supabase) {
@@ -670,6 +737,7 @@ export async function getAdminMatchOverview(): Promise<AdminMatchOverview[]> {
   }
 
   try {
+    const viewer = await getViewerContext();
     const supabase = await createSupabaseServerClient();
 
     if (!supabase) {
@@ -691,7 +759,7 @@ export async function getAdminMatchOverview(): Promise<AdminMatchOverview[]> {
       return mockAdminMatches;
     }
 
-    return rows.map((item) =>
+    const parsedRows = rows.map((item) =>
       adminMatchOverviewSchema.parse({
         id: item.id,
         stadiumId: item.stadium_id,
@@ -716,6 +784,31 @@ export async function getAdminMatchOverview(): Promise<AdminMatchOverview[]> {
         ticketPriceCents: item.ticket_price_cents,
         currency: item.currency,
       }),
+    );
+
+    if (isGlobalAdmin(viewer) || !hasScopedOperationsAccess(viewer)) {
+      return parsedRows;
+    }
+
+    const matchIds = parsedRows.map((item) => item.id);
+    const { data: scopedMatches, error: scopedMatchesError } = await supabase
+      .from("matches")
+      .select("id, stadium_id, organizer_id")
+      .in("id", matchIds);
+
+    if (scopedMatchesError && !isOptionalSchemaError(scopedMatchesError)) {
+      throw scopedMatchesError;
+    }
+
+    const organizerIdByMatch = new Map(
+      ((scopedMatches ?? []) as Array<{
+        id: string;
+        organizer_id?: string | null;
+      }>).map((item) => [item.id, item.organizer_id ?? null]),
+    );
+
+    return parsedRows.filter((item) =>
+      canAccessLocation(viewer, item.stadiumId, organizerIdByMatch.get(item.id) ?? null),
     );
   } catch (error) {
     console.error("Nu am putut încărca dashboard-ul admin.", error);
@@ -859,6 +952,186 @@ export async function getAdminUsersOverview(): Promise<AdminUserOverview[]> {
   }
 }
 
+export async function getOrganizerOptions(): Promise<
+  Array<{
+    id: string;
+    name: string;
+    slug: string;
+    category: string;
+    description: string | null;
+    logoUrl: string | null;
+  }>
+> {
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
+
+  try {
+    const viewer = await getViewerContext();
+    const supabase = await createSupabaseServerClient();
+
+    if (!supabase) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from("organizers")
+      .select("id, name, slug, category, description, logo_url")
+      .order("name");
+
+    if (error) {
+      throw error;
+    }
+
+    const rows = ((data ?? []) as Array<Record<string, unknown>>).map((item) => ({
+      id: String(item.id),
+      name: String(item.name),
+      slug: String(item.slug),
+      category: String(item.category ?? "club"),
+      description: item.description ? String(item.description) : null,
+      logoUrl: item.logo_url ? String(item.logo_url) : null,
+    }));
+
+    if (isGlobalAdmin(viewer) || !hasScopedOperationsAccess(viewer)) {
+      return rows;
+    }
+
+    return rows.filter((item) => viewer.organizerIds.includes(item.id));
+  } catch (error) {
+    console.error("Nu am putut incarca lista de organizatori.", error);
+    return [];
+  }
+}
+
+export async function getUserAccessScopeCatalog(): Promise<{
+  organizers: Array<{ id: string; name: string }>;
+  locations: Array<{ id: string; name: string; organizerId: string | null }>;
+}> {
+  if (!isSupabaseConfigured()) {
+    return {
+      organizers: [],
+      locations: [],
+    };
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    if (!supabase) {
+      return {
+        organizers: [],
+        locations: [],
+      };
+    }
+
+    const [{ data: organizers, error: organizerError }, { data: locations, error: locationError }] =
+      await Promise.all([
+        supabase.from("organizers").select("id, name").order("name"),
+        supabase.from("stadiums").select("id, name, organizer_id").order("name"),
+      ]);
+
+    if (organizerError || locationError) {
+      throw organizerError ?? locationError;
+    }
+
+    return {
+      organizers: ((organizers ?? []) as Array<Record<string, unknown>>).map((item) => ({
+        id: String(item.id),
+        name: String(item.name),
+      })),
+      locations: ((locations ?? []) as Array<Record<string, unknown>>).map((item) => ({
+        id: String(item.id),
+        name: String(item.name),
+        organizerId: item.organizer_id ? String(item.organizer_id) : null,
+      })),
+    };
+  } catch (error) {
+    console.error("Nu am putut incarca catalogul de scope-uri.", error);
+    return {
+      organizers: [],
+      locations: [],
+    };
+  }
+}
+
+export async function getUserAccessScopesByUser(): Promise<
+  Record<
+    string,
+    Array<{
+      id: string;
+      role: string;
+      organizerId: string | null;
+      organizerName: string | null;
+      locationId: string | null;
+      locationName: string | null;
+    }>
+  >
+> {
+  if (!isSupabaseConfigured()) {
+    return {};
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    if (!supabase) {
+      return {};
+    }
+
+    const { data, error } = await supabase
+      .from("user_access_scopes")
+      .select(
+        "id, user_id, role, organizer_id, stadium_id, organizers:organizer_id(name), stadiums:stadium_id(name)",
+      )
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return ((data ?? []) as Array<Record<string, unknown>>).reduce<
+      Record<
+        string,
+        Array<{
+          id: string;
+          role: string;
+          organizerId: string | null;
+          organizerName: string | null;
+          locationId: string | null;
+          locationName: string | null;
+        }>
+      >
+    >((acc, item) => {
+      const userId = String(item.user_id ?? "");
+
+      if (!userId) {
+        return acc;
+      }
+
+      if (!acc[userId]) {
+        acc[userId] = [];
+      }
+
+      const organizerRelation = item.organizers as { name?: string | null } | null;
+      const locationRelation = item.stadiums as { name?: string | null } | null;
+
+      acc[userId].push({
+        id: String(item.id),
+        role: String(item.role),
+        organizerId: item.organizer_id ? String(item.organizer_id) : null,
+        organizerName: organizerRelation?.name ?? null,
+        locationId: item.stadium_id ? String(item.stadium_id) : null,
+        locationName: locationRelation?.name ?? null,
+      });
+
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error("Nu am putut incarca scope-urile utilizatorilor.", error);
+    return {};
+  }
+}
+
 export async function getTeamCatalog(): Promise<TeamOption[]> {
   const fallbackNames = Array.from(
     new Set(
@@ -978,6 +1251,8 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
         name: "Stadionul Municipal „Orhei”",
         slug: "stadionul-municipal-orhei",
         city: "Orhei",
+        organizerId: null,
+        organizerName: null,
         stands: [
           {
             id: "demo-stand-west",
@@ -1089,57 +1364,76 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
   }
 
   try {
+    const viewer = await getViewerContext();
     const supabase = await createSupabaseServerClient();
 
     if (!supabase) {
       return [];
     }
 
+    const stadiumResultWithOrganizer = await supabase
+      .from("stadiums")
+      .select("id, name, slug, city, organizer_id")
+      .order("name");
+
+    const stadiumResult =
+      stadiumResultWithOrganizer.error && isOptionalSchemaError(stadiumResultWithOrganizer.error)
+        ? await supabase.from("stadiums").select("id, name, slug, city").order("name")
+        : stadiumResultWithOrganizer;
+
     const [
-      { data: stadiums, error: stadiumError },
       { data: stands, error: standError },
       { data: gates, error: gateError },
       { data: sponsors, error: sponsorError },
       { data: sectors, error: sectorError },
       { data: seats, error: seatError },
-    ] =
-      await Promise.all([
-        supabase.from("stadiums").select("id, name, slug, city").order("name"),
-        supabase
-          .from("stadium_stands")
-          .select("id, stadium_id, name, code, color")
-          .order("sort_order"),
-        supabase
-          .from("gates")
-          .select("id, stadium_id, name, code, description, sort_order, is_active")
-          .order("sort_order")
-          .order("name"),
-        supabase
-          .from("stadium_sponsors")
-          .select("id, stadium_id, name, logo_url, website_url, sort_order")
-          .order("sort_order")
-          .order("name"),
-        supabase
-          .from("stadium_sectors")
-          .select("id, stadium_id, stand_id, gate_id, name, code, color, rows_count, seats_per_row")
-          .order("sort_order"),
-        supabase
-          .from("seats")
-          .select("id, sector_id, row_label, seat_number, seat_label, is_disabled, is_obstructed, is_internal_only")
-          .order("row_label")
-          .order("seat_number"),
-      ]);
+      { data: organizers, error: organizerError },
+    ] = await Promise.all([
+      supabase
+        .from("stadium_stands")
+        .select("id, stadium_id, name, code, color")
+        .order("sort_order"),
+      supabase
+        .from("gates")
+        .select("id, stadium_id, name, code, description, sort_order, is_active")
+        .order("sort_order")
+        .order("name"),
+      supabase
+        .from("stadium_sponsors")
+        .select("id, stadium_id, name, logo_url, website_url, sort_order")
+        .order("sort_order")
+        .order("name"),
+      supabase
+        .from("stadium_sectors")
+        .select("id, stadium_id, stand_id, gate_id, name, code, color, rows_count, seats_per_row")
+        .order("sort_order"),
+      supabase
+        .from("seats")
+        .select("id, sector_id, row_label, seat_number, seat_label, is_disabled, is_obstructed, is_internal_only")
+        .order("row_label")
+        .order("seat_number"),
+      supabase.from("organizers").select("id, name"),
+    ]);
+
+    const stadiumError = stadiumResult.error;
 
     if (stadiumError || standError || gateError || sponsorError || sectorError || seatError) {
       throw stadiumError ?? standError ?? gateError ?? sponsorError ?? sectorError ?? seatError;
     }
 
-    const stadiumRows = (stadiums ?? []) as Record<string, unknown>[];
+    const stadiumRows = (stadiumResult.data ?? []) as Record<string, unknown>[];
     const standRows = (stands ?? []) as Record<string, unknown>[];
     const gateRows = (gates ?? []) as Record<string, unknown>[];
     const sponsorRows = (sponsors ?? []) as Record<string, unknown>[];
     const sectorRows = (sectors ?? []) as Record<string, unknown>[];
     const seatRows = (seats ?? []) as Record<string, unknown>[];
+    const organizerRows =
+      organizerError && isOptionalSchemaError(organizerError)
+        ? []
+        : ((organizers ?? []) as Record<string, unknown>[]);
+    const organizerNameById = new Map(
+      organizerRows.map((item) => [String(item.id), String(item.name)]),
+    );
 
     const seatsBySector = seatRows.reduce<Record<string, Record<string, unknown>[]>>(
       (acc, seat) => {
@@ -1206,14 +1500,17 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
       {},
     );
 
-    return stadiumRows.map((stadium) => {
+    const parsedRows = stadiumRows.map((stadium) => {
       const stadiumId = String(stadium.id);
+      const organizerId = stadium.organizer_id ? String(stadium.organizer_id) : null;
 
       return {
         id: stadiumId,
         name: String(stadium.name),
         slug: String(stadium.slug),
         city: String(stadium.city),
+        organizerId,
+        organizerName: organizerId ? organizerNameById.get(organizerId) ?? null : null,
         stands: (standsByStadium[stadiumId] ?? []).map((stand) => ({
           id: String(stand.id),
           stadiumId,
@@ -1277,6 +1574,14 @@ export async function getStadiumBuilderData(): Promise<StadiumBuilder[]> {
         ),
       };
     });
+
+    if (isGlobalAdmin(viewer) || !hasScopedOperationsAccess(viewer)) {
+      return parsedRows;
+    }
+
+    return parsedRows.filter((item) =>
+      canAccessLocation(viewer, item.id, item.organizerId),
+    );
   } catch (error) {
     console.error("Nu am putut încărca builder-ul stadionului.", error);
     return [];

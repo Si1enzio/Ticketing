@@ -91,7 +91,7 @@ export default async function AdminMatchesPage({
           >
             <SelectField
               name="stadiumId"
-              label="Stadion"
+              label="Locatie"
               options={stadiumOptions}
               defaultValue={defaultStadium?.id}
             />

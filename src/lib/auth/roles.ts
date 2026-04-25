@@ -2,6 +2,7 @@ export const roleValues = [
   "guest",
   "user",
   "steward",
+  "organizer_admin",
   "admin",
   "superadmin",
 ] as const;
@@ -12,6 +13,7 @@ export const roleLabels: Record<AppRole, string> = {
   guest: "Vizitator",
   user: "Suporter",
   steward: "Steward",
+  organizer_admin: "Admin organizator",
   admin: "Administrator",
   superadmin: "Superadministrator",
 };
@@ -20,6 +22,7 @@ const rolePriority: Record<AppRole, number> = {
   guest: 0,
   user: 1,
   steward: 2,
+  organizer_admin: 3,
   admin: 3,
   superadmin: 4,
 };

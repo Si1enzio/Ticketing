@@ -13,7 +13,7 @@ export default async function ScannerPage() {
   const matches = await getScannerMatches();
   const { messages } = await getServerI18n();
 
-  if (!hasAnyRole(viewer.roles, ["steward", "admin", "superadmin"])) {
+  if (!hasAnyRole(viewer.roles, ["steward", "organizer_admin", "admin", "superadmin"])) {
     return (
       <section className="mx-auto flex w-full max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
         <Card className="surface-panel w-full rounded-[30px] border border-white/70 bg-white/94">
@@ -73,7 +73,7 @@ export default async function ScannerPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-[22px] border border-black/8 bg-neutral-50 px-4 py-3">
                     <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
-                      Stadion
+                      Locatie
                     </p>
                     <p className="mt-2 text-sm font-medium text-[#111111]">
                       {match.stadiumName}

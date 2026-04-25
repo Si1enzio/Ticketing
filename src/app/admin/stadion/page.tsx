@@ -12,7 +12,7 @@ import {
   updateStadiumAction,
   updateStandAction,
 } from "@/lib/actions/admin";
-import { getStadiumBuilderData } from "@/lib/supabase/queries";
+import { getOrganizerOptions, getStadiumBuilderData } from "@/lib/supabase/queries";
 import { StadiumAdminSectorCard } from "@/components/stadium/stadium-admin-sector-card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,10 @@ export default async function AdminStadiumPage({
 }) {
   await connection();
   const resolvedSearchParams = (await searchParams) ?? {};
-  const stadiums = await getStadiumBuilderData();
+  const [stadiums, organizers] = await Promise.all([
+    getStadiumBuilderData(),
+    getOrganizerOptions(),
+  ]);
   const defaultStadium = stadiums[0];
 
   return (
@@ -55,10 +58,10 @@ export default async function AdminStadiumPage({
 
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#b91c1c]">
-          Stadium builder
+          Builder locatii
         </p>
         <h1 className="mt-2 font-heading text-5xl uppercase tracking-[0.08em] text-[#111111]">
-          Tribune, sectoare, randuri si locuri
+          Locatii, tribune, sectoare si locuri
         </h1>
         <div className="mt-4">
           <Button
@@ -76,17 +79,27 @@ export default async function AdminStadiumPage({
           <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
           <CardContent className="space-y-4 p-6">
             <h2 className="font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
-              Adauga stadion
+              Adauga locatie
             </h2>
             <form action={createStadiumAction} className="grid gap-4">
-              <Field name="name" label="Nume stadion" />
+              <Field name="name" label="Nume locatie" />
               <Field name="slug" label="Slug" />
-              <Field name="city" label="Oras" />
+              <Field name="city" label="Localitate" />
+              <SelectField
+                name="organizerId"
+                label="Organizator / gazda"
+                allowEmpty
+                emptyLabel="Fara organizator selectat"
+                options={organizers.map((organizer) => ({
+                  value: organizer.id,
+                  label: organizer.name,
+                }))}
+              />
               <Button
                 type="submit"
                 className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
               >
-                Salveaza stadionul
+                Salveaza locatia
               </Button>
             </form>
           </CardContent>
@@ -101,7 +114,7 @@ export default async function AdminStadiumPage({
             <form action={createStandAction} className="grid gap-4">
               <SelectField
                 name="stadiumId"
-                label="Stadion"
+                label="Locatie"
                 options={stadiums.map((stadium) => ({
                   value: stadium.id,
                   label: stadium.name,
@@ -130,7 +143,7 @@ export default async function AdminStadiumPage({
             <form action={createSectorAction} className="grid gap-4">
               <SelectField
                 name="stadiumId"
-                label="Stadion"
+                label="Locatie"
                 options={stadiums.map((stadium) => ({
                   value: stadium.id,
                   label: stadium.name,
@@ -195,10 +208,15 @@ export default async function AdminStadiumPage({
                     {stadium.name}
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-neutral-600">
-                    Acum poti structura stadionul pe tribune, iar in interiorul lor pe
+                    Acum poti structura locatia pe tribune, iar in interiorul lor pe
                     sectoare. Fiecare sector isi pastreaza randurile si editorul complet de
                     locuri.
                   </p>
+                  {stadium.organizerName ? (
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.22em] text-neutral-500">
+                      Organizator: {stadium.organizerName}
+                    </p>
+                  ) : null}
                 </div>
 
                 <form action={updateStadiumAction} className="grid gap-4 md:grid-cols-3">
@@ -206,7 +224,7 @@ export default async function AdminStadiumPage({
                   <Field
                     name={`stadium-name-${stadium.id}`}
                     htmlName="name"
-                    label="Nume stadion"
+                    label="Nume locatie"
                     defaultValue={stadium.name}
                   />
                   <Field
@@ -218,15 +236,27 @@ export default async function AdminStadiumPage({
                   <Field
                     name={`stadium-city-${stadium.id}`}
                     htmlName="city"
-                    label="Oras"
+                    label="Localitate"
                     defaultValue={stadium.city}
+                  />
+                  <SelectField
+                    name={`stadium-organizer-${stadium.id}`}
+                    htmlName="organizerId"
+                    label="Organizator / gazda"
+                    allowEmpty
+                    emptyLabel="Fara organizator selectat"
+                    options={organizers.map((organizer) => ({
+                      value: organizer.id,
+                      label: organizer.name,
+                    }))}
+                    defaultValue={stadium.organizerId ?? undefined}
                   />
                   <div className="md:col-span-3">
                     <Button
                       type="submit"
                       className="rounded-full border border-[#111111] bg-[#111111] text-white hover:bg-black"
                     >
-                      Salveaza stadionul existent
+                      Salveaza locatia existenta
                     </Button>
                   </div>
                 </form>
@@ -344,7 +374,7 @@ export default async function AdminStadiumPage({
                   </div>
                 ) : (
                   <p className="text-sm text-neutral-500">
-                    Nu exista inca sponsori configurati pentru acest stadion.
+                    Nu exista inca sponsori configurati pentru aceasta locatie.
                   </p>
                 )}
               </div>
@@ -513,6 +543,7 @@ function Field({
 
 function SelectField({
   name,
+  htmlName,
   label,
   options,
   defaultValue,
@@ -520,6 +551,7 @@ function SelectField({
   emptyLabel = "Selecteaza",
 }: {
   name: string;
+  htmlName?: string;
   label: string;
   options: Array<{ value: string; label: string }>;
   defaultValue?: string;
@@ -531,7 +563,7 @@ function SelectField({
       <Label htmlFor={name}>{label}</Label>
       <select
         id={name}
-        name={name}
+        name={htmlName ?? name}
         defaultValue={defaultValue}
         className="h-10 rounded-2xl border border-black/8 bg-white px-3 text-sm text-[#111111] outline-none focus:border-[#dc2626]"
       >

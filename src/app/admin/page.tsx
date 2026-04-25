@@ -60,7 +60,7 @@ export default async function AdminDashboardPage() {
               />
               <QuickLink
                 href="/admin/stadion/harta"
-                label="Harta stadion"
+                label="Harta locatie"
                 description="Configureaza overview SVG reutilizabil"
               />
             </div>

@@ -44,14 +44,14 @@ export default async function AdminStadiumMapPage({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#b91c1c]">
-            Harta stadionului
+            Harta locatiei
           </p>
           <h1 className="mt-2 font-heading text-5xl uppercase tracking-[0.08em] text-[#111111]">
             Builder overview SVG
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-neutral-600">
-            Aici configurezi geometria overview map-ului reutilizabil pentru fiecare stadion.
-            Structura de locuri ramane in continuare administrata din zona Stadion.
+            Aici configurezi geometria overview map-ului reutilizabil pentru fiecare locatie.
+            Structura de locuri ramane in continuare administrata din zona Locatii.
           </p>
         </div>
 
@@ -60,7 +60,7 @@ export default async function AdminStadiumMapPage({
           variant="outline"
           className="rounded-full border-[#111111] bg-white text-[#111111] hover:bg-neutral-100"
         >
-          <Link href="/admin/stadion">Inapoi la Stadion</Link>
+          <Link href="/admin/stadion">Inapoi la Locatii</Link>
         </Button>
       </div>
 

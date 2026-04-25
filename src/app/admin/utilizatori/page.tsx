@@ -7,9 +7,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createManagedUserAction } from "@/lib/actions/admin";
+import { hasAnyRole } from "@/lib/auth/roles";
 import { restrictionReasonOptions, restrictionTypeOptions, roleOptions } from "@/lib/admin/options";
 import type { AdminUserOverview } from "@/lib/domain/types";
-import { getAdminUsersOverview, getViewerContext } from "@/lib/supabase/queries";
+import {
+  getAdminUsersOverview,
+  getUserAccessScopeCatalog,
+  getUserAccessScopesByUser,
+  getViewerContext,
+} from "@/lib/supabase/queries";
 
 const userSortOptions = [
   { value: "recent-registration", label: "Conturi noi" },
@@ -34,10 +40,27 @@ export default async function AdminUsersPage({
   await connection();
   const resolvedSearchParams = (await searchParams) ?? {};
   const sort = isUserSort(resolvedSearchParams.sort) ? resolvedSearchParams.sort : defaultSort;
-  const [viewer, usersOverview] = await Promise.all([
+  const [viewer, usersOverview, accessScopeCatalog, userAccessScopes] = await Promise.all([
     getViewerContext(),
     getAdminUsersOverview(),
+    getUserAccessScopeCatalog(),
+    getUserAccessScopesByUser(),
   ]);
+
+  if (!hasAnyRole(viewer.roles, ["admin", "superadmin"])) {
+    return (
+      <Alert
+        variant="destructive"
+        className="rounded-[22px] border-[#dc2626]/20 bg-[#fff1f2] text-[#991b1b]"
+      >
+        <AlertTitle>Acces limitat</AlertTitle>
+        <AlertDescription>
+          Gestionarea utilizatorilor este disponibila doar pentru admin si superadmin.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   const users = sortUsers(usersOverview, sort);
   const canCreateUsers = viewer.roles.includes("superadmin");
 
@@ -117,6 +140,9 @@ export default async function AdminUsersPage({
               value: item.value,
               label: item.label,
             }))}
+            scopeOptions={accessScopeCatalog}
+            accessScopes={userAccessScopes[user.userId] ?? []}
+            canManageScopes={viewer.roles.includes("superadmin")}
           />
         ))}
       </div>

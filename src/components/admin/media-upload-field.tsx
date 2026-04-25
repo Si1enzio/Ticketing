@@ -4,7 +4,6 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 type MediaUploadFieldProps = {
@@ -44,7 +43,6 @@ export function MediaUploadField({
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const statusId = useId();
-  const supabase = createSupabaseBrowserClient();
 
   useEffect(() => {
     return () => {
@@ -154,7 +152,6 @@ export function MediaUploadField({
                   file,
                   uploadFolder,
                   mediaKind,
-                  supabase,
                 });
 
                 setUploadedUrl(uploadedMediaUrl);
@@ -196,24 +193,11 @@ async function uploadEventMedia({
   file,
   uploadFolder,
   mediaKind,
-  supabase,
 }: {
   file: File;
   uploadFolder: string;
   mediaKind: "poster" | "banner";
-  supabase: ReturnType<typeof createSupabaseBrowserClient>;
 }) {
-  const directUploadError = await tryBrowserStorageUpload({
-    file,
-    uploadFolder,
-    mediaKind,
-    supabase,
-  });
-
-  if (directUploadError.ok) {
-    return directUploadError.url;
-  }
-
   const uploadFormData = new FormData();
   uploadFormData.set("file", file);
   uploadFormData.set("uploadFolder", uploadFolder);
@@ -230,74 +214,8 @@ async function uploadEventMedia({
     | null;
 
   if (!response.ok || !result?.ok || !result.url) {
-    const fallbackMessage = result?.message || "Imaginea nu a putut fi incarcata.";
-    const combinedMessage = directUploadError.message
-      ? `${fallbackMessage} (${directUploadError.message})`
-      : fallbackMessage;
-    throw new Error(combinedMessage);
+    throw new Error(result?.message || "Imaginea nu a putut fi incarcata.");
   }
 
   return result.url;
-}
-
-async function tryBrowserStorageUpload({
-  file,
-  uploadFolder,
-  mediaKind,
-  supabase,
-}: {
-  file: File;
-  uploadFolder: string;
-  mediaKind: "poster" | "banner";
-  supabase: ReturnType<typeof createSupabaseBrowserClient>;
-}): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
-  if (!supabase) {
-    return {
-      ok: false,
-      message: "Clientul de upload din browser nu este disponibil.",
-    };
-  }
-
-  const extension = getFileExtension(file);
-  const path = `${sanitizePathSegment(uploadFolder || "matches/drafts")}/${mediaKind}-${Date.now()}-${crypto.randomUUID()}.${extension}`;
-  const { error: uploadError } = await supabase.storage.from("event-media").upload(path, file, {
-    cacheControl: "3600",
-    upsert: false,
-    contentType: file.type,
-  });
-
-  if (uploadError) {
-    return {
-      ok: false,
-      message: uploadError.message,
-    };
-  }
-
-  const { data } = supabase.storage.from("event-media").getPublicUrl(path);
-
-  return {
-    ok: true,
-    url: data.publicUrl,
-  };
-}
-
-function getFileExtension(file: File) {
-  const mimeToExtension: Record<string, string> = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/webp": "webp",
-    "image/gif": "gif",
-    "image/avif": "avif",
-  };
-
-  return mimeToExtension[file.type] ?? file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-}
-
-function sanitizePathSegment(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9/_-]+/g, "-")
-    .replace(/\/{2,}/g, "/")
-    .replace(/^-+|-+$/g, "");
 }
