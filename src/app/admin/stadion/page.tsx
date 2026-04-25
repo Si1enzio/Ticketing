@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { connection } from "next/server";
 import Link from "next/link";
+import { ChevronDownIcon } from "lucide-react";
 
 import {
   createSponsorAction,
@@ -194,20 +195,46 @@ export default async function AdminStadiumPage({
 
       {stadiums.map((stadium) => {
         const unassignedSectors = stadium.sectors.filter((sector) => !sector.standId);
+        const totalSeats = stadium.sectors.reduce(
+          (sum, sector) => sum + sector.seats.length,
+          0,
+        );
 
         return (
-          <Card
+          <details
             key={stadium.id}
-            className="surface-panel overflow-hidden rounded-[30px] border border-white/70 bg-white/94"
+            className="surface-panel group overflow-hidden rounded-[30px] border border-white/70 bg-white/94"
           >
             <div className="h-1.5 bg-[linear-gradient(90deg,#111111_0%,#dc2626_45%,#fca5a5_100%)]" />
-            <CardContent className="space-y-6 p-6">
-              <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+            <summary className="list-none cursor-pointer p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <h2 className="font-heading text-4xl uppercase tracking-[0.08em] text-[#111111]">
                     {stadium.name}
                   </h2>
-                  <p className="mt-2 text-sm leading-6 text-neutral-600">
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm text-neutral-600">
+                    <span>{stadium.city}</span>
+                    <span>{stadium.stands.length} tribune</span>
+                    <span>{stadium.sectors.length} sectoare</span>
+                    <span>{totalSeats} locuri</span>
+                    {stadium.organizerName ? <span>Organizator: {stadium.organizerName}</span> : null}
+                  </div>
+                  <p className="mt-3 max-w-4xl text-sm leading-6 text-neutral-500">
+                    Vezi detalii pentru a edita locatia, sponsorii, tribunele si sectoarele.
+                  </p>
+                </div>
+
+                <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-[#111111]">
+                  Detalii
+                  <ChevronDownIcon className="size-4 transition group-open:rotate-180" />
+                </span>
+              </div>
+            </summary>
+
+            <CardContent className="space-y-6 border-t border-black/6 p-6">
+              <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+                <div>
+                  <p className="text-sm leading-6 text-neutral-600">
                     Acum poti structura locatia pe tribune, iar in interiorul lor pe
                     sectoare. Fiecare sector isi pastreaza randurile si editorul complet de
                     locuri.
@@ -504,7 +531,7 @@ export default async function AdminStadiumPage({
                 ) : null}
               </div>
             </CardContent>
-          </Card>
+          </details>
         );
       })}
     </div>

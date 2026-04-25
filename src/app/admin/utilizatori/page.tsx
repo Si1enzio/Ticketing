@@ -143,6 +143,8 @@ export default async function AdminUsersPage({
             scopeOptions={accessScopeCatalog}
             accessScopes={userAccessScopes[user.userId] ?? []}
             canManageScopes={viewer.roles.includes("superadmin")}
+            canDeleteUsers={viewer.roles.includes("superadmin")}
+            viewerUserId={viewer.userId}
           />
         ))}
       </div>

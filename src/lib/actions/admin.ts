@@ -228,6 +228,10 @@ const reservationAccessSchema = z.object({
     .transform((value) => value === true || value === "true"),
 });
 
+const managedUserDeleteSchema = z.object({
+  userId: z.string().uuid(),
+});
+
 const userAccessScopeSchema = z.object({
   userId: z.string().uuid(),
   role: z.enum(["steward", "organizer_admin"]),
@@ -2965,6 +2969,77 @@ export async function createManagedUserAction(formData: FormData) {
 
   redirectToAdminUsers({
     notice: `Utilizatorul ${parsed.data.email} a fost creat cu rolul selectat.`,
+  });
+}
+
+export async function deleteManagedUserAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+
+  if (!viewer.roles.includes("superadmin")) {
+    redirectToAdminUsers({
+      error: "Doar superadmin poate sterge utilizatori.",
+    });
+  }
+
+  const parsed = managedUserDeleteSchema.safeParse({
+    userId: formData.get("userId"),
+  });
+
+  if (!parsed.success) {
+    redirectToAdminUsers({
+      error: "Utilizatorul selectat nu este valid.",
+    });
+  }
+
+  if (!isSupabaseConfigured() || !isSupabaseAdminConfigured()) {
+    redirectToAdminUsers({
+      error:
+        "Stergerea utilizatorilor necesita SUPABASE_SERVICE_ROLE_KEY setat in Vercel ca variabila server-side.",
+    });
+  }
+
+  if (parsed.data.userId === viewer.userId) {
+    redirectToAdminUsers({
+      error: "Nu iti poti sterge propriul cont din panoul de administrare.",
+    });
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const supabaseAdmin = createSupabaseAdminClient();
+
+  if (!supabase || !supabaseAdmin) {
+    redirectToAdminUsers({
+      error: "Conexiunea administrativa la baza de date nu este disponibila.",
+    });
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, email")
+    .eq("id", parsed.data.userId)
+    .maybeSingle();
+
+  const userDisplayLabel =
+    profile?.full_name?.trim() || profile?.email?.trim() || parsed.data.userId;
+
+  const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(parsed.data.userId);
+
+  if (deleteError) {
+    redirectToAdminUsers({
+      error: `Utilizatorul nu a putut fi sters: ${sanitizeUserFacingErrorMessage(deleteError.message, "eroare necunoscuta")}`,
+    });
+  }
+
+  await logAudit(viewer.userId, "delete_managed_user", "profiles", parsed.data.userId, {
+    deletedUserId: parsed.data.userId,
+    deletedUserLabel: userDisplayLabel,
+  });
+
+  revalidatePath("/admin/utilizatori");
+  revalidatePath(`/admin/utilizatori/${parsed.data.userId}`);
+
+  redirectToAdminUsers({
+    notice: `Utilizatorul ${userDisplayLabel} a fost sters definitiv.`,
   });
 }
 

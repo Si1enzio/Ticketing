@@ -12,10 +12,13 @@ export function sanitizeSupabaseAuthErrorMessage(
 
   if (
     normalizedMessage.includes("invalid login credentials") ||
-    normalizedMessage.includes("email not confirmed") ||
     normalizedMessage.includes("invalid email or password")
   ) {
     return "Emailul sau parola nu sunt corecte.";
+  }
+
+  if (normalizedMessage.includes("email not confirmed")) {
+    return "Adresa de email nu a fost confirmata inca. Verifica emailul si confirma contul inainte de autentificare.";
   }
 
   if (

@@ -80,7 +80,7 @@ export const messages = {
       description:
         "Contul tau este baza pentru cabinetul personal, biletele emise sau procurate, PDF, partajare si istoricul de acces la evenimente.",
       bullets: [
-        "Biletele gratuite sau cu plata pot fi obtinute imediat dupa autentificare",
+        "Dupa creare cont, confirmi emailul o singura data si activezi accesul",
         "QR unic pentru fiecare loc sau acces si validare atomica la scanare",
         "Creare cont rapida, resetare parola si acces imediat prin Supabase Auth",
       ],
@@ -88,7 +88,7 @@ export const messages = {
     auth: {
       title: "Intra in platforma",
       description:
-        "Creeaza cont, intra in cabinet si acceseaza biletele QR emise sau procurate imediat dupa selectia locurilor.",
+        "Creeaza cont, confirma emailul si intra apoi in cabinet pentru biletele QR emise sau procurate.",
       tabs: {
         signin: "Login",
         signup: "Cont nou",
@@ -131,7 +131,7 @@ export const messages = {
       },
       toasts: {
         signInSuccess: "Autentificare reusita.",
-        signUpSuccess: "Cont creat. Te poti autentifica imediat.",
+        signUpSuccess: "Cont creat. Verifica emailul si confirma inregistrarea pentru a activa contul.",
         signUpSession: "Cont creat si autentificat.",
         resetSuccess: "Link-ul pentru resetare a fost trimis pe email.",
         missingConfig:

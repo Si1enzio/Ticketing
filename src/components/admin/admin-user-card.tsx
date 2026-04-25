@@ -7,11 +7,13 @@ import { ChevronDownIcon } from "lucide-react";
 import {
   assignRoleAction,
   createUserBlockAction,
+  deleteManagedUserAction,
   removeUserAccessScopeAction,
   saveUserAccessScopeAction,
   setReservationAccessAction,
 } from "@/lib/actions/admin";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { AdminUserOverview } from "@/lib/domain/types";
@@ -39,6 +41,8 @@ type AdminUserCardProps = {
     locationName: string | null;
   }>;
   canManageScopes: boolean;
+  canDeleteUsers: boolean;
+  viewerUserId: string | null;
 };
 
 export function AdminUserCard({
@@ -49,6 +53,8 @@ export function AdminUserCard({
   scopeOptions,
   accessScopes,
   canManageScopes,
+  canDeleteUsers,
+  viewerUserId,
 }: AdminUserCardProps) {
   const displayName = user.fullName ?? "Utilizator fara nume";
   const email = user.email ?? "Fara email";
@@ -118,6 +124,26 @@ export function AdminUserCard({
             >
               <Link href={`/admin/utilizatori/${user.userId}` as Route}>Pagina utilizator</Link>
             </Button>
+            {canDeleteUsers ? (
+              <form action={deleteManagedUserAction}>
+                <input type="hidden" name="userId" value={user.userId} />
+                <ConfirmButton
+                  submitForm
+                  triggerLabel="Sterge utilizatorul"
+                  title="Confirmi stergerea utilizatorului?"
+                  description={
+                    viewerUserId === user.userId
+                      ? "Acest cont este sesiunea ta curenta. Din motive de siguranta, nu iti poti sterge propriul cont din admin."
+                      : `Contul „${displayName}” va fi sters definitiv din autentificare si din datele asociate. Actiunea nu poate fi anulata.`
+                  }
+                  confirmLabel="Sterge definitiv"
+                  variant="destructive"
+                  confirmVariant="destructive"
+                  disabled={viewerUserId === user.userId}
+                  className="rounded-full border border-[#b91c1c] bg-[#fff1f2] text-[#b91c1c] hover:bg-[#ffe4e6] disabled:cursor-not-allowed disabled:opacity-60"
+                />
+              </form>
+            ) : null}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
