@@ -1,7 +1,5 @@
 import type { Route } from "next";
 import Link from "next/link";
-import { format } from "date-fns";
-import { ro } from "date-fns/locale";
 import { ChevronDownIcon } from "lucide-react";
 
 import {
@@ -16,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import type { AdminUserOverview } from "@/lib/domain/types";
 
 type Option = {
@@ -429,7 +428,11 @@ function formatDateTime(value: string | null) {
     return value;
   }
 
-  return format(date, "d MMM yyyy, HH:mm", { locale: ro });
+  return formatDateTimeInTimeZone(value, {
+    locale: "ro-RO",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
 function formatMetric(value: number) {

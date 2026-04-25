@@ -4,6 +4,7 @@ import { ArrowRight, ScanLine } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { hasAnyRole } from "@/lib/auth/roles";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import { getServerI18n } from "@/lib/i18n/server";
 import { getScannerMatches, getViewerContext } from "@/lib/supabase/queries";
 
@@ -84,7 +85,11 @@ export default async function ScannerPage() {
                       Program
                     </p>
                     <p className="mt-2 text-sm font-medium text-[#111111]">
-                      {new Date(match.startsAt).toLocaleString("ro-RO")}
+                      {formatDateTimeInTimeZone(match.startsAt, {
+                        locale: "ro-RO",
+                        dateStyle: "full",
+                        timeStyle: "short",
+                      })}
                     </p>
                   </div>
                 </div>

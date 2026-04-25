@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import { format } from "date-fns";
-import { ro } from "date-fns/locale";
-
 import { MatchSectorPricingManager } from "@/components/admin/match-sector-pricing-manager";
 import { MatchSeatOverridesManager } from "@/components/admin/match-seat-overrides-manager";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import { formatSectorSeatPosition } from "@/lib/format/seat";
 import { getAdminMatchOverview, getSeatMapForMatch, getStadiumMapConfigByStadiumId } from "@/lib/supabase/queries";
 import {
@@ -55,8 +53,12 @@ export default async function AdminMatchDetailsPage({
             {report.title}
           </h1>
           <p className="mt-3 text-sm leading-7 text-neutral-600">
-            {report.competitionName} · {report.stadiumName} ·{" "}
-            {format(new Date(report.startsAt), "d MMMM yyyy, HH:mm", { locale: ro })}
+            {report.competitionName} - {report.stadiumName} -{" "}
+            {formatDateTimeInTimeZone(report.startsAt, {
+              locale: "ro-RO",
+              dateStyle: "long",
+              timeStyle: "short",
+            })}
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -132,8 +134,9 @@ export default async function AdminMatchDetailsPage({
                         {scan.ticketCode ?? "Ticket necunoscut"} · {scan.result}
                       </p>
                       <p className="mt-1 text-sm text-neutral-600">
-                        {format(new Date(scan.scannedAt), "d MMM yyyy, HH:mm:ss", {
-                          locale: ro,
+                        {formatDateTimeInTimeZone(scan.scannedAt, {
+                          locale: "ro-RO",
+                          includeSeconds: true,
                         })}
                       </p>
                     </div>

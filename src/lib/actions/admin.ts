@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { hasAnyRole } from "@/lib/auth/roles";
-import { localDateTimeToIsoString } from "@/lib/date-time";
+import { formatDateTimeInTimeZone, localDateTimeToIsoString } from "@/lib/date-time";
 import { profileGenderSchema } from "@/lib/domain/types";
 import { isSupabaseConfigured } from "@/lib/env";
 import { isSupabaseAdminConfigured } from "@/lib/env.server";
@@ -2632,7 +2632,7 @@ export async function applyMatchSeatOverrideAction(
     message:
       parsed.data.status === "blocked"
         ? `Ai blocat ${seatIds.length} locuri pentru acest meci.`
-        : `Ai pus hold administrativ pe ${seatIds.length} locuri pana la ${new Date(expiresAtIso ?? nowIso).toLocaleString("ro-RO")}.`,
+        : `Ai pus hold administrativ pe ${seatIds.length} locuri pana la ${formatDateTimeInTimeZone(expiresAtIso ?? nowIso, { locale: "ro-RO", includeSeconds: true })}.`,
   };
 }
 

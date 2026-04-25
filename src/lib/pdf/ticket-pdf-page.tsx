@@ -5,6 +5,7 @@ import { Circle, Font, Image, Page, Rect, StyleSheet, Svg, Text, View } from "@r
 
 import type { StadiumSponsor, TicketCard } from "@/lib/domain/types";
 import { brand } from "@/lib/brand";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 
 const pdfFontFamily = "GeistPdf";
 const geistPdfFontPath = path.join(
@@ -336,7 +337,9 @@ export function TicketPdfPage({
                 />
                 <TicketField
                   label="Data si ora"
-                  value={new Date(ticket.startsAt).toLocaleString("ro-RO")}
+                  value={formatDateTimeInTimeZone(ticket.startsAt, {
+                    locale: "ro-RO",
+                  })}
                 />
                 <TicketField label="Sector" value={ticket.sectorName} />
                 <TicketField label="Poarta" value={ticket.gateName ?? "Fara poarta alocata"} />

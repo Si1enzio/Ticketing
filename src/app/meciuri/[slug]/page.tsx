@@ -1,5 +1,3 @@
-import { format } from "date-fns";
-import { ro } from "date-fns/locale";
 import {
   CalendarClock,
   CreditCard,
@@ -13,6 +11,7 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import { getPublicMatchBySlug, getSeatMapForMatch } from "@/lib/supabase/queries";
 import { formatCurrencyFromCents } from "@/lib/utils";
 
@@ -75,8 +74,10 @@ export default async function MatchDetailPage({
               <InfoRow
                 icon={CalendarClock}
                 label="Program"
-                value={format(new Date(match.startsAt), "EEEE, d MMMM yyyy - HH:mm", {
-                  locale: ro,
+                value={formatDateTimeInTimeZone(match.startsAt, {
+                  locale: "ro-RO",
+                  dateStyle: "full",
+                  timeStyle: "short",
                 })}
               />
               <InfoRow
@@ -94,8 +95,10 @@ export default async function MatchDetailPage({
                 label="Ticketing activ"
                 value={
                   match.reservationClosesAt
-                    ? `Pana la ${format(new Date(match.reservationClosesAt), "d MMMM - HH:mm", {
-                        locale: ro,
+                    ? `Pana la ${formatDateTimeInTimeZone(match.reservationClosesAt, {
+                        locale: "ro-RO",
+                        dateStyle: "long",
+                        timeStyle: "short",
                       })}`
                     : "Conform setarilor evenimentului"
                 }

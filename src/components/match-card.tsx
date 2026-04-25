@@ -1,13 +1,12 @@
-import { format } from "date-fns";
 import { CalendarClock, MapPin, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import type { PublicMatch } from "@/lib/domain/types";
 import type { AppLocale } from "@/lib/i18n/config";
-import { getDateFnsLocale } from "@/lib/i18n/date";
 import type { AppMessages } from "@/lib/i18n/messages";
 import { translate } from "@/lib/i18n/translate";
 
@@ -20,7 +19,6 @@ export function MatchCard({
   locale: AppLocale;
   messages: AppMessages;
 }) {
-  const startsAt = new Date(match.startsAt);
   const t = (key: string) => translate(messages, key);
   const visualUrl = match.bannerUrl ?? match.posterUrl;
 
@@ -76,8 +74,10 @@ export function MatchCard({
         <div className="flex items-center gap-3 rounded-2xl border border-black/6 bg-neutral-50 px-4 py-3">
           <CalendarClock className="h-5 w-5 text-[#C9A24F]" />
           <span>
-            {format(startsAt, "EEEE, d MMMM yyyy - HH:mm", {
-              locale: getDateFnsLocale(locale),
+            {formatDateTimeInTimeZone(match.startsAt, {
+              locale: locale === "ru" ? "ru-RU" : "ro-RO",
+              dateStyle: "full",
+              timeStyle: "short",
             })}
           </span>
         </div>

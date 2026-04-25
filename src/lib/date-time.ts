@@ -137,12 +137,22 @@ export function formatDateTimeInTimeZone(
     locale?: string;
     timeZone?: string;
     includeSeconds?: boolean;
+    dateStyle?: "full" | "long" | "medium" | "short";
+    timeStyle?: "full" | "long" | "medium" | "short";
   },
 ) {
   const parsedDate = new Date(value);
 
   if (Number.isNaN(parsedDate.getTime())) {
     return value;
+  }
+
+  if (options?.dateStyle || options?.timeStyle) {
+    return parsedDate.toLocaleString(options?.locale ?? "ro-RO", {
+      timeZone: options?.timeZone ?? DEFAULT_EVENT_TIME_ZONE,
+      dateStyle: options?.dateStyle ?? "medium",
+      timeStyle: options?.timeStyle ?? "short",
+    });
   }
 
   return parsedDate.toLocaleString(options?.locale ?? "ro-RO", {
@@ -153,5 +163,25 @@ export function formatDateTimeInTimeZone(
     hour: "2-digit",
     minute: "2-digit",
     ...(options?.includeSeconds ? { second: "2-digit" } : {}),
+  });
+}
+
+export function formatDateInTimeZone(
+  value: string,
+  options?: {
+    locale?: string;
+    timeZone?: string;
+    dateStyle?: "full" | "long" | "medium" | "short";
+  },
+) {
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value;
+  }
+
+  return parsedDate.toLocaleDateString(options?.locale ?? "ro-RO", {
+    timeZone: options?.timeZone ?? DEFAULT_EVENT_TIME_ZONE,
+    dateStyle: options?.dateStyle ?? "medium",
   });
 }

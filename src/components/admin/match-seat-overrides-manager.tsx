@@ -18,6 +18,7 @@ import {
   applyMatchSeatOverrideAction,
   releaseMatchSeatOverrideAction,
 } from "@/lib/actions/admin";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import type {
   MatchSeatOverride,
   SeatMapSector,
@@ -45,7 +46,10 @@ function formatOverrideStatus(override: MatchSeatOverride) {
   }
 
   if (override.expiresAt) {
-    return `Hold admin până la ${new Date(override.expiresAt).toLocaleString("ro-RO")}`;
+    return `Hold admin pana la ${formatDateTimeInTimeZone(override.expiresAt, {
+      locale: "ro-RO",
+      includeSeconds: true,
+    })}`;
   }
 
   return "Hold admin";

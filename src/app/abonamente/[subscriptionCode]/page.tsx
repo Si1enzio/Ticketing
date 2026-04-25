@@ -6,6 +6,7 @@ import { DownloadCloud, Printer, ShieldCheck } from "lucide-react";
 import { SubscriptionQr } from "@/components/subscription-qr";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateInTimeZone } from "@/lib/date-time";
 import { formatSeatPosition } from "@/lib/format/seat";
 import { getServerSiteOrigin } from "@/lib/site-url";
 import { getSubscriptionByCode, getViewerContext } from "@/lib/supabase/queries";
@@ -98,7 +99,7 @@ export default async function SubscriptionPage({
                 <Info label="Data nasterii" value={formatBirthDate(subscription.holderBirthDate)} />
                 <Info
                   label="Valabilitate"
-                  value={`${new Date(subscription.startsAt).toLocaleDateString("ro-RO")} - ${new Date(subscription.endsAt).toLocaleDateString("ro-RO")}`}
+                  value={`${formatDateInTimeZone(subscription.startsAt, { locale: "ro-RO", dateStyle: "medium" })} - ${formatDateInTimeZone(subscription.endsAt, { locale: "ro-RO", dateStyle: "medium" })}`}
                 />
                 <Info label="Locatie" value={subscription.stadiumName ?? "Nedefinit"} />
                 <Info label="Poarta" value={subscription.gateName ?? "Libera"} />

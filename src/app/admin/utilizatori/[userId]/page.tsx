@@ -6,6 +6,7 @@ import { ro } from "date-fns/locale";
 
 import { AdminSubscriptionAssignmentForm } from "@/components/admin/admin-subscription-assignment-form";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateInTimeZone, formatDateTimeInTimeZone } from "@/lib/date-time";
 import { formatSectorSeatPosition, formatSeatPosition } from "@/lib/format/seat";
 import { getStadiumBuilderData, getAdminUserProfileDetails } from "@/lib/supabase/queries";
 import {
@@ -131,8 +132,15 @@ export default async function AdminUserDetailsPage({
                       <div>
                         <p className="font-semibold text-[#111111]">{subscription.product.name}</p>
                         <p className="mt-1 text-sm text-neutral-600">
-                          {format(new Date(subscription.startsAt), "d MMM yyyy", { locale: ro })} -{" "}
-                          {format(new Date(subscription.endsAt), "d MMM yyyy", { locale: ro })}
+                          {formatDateInTimeZone(subscription.startsAt, {
+                            locale: "ro-RO",
+                            dateStyle: "medium",
+                          })}{" "}
+                          -{" "}
+                          {formatDateInTimeZone(subscription.endsAt, {
+                            locale: "ro-RO",
+                            dateStyle: "medium",
+                          })}
                         </p>
                       </div>
                       <p className="text-xs uppercase tracking-[0.22em] text-neutral-500">
@@ -209,8 +217,9 @@ export default async function AdminUserDetailsPage({
                   <div className="mt-3 grid gap-2 text-sm text-neutral-600 sm:grid-cols-2">
                     <p>
                       Scanat:{" "}
-                      {format(new Date(scan.scannedAt), "d MMM yyyy, HH:mm:ss", {
-                        locale: ro,
+                      {formatDateTimeInTimeZone(scan.scannedAt, {
+                        locale: "ro-RO",
+                        includeSeconds: true,
                       })}
                     </p>
                     <p>Poarta: {scan.gateName ?? "Nedefinita"}</p>

@@ -1,5 +1,3 @@
-import { format } from "date-fns";
-import { ro } from "date-fns/locale";
 import { Clock3, CreditCard, ShieldCheck, Ticket } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -8,6 +6,7 @@ import { connection } from "next/server";
 import { DemoCheckoutButton } from "@/components/demo-checkout-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import {
   getCheckoutSummary,
   getPublicMatchBySlug,
@@ -106,10 +105,12 @@ export default async function MatchCheckoutPage({
                   {summary.matchTitle}
                 </h2>
                 <p className="mt-3 text-sm leading-7 text-neutral-600">
-                  {format(new Date(summary.startsAt), "EEEE, d MMMM yyyy • HH:mm", {
-                    locale: ro,
+                  {formatDateTimeInTimeZone(summary.startsAt, {
+                    locale: "ro-RO",
+                    dateStyle: "full",
+                    timeStyle: "short",
                   })}{" "}
-                  • {summary.stadiumName}
+                  - {summary.stadiumName}
                 </p>
               </div>
 
@@ -145,7 +146,14 @@ export default async function MatchCheckoutPage({
               <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm text-white/78">
                 Hold-ul tau este activ pana la{" "}
                 <span className="font-semibold text-white">
-                  {format(new Date(summary.expiresAt), "HH:mm:ss", { locale: ro })}
+                  {(formatDateTimeInTimeZone(summary.expiresAt, {
+                    locale: "ro-RO",
+                    includeSeconds: true,
+                  }).split(", ")[1] ??
+                    formatDateTimeInTimeZone(summary.expiresAt, {
+                      locale: "ro-RO",
+                      includeSeconds: true,
+                    }))}
                 </span>
                 . Dupa expirare, locurile revin automat in vanzare.
               </div>

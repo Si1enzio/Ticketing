@@ -7,6 +7,7 @@ import { ProfileDetailsForm } from "@/components/profile-details-form";
 import { TicketListItem } from "@/components/ticket-list-item";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateInTimeZone, formatDateTimeInTimeZone } from "@/lib/date-time";
 import type { TicketCard } from "@/lib/domain/types";
 import { isSupabaseConfigured } from "@/lib/env";
 import { formatSeatPosition } from "@/lib/format/seat";
@@ -133,9 +134,10 @@ export default async function CabinetPage() {
                   <p className="font-semibold text-[#111111]">{subscription.product.name}</p>
                   <p className="text-sm text-neutral-600">
                     Valabil pana la{" "}
-                    {new Date(subscription.endsAt).toLocaleDateString(
-                      locale === "ru" ? "ru-RU" : "ro-RO",
-                    )}
+                    {formatDateInTimeZone(subscription.endsAt, {
+                      locale: locale === "ru" ? "ru-RU" : "ro-RO",
+                      dateStyle: "long",
+                    })}
                   </p>
                   <p className="text-sm text-neutral-600">
                     Stadion: {subscription.stadiumName ?? "Nedefinit"} -{" "}
@@ -382,8 +384,6 @@ function ReservationBundleCard({
   bundle: ReturnType<typeof groupTicketsByReservation>[number];
   locale: string;
 }) {
-  const issuedAt = new Date(bundle.issuedAt);
-
   return (
     <Card className="rounded-[28px] border border-[#dc2626]/12 bg-[#fff7f7]">
       <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
@@ -394,7 +394,9 @@ function ReservationBundleCard({
           <p className="mt-1 text-lg font-semibold text-[#111111]">{bundle.matchTitle}</p>
           <p className="mt-1 text-sm text-neutral-600">
             {bundle.tickets.length} bilete - emise la{" "}
-            {issuedAt.toLocaleString(locale === "ru" ? "ru-RU" : "ro-RO")}
+            {formatDateTimeInTimeZone(bundle.issuedAt, {
+              locale: locale === "ru" ? "ru-RU" : "ro-RO",
+            })}
           </p>
           <p className="mt-1 text-sm text-neutral-600">
             Sursa: {bundle.source} - cod bundle {bundle.reservationId.slice(0, 8).toUpperCase()}

@@ -3,6 +3,7 @@ import { connection } from "next/server";
 
 import { SeatMapBoard } from "@/components/seat-map-board";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import {
   getStadiumMapConfigByStadiumId,
   getPublicMatchBySlug,
@@ -60,7 +61,10 @@ export default async function ReserveSeatPage({
           <AlertTitle>Cont restrictionat temporar</AlertTitle>
           <AlertDescription>
             Solicitarea biletelor este blocata pana la{" "}
-            {new Date(viewer.reservationBlockedUntil).toLocaleString("ro-RO")}.
+            {formatDateTimeInTimeZone(viewer.reservationBlockedUntil, {
+              locale: "ro-RO",
+              includeSeconds: true,
+            })}.
           </AlertDescription>
         </Alert>
       ) : null}

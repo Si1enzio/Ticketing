@@ -3,6 +3,7 @@ import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/render
 
 import type { StadiumSponsor, TicketCard } from "@/lib/domain/types";
 import { brand } from "@/lib/brand";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import { TicketHubPdfLogo, TicketPdfPage } from "@/lib/pdf/ticket-pdf-page";
 
 export type TicketGroupLayout = "full-page" | "cut-sheet";
@@ -374,11 +375,7 @@ function chunkTickets(tickets: TicketCard[], qrDataUrls: string[], size: Tickets
 }
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString("ro-RO", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+  return formatDateTimeInTimeZone(value, {
+    locale: "ro-RO",
   });
 }

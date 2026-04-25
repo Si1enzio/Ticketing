@@ -4,6 +4,7 @@ import path from "node:path";
 import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 import { brand } from "@/lib/brand";
+import { formatDateInTimeZone } from "@/lib/date-time";
 import type { UserSubscription } from "@/lib/domain/types";
 import { formatSeatPosition } from "@/lib/format/seat";
 import { TicketHubPdfLogo } from "@/lib/pdf/ticket-pdf-page";
@@ -183,7 +184,7 @@ export function SubscriptionDocument({
               <SubscriptionField label="Data nasterii" value={holderBirthDate} />
               <SubscriptionField
                 label="Valabilitate"
-                value={`${new Date(subscription.startsAt).toLocaleDateString("ro-RO")} - ${new Date(subscription.endsAt).toLocaleDateString("ro-RO")}`}
+                value={`${formatDateInTimeZone(subscription.startsAt, { locale: "ro-RO", dateStyle: "medium" })} - ${formatDateInTimeZone(subscription.endsAt, { locale: "ro-RO", dateStyle: "medium" })}`}
               />
               <SubscriptionField label="Stadion" value={subscription.stadiumName ?? "Nedefinit"} />
               <SubscriptionField label="Poarta" value={subscription.gateName ?? "Libera"} />

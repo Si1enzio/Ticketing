@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { format } from "date-fns";
-import { ro } from "date-fns/locale";
 import { Gift, ScanLine, UsersRound } from "lucide-react";
 
 import { RaffleRandomizer } from "@/components/admin/raffle-randomizer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import { getAdminMatchOverview } from "@/lib/supabase/queries";
 import { getMatchRaffleCandidates } from "@/lib/supabase/reports";
 
@@ -61,7 +60,10 @@ export default async function AdminRafflePage({
             >
               {matches.map((match) => (
                 <option key={match.id} value={match.id}>
-                  {match.title} - {format(new Date(match.startsAt), "dd.MM.yyyy HH:mm", { locale: ro })}
+                  {match.title} -{" "}
+                  {formatDateTimeInTimeZone(match.startsAt, {
+                    locale: "ro-RO",
+                  })}
                 </option>
               ))}
             </select>

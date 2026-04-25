@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import { format } from "date-fns";
-import { ro } from "date-fns/locale";
 import { BadgeCheck, DownloadCloud, ShieldCheck, Sparkles } from "lucide-react";
 
 import { cancelTicketAction, reissueTicketAction } from "@/lib/actions/admin";
@@ -14,6 +12,7 @@ import { TicketQr } from "@/components/ticket-qr";
 import { TicketSwipeShell } from "@/components/ticket-swipe-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import { formatSeatPosition } from "@/lib/format/seat";
 import { getServerI18n } from "@/lib/i18n/server";
 import { getServerSiteOrigin } from "@/lib/site-url";
@@ -178,8 +177,10 @@ export default async function TicketPage({
                 <Info title="Categorie / competitie" value={ticket.competitionName} />
                 <Info
                   title="Data si ora"
-                  value={format(new Date(ticket.startsAt), "EEEE, d MMMM yyyy - HH:mm", {
-                    locale: ro,
+                  value={formatDateTimeInTimeZone(ticket.startsAt, {
+                    locale: "ro-RO",
+                    dateStyle: "full",
+                    timeStyle: "short",
                   })}
                 />
                 <Info title="Locatie" value={ticket.stadiumName} />

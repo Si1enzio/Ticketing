@@ -1,13 +1,12 @@
-import { format } from "date-fns";
 import Link from "next/link";
 import { ArrowUpRight, QrCode, Ticket } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import type { TicketCard } from "@/lib/domain/types";
 import type { AppLocale } from "@/lib/i18n/config";
-import { getDateFnsLocale } from "@/lib/i18n/date";
 import type { AppMessages } from "@/lib/i18n/messages";
 import { translate } from "@/lib/i18n/translate";
 
@@ -20,7 +19,6 @@ export function TicketListItem({
   locale: AppLocale;
   messages: AppMessages;
 }) {
-  const startsAt = new Date(ticket.startsAt);
   const t = (key: string) => translate(messages, key);
 
   const statusMap = {
@@ -51,8 +49,10 @@ export function TicketListItem({
           </div>
           <div className="grid gap-2 text-sm text-neutral-600 sm:grid-cols-2">
             <p>
-              {format(startsAt, "EEEE, d MMMM yyyy - HH:mm", {
-                locale: getDateFnsLocale(locale),
+              {formatDateTimeInTimeZone(ticket.startsAt, {
+                locale: locale === "ru" ? "ru-RU" : "ro-RO",
+                dateStyle: "full",
+                timeStyle: "short",
               })}
             </p>
             <p>
@@ -64,8 +64,10 @@ export function TicketListItem({
             {ticket.usedAt ? (
               <p className="sm:col-span-2">
                 {t("ticketList.scannedAt")}{" "}
-                {format(new Date(ticket.usedAt), "EEEE, d MMMM yyyy - HH:mm", {
-                  locale: getDateFnsLocale(locale),
+                {formatDateTimeInTimeZone(ticket.usedAt, {
+                  locale: locale === "ru" ? "ru-RU" : "ro-RO",
+                  dateStyle: "full",
+                  timeStyle: "short",
                 })}
               </p>
             ) : null}

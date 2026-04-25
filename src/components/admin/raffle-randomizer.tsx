@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import type { RaffleCandidate } from "@/lib/domain/types";
 import { formatSeatPosition } from "@/lib/format/seat";
 
@@ -30,7 +31,10 @@ export function RaffleRandomizer({
       winner.sectorName ?? "",
       winner.standName ?? "",
       winner.gateName ?? "",
-      new Date(winner.scannedAt).toLocaleString("ro-RO"),
+      formatDateTimeInTimeZone(winner.scannedAt, {
+        locale: "ro-RO",
+        includeSeconds: true,
+      }),
     ]);
 
     return [header, ...rows]
@@ -197,7 +201,13 @@ function WinnerCard({ winner, index }: { winner: RaffleCandidate; index: number 
         <p>Tribuna: {winner.standName ?? "-"}</p>
         <p>Poarta: {winner.gateName ?? "-"}</p>
         <p>Tip: {winner.credentialKind === "subscription" ? "Abonament" : "Bilet"}</p>
-        <p>Scanat: {new Date(winner.scannedAt).toLocaleString("ro-RO")}</p>
+        <p>
+          Scanat:{" "}
+          {formatDateTimeInTimeZone(winner.scannedAt, {
+            locale: "ro-RO",
+            includeSeconds: true,
+          })}
+        </p>
       </div>
     </div>
   );

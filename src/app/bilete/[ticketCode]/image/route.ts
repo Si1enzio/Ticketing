@@ -5,6 +5,7 @@ import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 import { createElement as h } from "react";
 
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import { withNoStoreHeaders } from "@/lib/security/http";
 import { generateTicketQrDataUrl } from "@/lib/security/tickets";
 import { brand } from "@/lib/brand";
@@ -24,10 +25,11 @@ const geistFontPath = path.join(
 const geistFontDataPromise = readFile(geistFontPath);
 
 function formatTicketDate(value: string) {
-  return new Intl.DateTimeFormat("ro-RO", {
+  return formatDateTimeInTimeZone(value, {
+    locale: "ro-RO",
     dateStyle: "full",
     timeStyle: "short",
-  }).format(new Date(value));
+  });
 }
 
 function renderField({

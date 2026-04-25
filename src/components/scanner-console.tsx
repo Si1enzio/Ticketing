@@ -7,6 +7,7 @@ import { Scanner, setZXingModuleOverrides } from "@yudiel/react-qr-scanner";
 import { ArrowLeft, Camera, ShieldAlert, ShieldCheck, TicketX, X } from "lucide-react";
 
 import type { ScanResponse, ScannerMatch } from "@/lib/domain/types";
+import { formatDateInTimeZone, formatDateTimeInTimeZone } from "@/lib/date-time";
 import { formatSeatPosition } from "@/lib/format/seat";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -139,7 +140,12 @@ export function ScannerConsole({
   }, [overlayResult]);
 
   const matchDateLabel = useMemo(
-    () => new Date(match.startsAt).toLocaleString("ro-RO"),
+    () =>
+      formatDateTimeInTimeZone(match.startsAt, {
+        locale: "ro-RO",
+        dateStyle: "full",
+        timeStyle: "short",
+      }),
     [match.startsAt],
   );
 
@@ -386,11 +392,20 @@ export function ScannerConsole({
                 {lastResult.holderBirthDate ? (
                   <p>
                     Data nasterii:{" "}
-                    {new Date(lastResult.holderBirthDate).toLocaleDateString("ro-RO")}
+                    {formatDateInTimeZone(lastResult.holderBirthDate, {
+                      locale: "ro-RO",
+                      dateStyle: "long",
+                    })}
                   </p>
                 ) : null}
                 {lastResult.scannedAt ? (
-                  <p>Ora: {new Date(lastResult.scannedAt).toLocaleString("ro-RO")}</p>
+                  <p>
+                    Ora:{" "}
+                    {formatDateTimeInTimeZone(lastResult.scannedAt, {
+                      locale: "ro-RO",
+                      includeSeconds: true,
+                    })}
+                  </p>
                 ) : null}
               </div>
             </div>

@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { confirmSeatHoldAction, holdSeatsAction } from "@/lib/actions/reservations";
+import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import type { SeatMapSector, ViewerContext } from "@/lib/domain/types";
 import type { StadiumMapConfig } from "@/lib/stadium/stadium-types";
 import { formatCurrencyFromCents } from "@/lib/utils";
@@ -257,7 +258,10 @@ export function SeatMapBoard({
           {viewer.reservationBlockedUntil ? (
             <div className="rounded-[26px] border border-[#fecaca]/20 bg-[#dc2626]/12 p-4 text-sm leading-6 text-white/80">
               Contul are restrictii pana la{" "}
-              {new Date(viewer.reservationBlockedUntil).toLocaleString("ro-RO")}.
+              {formatDateTimeInTimeZone(viewer.reservationBlockedUntil, {
+                locale: "ro-RO",
+                includeSeconds: true,
+              })}.
             </div>
           ) : null}
 
