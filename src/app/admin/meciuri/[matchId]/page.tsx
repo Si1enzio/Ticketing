@@ -26,7 +26,7 @@ export default async function AdminMatchDetailsPage({
   const [report, scans, matches] = await Promise.all([
     getMatchReport(matchId),
     getMatchScanLogs(matchId),
-    getAdminMatchOverview(),
+    getAdminMatchOverview({ archiveMode: "include" }),
   ]);
 
   const matchOverview = matches.find((item) => item.id === matchId) ?? null;
