@@ -10,7 +10,11 @@ import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { deleteMatchAction, updateMatchAction } from "@/lib/actions/admin";
+import {
+  archiveMatchAction,
+  deleteMatchAction,
+  updateMatchAction,
+} from "@/lib/actions/admin";
 import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import type { AdminMatchOverview } from "@/lib/domain/types";
 
@@ -26,6 +30,63 @@ type AdminMatchCardProps = {
   matchStatusOptions: Option[];
   ticketingModeOptions: Option[];
 };
+
+function HoldSettingsFields({
+  initialHoldSeconds,
+  freeTicketConfirmedHoldSeconds,
+  paidTicketConfirmedHoldSeconds,
+  allowGuestHold,
+  requireLoginBeforeHold,
+}: {
+  initialHoldSeconds: number;
+  freeTicketConfirmedHoldSeconds: number;
+  paidTicketConfirmedHoldSeconds: number;
+  allowGuestHold: boolean;
+  requireLoginBeforeHold: boolean;
+}) {
+  return (
+    <>
+      <Field
+        name="initialHoldSeconds"
+        label="Hold initial (secunde)"
+        type="number"
+        defaultValue={String(initialHoldSeconds)}
+        min="60"
+        step="1"
+      />
+      <Field
+        name="freeTicketConfirmedHoldSeconds"
+        label="Hold extins gratuit (secunde)"
+        type="number"
+        defaultValue={String(freeTicketConfirmedHoldSeconds)}
+        min="180"
+        step="1"
+      />
+      <Field
+        name="paidTicketConfirmedHoldSeconds"
+        label="Hold extins cu plata (secunde)"
+        type="number"
+        defaultValue={String(paidTicketConfirmedHoldSeconds)}
+        min="420"
+        step="1"
+      />
+      <div className="grid gap-3 lg:col-span-2">
+        <label className="flex items-center gap-3 rounded-[22px] border border-black/6 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+          <input type="checkbox" name="allowGuestHold" defaultChecked={allowGuestHold} />
+          Permite hold pentru vizitatori nelogati
+        </label>
+        <label className="flex items-center gap-3 rounded-[22px] border border-black/6 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+          <input
+            type="checkbox"
+            name="requireLoginBeforeHold"
+            defaultChecked={requireLoginBeforeHold}
+          />
+          Cere autentificare inainte de hold
+        </label>
+      </div>
+    </>
+  );
+}
 
 export function AdminMatchCard({
   match,
@@ -61,6 +122,21 @@ export function AdminMatchCard({
             >
               <Link href={`/admin/meciuri/${match.id}` as Route}>Raport meci</Link>
             </Button>
+            {match.status !== "archived" ? (
+              <form action={archiveMatchAction}>
+                <input type="hidden" name="matchId" value={match.id} />
+                <ConfirmButton
+                  submitForm
+                  triggerLabel="Trimite in arhiva"
+                  title="Confirmi arhivarea evenimentului?"
+                  description={`Evenimentul „${match.title}” nu va mai fi afisat public utilizatorilor simpli, iar ticketing-ul se va inchide imediat.`}
+                  confirmLabel="Arhiveaza evenimentul"
+                  variant="outline"
+                  confirmVariant="default"
+                  className="rounded-full border border-[#b8860b] bg-[#fff8e1] px-5 text-[#8a6508] hover:bg-[#fff3c4]"
+                />
+              </form>
+            ) : null}
             <form action={deleteMatchAction}>
               <input type="hidden" name="matchId" value={match.id} />
               <ConfirmButton
@@ -180,6 +256,13 @@ export function AdminMatchCard({
                 options={ticketingModeOptions}
                 defaultValue={match.ticketingMode}
               />
+              <HoldSettingsFields
+                initialHoldSeconds={match.initialHoldSeconds}
+                freeTicketConfirmedHoldSeconds={match.freeTicketConfirmedHoldSeconds}
+                paidTicketConfirmedHoldSeconds={match.paidTicketConfirmedHoldSeconds}
+                allowGuestHold={match.allowGuestHold}
+                requireLoginBeforeHold={match.requireLoginBeforeHold}
+              />
               <Field
                 name={`price-${match.id}`}
                 htmlName="ticketPriceLei"
@@ -242,6 +325,8 @@ function formatMatchStatus(status: string) {
       return "Finalizat";
     case "canceled":
       return "Anulat";
+    case "archived":
+      return "Arhivat";
     default:
       return status;
   }

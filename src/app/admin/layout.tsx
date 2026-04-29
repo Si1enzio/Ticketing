@@ -8,6 +8,7 @@ import { getViewerContext } from "@/lib/supabase/queries";
 const navItems = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/meciuri", label: "Meciuri" },
+  { href: "/admin/arhiva", label: "Arhiva" },
   { href: "/admin/organizatori", label: "Organizatori" },
   { href: "/admin/stadion", label: "Locatii" },
   { href: "/admin/tombola", label: "Tombola" },

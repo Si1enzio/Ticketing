@@ -159,11 +159,25 @@ export default async function HomePage() {
           </p>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-2">
-          {matches.map((match) => (
-            <MatchCard key={match.id} match={match} locale={locale} messages={messages} />
-          ))}
-        </div>
+        {matches.length ? (
+          <div className="grid gap-6 xl:grid-cols-2">
+            {matches.map((match) => (
+              <MatchCard key={match.id} match={match} locale={locale} messages={messages} />
+            ))}
+          </div>
+        ) : (
+          <Card className="surface-panel rounded-[30px] border border-white/70 bg-white/94">
+            <CardContent className="space-y-3 p-8">
+              <h3 className="text-2xl font-semibold text-[#111111]">
+                Nu exista evenimente publice disponibile acum
+              </h3>
+              <p className="text-sm leading-7 text-neutral-600">
+                Toate evenimentele active au fost inchise sau mutate in arhiva. Revino curand
+                pentru programul urmator.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </section>
     </div>
   );

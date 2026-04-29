@@ -19,12 +19,14 @@ export function SeatButton({
   label,
   status,
   disabled,
+  pending,
   onClick,
   title,
 }: {
   label: string | number;
   status: StadiumSeatStatus;
   disabled?: boolean;
+  pending?: boolean;
   onClick?: () => void;
   title?: string;
 }) {
@@ -38,9 +40,10 @@ export function SeatButton({
         "flex min-h-11 min-w-11 items-center justify-center rounded-2xl border text-sm font-semibold transition sm:min-h-12 sm:min-w-12",
         seatStatusClassNames[status],
         disabled && "cursor-not-allowed opacity-90",
+        pending && "animate-pulse ring-2 ring-[#dc2626]/25",
       )}
     >
-      {label}
+      {pending ? "..." : label}
     </button>
   );
 }

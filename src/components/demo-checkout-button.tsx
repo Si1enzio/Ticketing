@@ -2,28 +2,37 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CreditCard, LoaderCircle } from "lucide-react";
+import { CreditCard, LoaderCircle, TicketPlus } from "lucide-react";
 import { toast } from "sonner";
 
-import { completeDemoCheckoutAction } from "@/lib/actions/reservations";
+import { completeDemoCheckoutAction, confirmSeatHoldAction } from "@/lib/actions/reservations";
 import { Button } from "@/components/ui/button";
 
 export function DemoCheckoutButton({
   matchId,
   holdToken,
+  ticketingMode,
 }: {
   matchId: string;
   holdToken: string;
+  ticketingMode: "free" | "paid";
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   function handleCheckout() {
     startTransition(async () => {
-      const result = await completeDemoCheckoutAction({
-        matchId,
-        holdToken,
-      });
+      const result =
+        ticketingMode === "paid"
+          ? await completeDemoCheckoutAction({
+              matchId,
+              holdToken,
+            })
+          : await confirmSeatHoldAction({
+              matchId,
+              holdToken,
+              source: "public_reservation",
+            });
 
       if (!result.ok || !result.reservationId) {
         toast.error(result.message);
@@ -46,9 +55,17 @@ export function DemoCheckoutButton({
       {isPending ? (
         <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
       ) : (
-        <CreditCard className="mr-2 h-4 w-4" />
+        <>
+          {ticketingMode === "paid" ? (
+            <CreditCard className="mr-2 h-4 w-4" />
+          ) : (
+            <TicketPlus className="mr-2 h-4 w-4" />
+          )}
+        </>
       )}
-      Confirma plata si emite biletele
+      {ticketingMode === "paid"
+        ? "Confirma plata si emite biletele"
+        : "Confirma emiterea biletelor"}
     </Button>
   );
 }

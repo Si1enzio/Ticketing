@@ -9,6 +9,7 @@ export const matchStatusSchema = z.enum([
   "closed",
   "completed",
   "canceled",
+  "archived",
 ]);
 export const reservationStatusSchema = z.enum([
   "pending",
@@ -34,8 +35,11 @@ export const profileGenderSchema = z.enum([
 export const seatAvailabilitySchema = z.enum([
   "available",
   "selected",
+  "held_by_me",
   "held",
   "reserved",
+  "sold",
+  "unavailable",
   "disabled",
   "blocked",
   "obstructed",
@@ -106,6 +110,11 @@ export const publicMatchSchema = z.object({
   maxTicketsPerUser: z.coerce.number().int().nonnegative(),
   reservationOpensAt: z.string().nullable().default(null),
   reservationClosesAt: z.string().nullable().default(null),
+  initialHoldSeconds: z.coerce.number().int().positive().default(90),
+  freeTicketConfirmedHoldSeconds: z.coerce.number().int().positive().default(300),
+  paidTicketConfirmedHoldSeconds: z.coerce.number().int().positive().default(600),
+  allowGuestHold: z.boolean().default(true),
+  requireLoginBeforeHold: z.boolean().default(false),
   issuedCount: z.coerce.number().int().nonnegative().default(0),
   scannedCount: z.coerce.number().int().nonnegative().default(0),
   availableEstimate: z.coerce.number().int().nonnegative().default(0),
@@ -116,6 +125,15 @@ export const publicMatchSchema = z.object({
 });
 
 export type PublicMatch = z.infer<typeof publicMatchSchema>;
+
+export const seatHoldSummarySchema = z.object({
+  holdToken: z.string().uuid(),
+  expiresAt: z.string(),
+  holdType: z.enum(["initial", "confirmed_free", "confirmed_paid"]),
+  seatIds: z.array(z.string().uuid()).default([]),
+});
+
+export type SeatHoldSummary = z.infer<typeof seatHoldSummarySchema>;
 
 export const sectorSummarySchema = z.object({
   sectorId: z.string(),
@@ -222,10 +240,16 @@ export const adminMatchOverviewSchema = z.object({
   bannerUrl: z.string().nullable().default(null),
   startsAt: z.string(),
   status: matchStatusSchema,
+  archivedAt: z.string().nullable().default(null),
   scannerEnabled: z.boolean(),
   maxTicketsPerUser: z.coerce.number().int().nonnegative(),
   reservationOpensAt: z.string().nullable().default(null),
   reservationClosesAt: z.string().nullable().default(null),
+  initialHoldSeconds: z.coerce.number().int().positive().default(90),
+  freeTicketConfirmedHoldSeconds: z.coerce.number().int().positive().default(300),
+  paidTicketConfirmedHoldSeconds: z.coerce.number().int().positive().default(600),
+  allowGuestHold: z.boolean().default(true),
+  requireLoginBeforeHold: z.boolean().default(false),
   issuedCount: z.coerce.number().int().nonnegative(),
   scannedCount: z.coerce.number().int().nonnegative(),
   noShowCount: z.coerce.number().int().nonnegative(),
@@ -365,6 +389,7 @@ export const checkoutSummarySchema = z.object({
   currency: z.string().default("MDL"),
   totalAmountCents: z.coerce.number().int().nonnegative(),
   expiresAt: z.string(),
+  holdType: z.enum(["initial", "confirmed_free", "confirmed_paid"]).default("initial"),
   items: z.array(checkoutItemSchema),
 });
 

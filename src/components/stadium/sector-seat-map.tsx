@@ -13,12 +13,14 @@ export function SectorSeatMap({
   sector,
   sectorConfig,
   selectedSeatIds,
+  pendingSeatIds = [],
   disabled,
   onSeatToggle,
 }: {
   sector: SeatMapSector | null;
   sectorConfig?: SectorConfig | null;
   selectedSeatIds: string[];
+  pendingSeatIds?: string[];
   disabled?: boolean;
   onSeatToggle: (seatId: string, availability: string) => void;
 }) {
@@ -126,6 +128,7 @@ export function SectorSeatMap({
             key={row.id}
             row={row}
             disabled={disabled}
+            pendingSeatIds={pendingSeatIds}
             scrollContainerRef={(node) => {
               rowScrollRefs.current[rowIndex] = node;
             }}

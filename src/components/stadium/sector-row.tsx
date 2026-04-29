@@ -9,12 +9,14 @@ export function SectorRow({
   row,
   disabled,
   onSeatClick,
+  pendingSeatIds = [],
   scrollContainerRef,
   onScroll,
 }: {
   row: StadiumSeatRow;
   disabled?: boolean;
   onSeatClick: (seatId: string) => void;
+  pendingSeatIds?: string[];
   scrollContainerRef?: (node: HTMLDivElement | null) => void;
   onScroll?: (scrollLeft: number) => void;
 }) {
@@ -48,6 +50,7 @@ export function SectorRow({
                 key={cell.key}
                 label={cell.seat.seatNumber}
                 status={cell.status}
+                pending={pendingSeatIds.includes(cell.seat.seatId)}
                 disabled={disabled || (cell.status !== "available" && cell.status !== "selected")}
                 onClick={() => onSeatClick(cell.seat.seatId)}
                 title={`${copy.row} ${cell.seat.rowLabel} - ${copy.seat} ${cell.seat.seatNumber}`}

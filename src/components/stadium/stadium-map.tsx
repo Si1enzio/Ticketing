@@ -27,6 +27,7 @@ export function StadiumMap({
   overrideConfig,
   sectors,
   selectedSeatIds,
+  pendingSeatIds,
   disabled,
   onSeatToggle,
 }: {
@@ -37,6 +38,7 @@ export function StadiumMap({
   overrideConfig?: StadiumMapConfig | null;
   sectors: SeatMapSector[];
   selectedSeatIds: string[];
+  pendingSeatIds?: string[];
   disabled?: boolean;
   onSeatToggle: (seatId: string, availability: string) => void;
 }) {
@@ -77,11 +79,19 @@ export function StadiumMap({
     [resolvedMap.config, sectors, selectedSeatIds],
   );
 
+  const selectedSectorFromSeats = useMemo(
+    () =>
+      renderableSectors.find((sector) =>
+        sector.data?.seats.some((seat) => selectedSeatIds.includes(seat.seatId)),
+      ) ?? null,
+    [renderableSectors, selectedSeatIds],
+  );
+
   const [selectedTribuneId, setSelectedTribuneId] = useState<string | null>(
-    visibleTribunes[0]?.id ?? null,
+    selectedSectorFromSeats?.config.tribuneId ?? visibleTribunes[0]?.id ?? null,
   );
   const [selectedSectorCode, setSelectedSectorCode] = useState<string | null>(
-    renderableSectors[0]?.config.code ?? null,
+    selectedSectorFromSeats?.config.code ?? renderableSectors[0]?.config.code ?? null,
   );
 
   const effectiveTribuneId = useMemo(() => {
@@ -89,14 +99,22 @@ export function StadiumMap({
       return null;
     }
 
+    if (selectedSectorFromSeats?.config.tribuneId) {
+      return selectedSectorFromSeats.config.tribuneId;
+    }
+
     if (selectedTribuneId && visibleTribunes.some((item) => item.id === selectedTribuneId)) {
       return selectedTribuneId;
     }
 
     return visibleTribunes[0].id;
-  }, [selectedTribuneId, visibleTribunes]);
+  }, [selectedSectorFromSeats, selectedTribuneId, visibleTribunes]);
 
   const effectiveSectorCode = useMemo(() => {
+    if (selectedSectorFromSeats?.config.code) {
+      return selectedSectorFromSeats.config.code;
+    }
+
     const sectorsForTribune = renderableSectors.filter(
       (sector) => sector.config.tribuneId === effectiveTribuneId,
     );
@@ -109,7 +127,7 @@ export function StadiumMap({
     }
 
     return sectorsForTribune[0]?.config.code ?? renderableSectors[0]?.config.code ?? null;
-  }, [effectiveTribuneId, renderableSectors, selectedSectorCode]);
+  }, [effectiveTribuneId, renderableSectors, selectedSectorCode, selectedSectorFromSeats]);
 
   const selectedRenderableSector =
     renderableSectors.find((sector) => sector.config.code === effectiveSectorCode) ?? null;
@@ -263,6 +281,7 @@ export function StadiumMap({
           sector={selectedRenderableSector?.data ?? null}
           sectorConfig={selectedRenderableSector?.config ?? null}
           selectedSeatIds={selectedSeatIds}
+          pendingSeatIds={pendingSeatIds}
           disabled={disabled}
           onSeatToggle={onSeatToggle}
         />

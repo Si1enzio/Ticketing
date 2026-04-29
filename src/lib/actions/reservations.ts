@@ -8,6 +8,7 @@ import {
   ensureTrustedServerActionRequest,
   sanitizeUserFacingErrorMessage,
 } from "@/lib/security/http";
+import { getSeatHoldSessionIdFromCookies } from "@/lib/seat-hold-session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const holdSchema = z.object({
@@ -102,6 +103,7 @@ export async function confirmSeatHoldAction(input: z.input<typeof confirmSchema>
   }
 
   const supabase = await createSupabaseServerClient();
+  const holdSessionId = await getSeatHoldSessionIdFromCookies();
 
   if (!supabase) {
     return {
@@ -114,6 +116,7 @@ export async function confirmSeatHoldAction(input: z.input<typeof confirmSchema>
     p_match_id: parsed.data.matchId,
     p_hold_token: parsed.data.holdToken,
     p_source: parsed.data.source,
+    p_session_id: holdSessionId ?? null,
   });
 
   if (error) {
@@ -157,6 +160,7 @@ export async function completeDemoCheckoutAction(input: z.input<typeof paymentSc
   }
 
   const supabase = await createSupabaseServerClient();
+  const holdSessionId = await getSeatHoldSessionIdFromCookies();
 
   if (!supabase) {
     return {
@@ -168,6 +172,7 @@ export async function completeDemoCheckoutAction(input: z.input<typeof paymentSc
   const { data, error } = await supabase.rpc("complete_demo_payment", {
     p_match_id: parsed.data.matchId,
     p_hold_token: parsed.data.holdToken,
+    p_session_id: holdSessionId ?? null,
   });
 
   if (error) {

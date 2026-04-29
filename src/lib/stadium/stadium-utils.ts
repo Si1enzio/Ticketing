@@ -33,12 +33,18 @@ export function getSeatStatus(
   switch (seat.availability) {
     case "available":
       return "available";
+    case "held_by_me":
+      return "selected";
     case "held":
       return "held";
+    case "sold":
+      return "sold";
     case "reserved":
       return "sold";
     case "selected":
       return "selected";
+    case "unavailable":
+      return "unavailable";
     case "blocked":
     case "disabled":
     case "obstructed":

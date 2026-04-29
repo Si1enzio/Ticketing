@@ -115,6 +115,11 @@ const matchSchema = z.object({
   ticketingMode: z.enum(["free", "paid"]).default("free"),
   ticketPriceCents: z.coerce.number().int().min(0).default(0),
   currency: z.string().min(3).max(3).default("MDL"),
+  initialHoldSeconds: z.coerce.number().int().min(60).max(120).default(90),
+  freeTicketConfirmedHoldSeconds: z.coerce.number().int().min(180).max(300).default(300),
+  paidTicketConfirmedHoldSeconds: z.coerce.number().int().min(420).max(600).default(600),
+  allowGuestHold: z.boolean().default(true),
+  requireLoginBeforeHold: z.boolean().default(false),
 });
 
 const matchUpdateSchema = matchSchema.extend({
@@ -122,6 +127,10 @@ const matchUpdateSchema = matchSchema.extend({
 });
 
 const matchDeleteSchema = z.object({
+  matchId: z.string(),
+});
+
+const matchArchiveSchema = z.object({
   matchId: z.string(),
 });
 
@@ -325,6 +334,26 @@ async function ensureAdmin(): Promise<
   };
 }
 
+function canViewerAccessManagedMatch(
+  viewer: Awaited<ReturnType<typeof getViewerContext>> & { userId: string },
+  locationId: string | null | undefined,
+  organizerId: string | null | undefined,
+) {
+  if (hasAnyRole(viewer.roles, ["admin", "superadmin"])) {
+    return true;
+  }
+
+  if (!hasAnyRole(viewer.roles, ["organizer_admin"])) {
+    return false;
+  }
+
+  if (locationId && viewer.locationIds.includes(locationId)) {
+    return true;
+  }
+
+  return Boolean(organizerId && viewer.organizerIds.includes(organizerId));
+}
+
 async function logAudit(actorUserId: string, action: string, entityType: string, entityId: string, details: Record<string, unknown>) {
   const supabase = await createSupabaseServerClient();
 
@@ -349,6 +378,11 @@ function redirectToAdminStadium(params: Record<string, string>): never {
 function redirectToAdminMatches(params: Record<string, string>): never {
   const query = new URLSearchParams(params);
   redirect(`/admin/meciuri?${query.toString()}`);
+}
+
+function redirectToAdminArchive(params: Record<string, string>): never {
+  const query = new URLSearchParams(params);
+  redirect(`/admin/arhiva?${query.toString()}`);
 }
 
 function redirectToAdminOrganizers(params: Record<string, string>): never {
@@ -602,6 +636,27 @@ function validateMatchScheduleWindow(input: {
   }
 
   return null;
+}
+
+function getAutoReservationCloseAtIso(startsAtIso: string) {
+  const autoCloseAt = new Date(startsAtIso);
+  autoCloseAt.setHours(autoCloseAt.getHours() + 1);
+  return autoCloseAt.toISOString();
+}
+
+function getEffectiveReservationClosesAtIso(
+  startsAtIso: string,
+  reservationClosesAtIso: string | null,
+) {
+  const autoCloseAtIso = getAutoReservationCloseAtIso(startsAtIso);
+
+  if (!reservationClosesAtIso) {
+    return autoCloseAtIso;
+  }
+
+  return new Date(reservationClosesAtIso) < new Date(autoCloseAtIso)
+    ? reservationClosesAtIso
+    : autoCloseAtIso;
 }
 
 function parseLeiAmountInput(
@@ -1754,6 +1809,13 @@ export async function createMatchAction(formData: FormData) {
     ticketingMode: formData.get("ticketingMode") || "free",
     ticketPriceCents: ticketPriceResult.cents,
     currency: "MDL",
+    initialHoldSeconds: formData.get("initialHoldSeconds") || 90,
+    freeTicketConfirmedHoldSeconds:
+      formData.get("freeTicketConfirmedHoldSeconds") || 300,
+    paidTicketConfirmedHoldSeconds:
+      formData.get("paidTicketConfirmedHoldSeconds") || 600,
+    allowGuestHold: formData.get("allowGuestHold") === "on",
+    requireLoginBeforeHold: formData.get("requireLoginBeforeHold") === "on",
   });
 
   if (!parsed.success || !isSupabaseConfigured()) {
@@ -1798,6 +1860,11 @@ export async function createMatchAction(formData: FormData) {
   if (scheduleError) {
     redirectToAdminMatches({ error: scheduleError });
   }
+
+  const effectiveReservationClosesAtIso = getEffectiveReservationClosesAtIso(
+    startsAtResult.value,
+    reservationClosesAtResult.value,
+  );
 
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
@@ -1871,11 +1938,16 @@ export async function createMatchAction(formData: FormData) {
       match_id: data.id,
       max_tickets_per_user: parsed.data.maxTicketsPerUser,
       opens_at: reservationOpensAtResult.value,
-      closes_at: reservationClosesAtResult.value,
+      closes_at: effectiveReservationClosesAtIso,
       ticketing_mode: parsed.data.ticketingMode,
       ticket_price_cents:
         parsed.data.ticketingMode === "paid" ? parsed.data.ticketPriceCents : 0,
       currency: "MDL",
+      initial_hold_seconds: parsed.data.initialHoldSeconds,
+      free_ticket_confirmed_hold_seconds: parsed.data.freeTicketConfirmedHoldSeconds,
+      paid_ticket_confirmed_hold_seconds: parsed.data.paidTicketConfirmedHoldSeconds,
+      allow_guest_hold: parsed.data.allowGuestHold,
+      require_login_before_hold: parsed.data.requireLoginBeforeHold,
     },
     {
       onConflict: "match_id",
@@ -1898,7 +1970,7 @@ export async function createMatchAction(formData: FormData) {
     ...parsed.data,
     startsAt: startsAtResult.value,
     reservationOpensAt: reservationOpensAtResult.value,
-    reservationClosesAt: reservationClosesAtResult.value,
+    reservationClosesAt: effectiveReservationClosesAtIso,
   });
 
   revalidatePath("/admin");
@@ -2233,6 +2305,13 @@ export async function updateMatchAction(formData: FormData) {
     ticketingMode: formData.get("ticketingMode") || "free",
     ticketPriceCents: ticketPriceResult.cents,
     currency: "MDL",
+    initialHoldSeconds: formData.get("initialHoldSeconds") || 90,
+    freeTicketConfirmedHoldSeconds:
+      formData.get("freeTicketConfirmedHoldSeconds") || 300,
+    paidTicketConfirmedHoldSeconds:
+      formData.get("paidTicketConfirmedHoldSeconds") || 600,
+    allowGuestHold: formData.get("allowGuestHold") === "on",
+    requireLoginBeforeHold: formData.get("requireLoginBeforeHold") === "on",
   });
 
   if (!parsed.success || !isSupabaseConfigured()) {
@@ -2277,6 +2356,11 @@ export async function updateMatchAction(formData: FormData) {
   if (scheduleError) {
     redirectToAdminMatches({ error: scheduleError });
   }
+
+  const effectiveReservationClosesAtIso = getEffectiveReservationClosesAtIso(
+    startsAtResult.value,
+    reservationClosesAtResult.value,
+  );
 
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
@@ -2355,11 +2439,16 @@ export async function updateMatchAction(formData: FormData) {
       match_id: parsed.data.matchId,
       max_tickets_per_user: parsed.data.maxTicketsPerUser,
       opens_at: reservationOpensAtResult.value,
-      closes_at: reservationClosesAtResult.value,
+      closes_at: effectiveReservationClosesAtIso,
       ticketing_mode: parsed.data.ticketingMode,
       ticket_price_cents:
         parsed.data.ticketingMode === "paid" ? parsed.data.ticketPriceCents : 0,
       currency: "MDL",
+      initial_hold_seconds: parsed.data.initialHoldSeconds,
+      free_ticket_confirmed_hold_seconds: parsed.data.freeTicketConfirmedHoldSeconds,
+      paid_ticket_confirmed_hold_seconds: parsed.data.paidTicketConfirmedHoldSeconds,
+      allow_guest_hold: parsed.data.allowGuestHold,
+      require_login_before_hold: parsed.data.requireLoginBeforeHold,
     },
     {
       onConflict: "match_id",
@@ -2382,7 +2471,7 @@ export async function updateMatchAction(formData: FormData) {
     ...parsed.data,
     startsAt: startsAtResult.value,
     reservationOpensAt: reservationOpensAtResult.value,
-    reservationClosesAt: reservationClosesAtResult.value,
+    reservationClosesAt: effectiveReservationClosesAtIso,
   });
 
   revalidatePath("/admin");
@@ -2441,6 +2530,97 @@ export async function deleteMatchAction(formData: FormData) {
   revalidatePath("/admin/meciuri");
   redirectToAdminMatches({
     notice: `Meciul ${match.title} a fost sters. Au fost eliminate ${Number((deleteSummary as { deletedReservations?: number } | null)?.deletedReservations ?? 0)} rezervari, ${Number((deleteSummary as { deletedTickets?: number } | null)?.deletedTickets ?? 0)} bilete, ${Number((deleteSummary as { deletedScans?: number } | null)?.deletedScans ?? 0)} scanari si ${Number((deleteSummary as { deletedPayments?: number } | null)?.deletedPayments ?? 0)} plati asociate.`,
+  });
+}
+
+export async function archiveMatchAction(formData: FormData) {
+  const viewer = await ensureAdmin();
+  const parsed = matchArchiveSchema.safeParse({
+    matchId: formData.get("matchId"),
+  });
+
+  if (!parsed.success || !isSupabaseConfigured()) {
+    redirectToAdminMatches({
+      error: "Cererea de arhivare a evenimentului este invalida.",
+    });
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    redirectToAdminMatches({
+      error: "Conexiunea la baza de date nu este disponibila.",
+    });
+  }
+
+  const { data: match, error: matchError } = await supabase
+    .from("matches")
+    .select("id, title, slug, stadium_id, organizer_id, status, starts_at")
+    .eq("id", parsed.data.matchId)
+    .maybeSingle();
+
+  if (matchError || !match) {
+    redirectToAdminMatches({
+      error: "Evenimentul nu mai exista sau nu a putut fi incarcat.",
+    });
+  }
+
+  if (!canViewerAccessManagedMatch(viewer, match.stadium_id, match.organizer_id ?? null)) {
+    redirectToAdminMatches({
+      error: "Nu ai acces sa arhivezi acest eveniment.",
+    });
+  }
+
+  const archivedAt = new Date().toISOString();
+  const effectiveCloseAt = archivedAt;
+
+  const { error: archiveError } = await supabase
+    .from("matches")
+    .update({
+      status: "archived",
+      archived_at: archivedAt,
+      updated_by: viewer.userId,
+    })
+    .eq("id", parsed.data.matchId);
+
+  if (archiveError) {
+    console.error("Nu am putut arhiva evenimentul.", archiveError);
+    redirectToAdminMatches({
+      error:
+        sanitizeUserFacingErrorMessage(
+          archiveError.message,
+          "Evenimentul nu a putut fi trimis in arhiva.",
+        ) ?? "Evenimentul nu a putut fi trimis in arhiva.",
+    });
+  }
+
+  const { error: settingsError } = await supabase.from("match_settings").upsert(
+    {
+      match_id: parsed.data.matchId,
+      closes_at: effectiveCloseAt,
+    },
+    {
+      onConflict: "match_id",
+    },
+  );
+
+  if (settingsError) {
+    console.error("Nu am putut inchide ticketing-ul la arhivare.", settingsError);
+  }
+
+  await logAudit(viewer.userId, "archive_match", "matches", parsed.data.matchId, {
+    matchTitle: match.title,
+    previousStatus: match.status,
+    archivedAt,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/meciuri");
+  revalidatePath("/admin/arhiva");
+  revalidatePath(`/meciuri/${match.slug ?? ""}`);
+  redirectToAdminArchive({
+    notice: `Evenimentul ${match.title} a fost trimis in arhiva.`,
   });
 }
 

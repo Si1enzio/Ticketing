@@ -63,6 +63,11 @@ export default async function AdminDashboardPage() {
                 label="Harta locatie"
                 description="Configureaza overview SVG reutilizabil"
               />
+              <QuickLink
+                href="/admin/arhiva"
+                label="Arhiva"
+                description="Evenimente iesite din circuitul public"
+              />
             </div>
           </CardContent>
         </Card>

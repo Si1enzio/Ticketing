@@ -19,7 +19,7 @@ type SupabaseAdminTable = {
 
 type SupabaseAdminDatabase = {
   public: {
-    Tables: {
+    Tables: Record<string, SupabaseAdminTable> & {
       profiles: SupabaseAdminTable;
       user_roles: SupabaseAdminTable;
       audit_logs: SupabaseAdminTable;

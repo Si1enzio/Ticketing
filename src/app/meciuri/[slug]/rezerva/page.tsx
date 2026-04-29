@@ -4,7 +4,9 @@ import { connection } from "next/server";
 import { SeatMapBoard } from "@/components/seat-map-board";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatDateTimeInTimeZone } from "@/lib/date-time";
+import { getSeatHoldSessionIdFromCookies } from "@/lib/seat-hold-session";
 import {
+  getActiveSeatHoldSummary,
   getStadiumMapConfigByStadiumId,
   getPublicMatchBySlug,
   getSeatMapForMatch,
@@ -21,15 +23,17 @@ export default async function ReserveSeatPage({
   const { slug } = await params;
   const viewer = await getViewerContext();
   const match = await getPublicMatchBySlug(slug);
+  const holdSessionId = await getSeatHoldSessionIdFromCookies();
 
   if (!match) {
     notFound();
   }
 
-  const [sectors, tickets, stadiumMapConfig] = await Promise.all([
-    getSeatMapForMatch(match.id, viewer),
+  const [sectors, tickets, stadiumMapConfig, activeHold] = await Promise.all([
+    getSeatMapForMatch(match.id, viewer, holdSessionId),
     getViewerTickets(viewer),
     getStadiumMapConfigByStadiumId(match.stadiumId),
+    getActiveSeatHoldSummary(match.id, holdSessionId),
   ]);
 
   const activeTicketsForMatch = tickets.filter(
@@ -82,6 +86,23 @@ export default async function ReserveSeatPage({
         ticketingMode={match.ticketingMode}
         ticketPriceCents={match.ticketPriceCents}
         currency={match.currency}
+        initialSelectedSeatIds={activeHold?.seatIds ?? []}
+        initialHoldState={
+          activeHold
+            ? {
+                holdToken: activeHold.holdToken,
+                expiresAt: activeHold.expiresAt,
+                holdType: activeHold.holdType,
+              }
+            : null
+        }
+        holdConfig={{
+          initialHoldSeconds: match.initialHoldSeconds,
+          freeTicketConfirmedHoldSeconds: match.freeTicketConfirmedHoldSeconds,
+          paidTicketConfirmedHoldSeconds: match.paidTicketConfirmedHoldSeconds,
+          allowGuestHold: match.allowGuestHold,
+          requireLoginBeforeHold: match.requireLoginBeforeHold,
+        }}
       />
     </section>
   );

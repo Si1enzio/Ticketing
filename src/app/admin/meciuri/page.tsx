@@ -28,6 +28,63 @@ const ticketingModeOptions = [
   { value: "paid", label: "Cu plata" },
 ];
 
+function HoldSettingsFields({
+  initialHoldSeconds = 90,
+  freeTicketConfirmedHoldSeconds = 300,
+  paidTicketConfirmedHoldSeconds = 600,
+  allowGuestHold = true,
+  requireLoginBeforeHold = false,
+}: {
+  initialHoldSeconds?: number;
+  freeTicketConfirmedHoldSeconds?: number;
+  paidTicketConfirmedHoldSeconds?: number;
+  allowGuestHold?: boolean;
+  requireLoginBeforeHold?: boolean;
+}) {
+  return (
+    <>
+      <Field
+        name="initialHoldSeconds"
+        label="Hold initial (secunde)"
+        type="number"
+        defaultValue={String(initialHoldSeconds)}
+        min="60"
+        step="1"
+      />
+      <Field
+        name="freeTicketConfirmedHoldSeconds"
+        label="Hold extins gratuit (secunde)"
+        type="number"
+        defaultValue={String(freeTicketConfirmedHoldSeconds)}
+        min="180"
+        step="1"
+      />
+      <Field
+        name="paidTicketConfirmedHoldSeconds"
+        label="Hold extins cu plata (secunde)"
+        type="number"
+        defaultValue={String(paidTicketConfirmedHoldSeconds)}
+        min="420"
+        step="1"
+      />
+      <div className="grid gap-3 lg:col-span-2">
+        <label className="flex items-center gap-3 rounded-[22px] border border-black/6 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+          <input type="checkbox" name="allowGuestHold" defaultChecked={allowGuestHold} />
+          Permite hold pentru vizitatori nelogati
+        </label>
+        <label className="flex items-center gap-3 rounded-[22px] border border-black/6 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+          <input
+            type="checkbox"
+            name="requireLoginBeforeHold"
+            defaultChecked={requireLoginBeforeHold}
+          />
+          Cere autentificare inainte de hold
+        </label>
+      </div>
+    </>
+  );
+}
+
 export default async function AdminMatchesPage({
   searchParams,
 }: {
@@ -135,6 +192,7 @@ export default async function AdminMatchesPage({
               options={ticketingModeOptions}
               defaultValue="free"
             />
+            <HoldSettingsFields />
             <Field
               name="ticketPriceLei"
               label="Pret (lei)"
@@ -161,16 +219,30 @@ export default async function AdminMatchesPage({
       </Card>
 
       <div className="grid gap-4">
-        {matches.map((match) => (
-          <AdminMatchCard
-            key={match.id}
-            match={match}
-            stadiumOptions={stadiumOptions}
-            teamSuggestions={teamSuggestions}
-            matchStatusOptions={matchStatusOptions}
-            ticketingModeOptions={ticketingModeOptions}
-          />
-        ))}
+        {matches.length ? (
+          matches.map((match) => (
+            <AdminMatchCard
+              key={match.id}
+              match={match}
+              stadiumOptions={stadiumOptions}
+              teamSuggestions={teamSuggestions}
+              matchStatusOptions={matchStatusOptions}
+              ticketingModeOptions={ticketingModeOptions}
+            />
+          ))
+        ) : (
+          <Card className="surface-panel rounded-[30px] border border-white/70 bg-white/94">
+            <CardContent className="space-y-3 p-8">
+              <h2 className="text-2xl font-semibold text-[#111111]">
+                Nu exista evenimente active in administrare
+              </h2>
+              <p className="text-sm leading-7 text-neutral-600">
+                Evenimentele publice, inchise sau finalizate apar aici pana cand sunt trimise
+                in arhiva. Poti crea un eveniment nou din formularul de mai sus.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

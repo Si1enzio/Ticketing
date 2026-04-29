@@ -7,8 +7,9 @@ import { DemoCheckoutButton } from "@/components/demo-checkout-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDateTimeInTimeZone } from "@/lib/date-time";
+import { getSeatHoldSessionIdFromCookies } from "@/lib/seat-hold-session";
 import {
-  getCheckoutSummary,
+  getCheckoutSummaryWithSession,
   getPublicMatchBySlug,
   getViewerContext,
 } from "@/lib/supabase/queries";
@@ -26,6 +27,7 @@ export default async function MatchCheckoutPage({
   const resolvedSearchParams = (await searchParams) ?? {};
   const holdToken = resolvedSearchParams.hold ?? "";
   const viewer = await getViewerContext();
+  const holdSessionId = await getSeatHoldSessionIdFromCookies();
 
   if (!viewer.isAuthenticated) {
     redirect(`/autentificare?next=/meciuri/${slug}/checkout?hold=${holdToken}`);
@@ -37,26 +39,23 @@ export default async function MatchCheckoutPage({
     notFound();
   }
 
-  if (match.ticketingMode !== "paid" && !viewer.isPrivileged) {
-    redirect(`/meciuri/${slug}/rezerva`);
-  }
-
   const summary = holdToken
-    ? await getCheckoutSummary(match.id, holdToken, viewer)
+    ? await getCheckoutSummaryWithSession(match.id, holdToken, holdSessionId)
     : null;
 
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#b91c1c]">
-          Checkout bilete
+          {match.ticketingMode === "paid" ? "Checkout bilete" : "Confirmare selectie"}
         </p>
         <h1 className="mt-2 font-heading text-5xl uppercase tracking-[0.08em] text-[#111111]">
           {match.title}
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-neutral-600">
-          Pentru MVP am activat un checkout demo sigur pentru testare. Fluxul este deja
-          pregatit pentru integrarea ulterioara cu un procesator real de plati.
+          {match.ticketingMode === "paid"
+            ? "Pentru MVP am activat un checkout demo sigur pentru testare. Fluxul este deja pregatit pentru integrarea ulterioara cu un procesator real de plati."
+            : "Finalizeaza emiterea biletelor gratuite inainte sa expire hold-ul extins. Dupa confirmare, biletele cu QR vor aparea imediat in cabinet."}
         </p>
       </div>
 
@@ -184,7 +183,11 @@ export default async function MatchCheckoutPage({
                 fonduri reale in acest MVP.
               </div>
 
-              <DemoCheckoutButton matchId={summary.matchId} holdToken={summary.holdToken} />
+              <DemoCheckoutButton
+                matchId={summary.matchId}
+                holdToken={summary.holdToken}
+                ticketingMode={summary.ticketingMode}
+              />
 
               <Button
                 asChild

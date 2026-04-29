@@ -6,6 +6,7 @@ import {
   adminUserOverviewSchema,
   profileDetailsSchema,
   publicMatchSchema,
+  seatHoldSummarySchema,
   seatMapSeatSchema,
   ticketCardSchema,
   type AdminMatchOverview,
@@ -14,6 +15,7 @@ import {
   type ProfileDetails,
   type PublicMatch,
   type ScannerMatch,
+  type SeatHoldSummary,
   type SeatMapSector,
   type StadiumBuilder,
   type StadiumSponsor,
@@ -26,6 +28,7 @@ import {
   userSubscriptionSchema,
 } from "@/lib/domain/types";
 import { stadiumMapConfigSchema } from "@/lib/stadium/stadium-schema";
+import { syncMatchLifecycleStatuses } from "@/lib/match-lifecycle";
 import type { StadiumMapConfig } from "@/lib/stadium/stadium-types";
 import {
   mockAdminMatches,
@@ -38,6 +41,7 @@ import {
 } from "@/lib/domain/mock";
 import { isSupabaseConfigured } from "@/lib/env";
 import {
+  createSupabaseAdminClient,
   createSupabasePublicServerClient,
   createSupabaseServerClient,
 } from "@/lib/supabase/server";
@@ -300,10 +304,12 @@ export async function getPublicMatches(): Promise<PublicMatch[]> {
   }
 
   try {
+    await syncMatchLifecycleStatuses();
+
     const supabase = createSupabasePublicServerClient();
 
     if (!supabase) {
-      return mockMatches;
+      return [];
     }
 
     const { data, error } = await supabase
@@ -318,7 +324,7 @@ export async function getPublicMatches(): Promise<PublicMatch[]> {
     const rows = (data ?? []) as Record<string, unknown>[];
 
     if (!rows.length) {
-      return mockMatches;
+      return [];
     }
 
     return rows.map((item) =>
@@ -339,6 +345,11 @@ export async function getPublicMatches(): Promise<PublicMatch[]> {
         maxTicketsPerUser: item.max_tickets_per_user,
         reservationOpensAt: item.reservation_opens_at,
         reservationClosesAt: item.reservation_closes_at,
+        initialHoldSeconds: item.initial_hold_seconds,
+        freeTicketConfirmedHoldSeconds: item.free_ticket_confirmed_hold_seconds,
+        paidTicketConfirmedHoldSeconds: item.paid_ticket_confirmed_hold_seconds,
+        allowGuestHold: item.allow_guest_hold,
+        requireLoginBeforeHold: item.require_login_before_hold,
         issuedCount: item.issued_count,
         scannedCount: item.scanned_count,
         availableEstimate: item.available_estimate,
@@ -350,7 +361,7 @@ export async function getPublicMatches(): Promise<PublicMatch[]> {
     );
   } catch (error) {
     console.error("Nu am putut încărca lista de meciuri publice.", error);
-    return mockMatches;
+    return [];
   }
 }
 
@@ -362,43 +373,87 @@ export async function getPublicMatchBySlug(slug: string) {
 export async function getSeatMapForMatch(
   matchId: string,
   viewer: ViewerContext = mockViewer,
+  holdSessionId?: string | null,
 ): Promise<SeatMapSector[]> {
   if (!isSupabaseConfigured()) {
     return mockSeatMap;
   }
 
   try {
-    const supabase = viewer.userId
-      ? await createSupabaseServerClient()
-      : createSupabasePublicServerClient();
+    async function fetchSeatStatusRows(
+      client:
+        | Awaited<ReturnType<typeof createSupabaseServerClient>>
+        | ReturnType<typeof createSupabasePublicServerClient>,
+    ) {
+      if (!client) {
+        return null;
+      }
 
-    if (!supabase) {
-      return mockSeatMap;
+      const pageSize = 1000;
+      const rows: Record<string, unknown>[] = [];
+      let from = 0;
+
+      while (true) {
+        const rpcClient = client as unknown as {
+          rpc: (fn: string, args?: Record<string, unknown>) => {
+            range: (from: number, to: number) => Promise<{
+              data: unknown[] | null;
+              error: { message: string } | null;
+            }>;
+          };
+        };
+
+        const { data, error } = await rpcClient
+          .rpc("get_match_seat_status", {
+            p_match_id: matchId,
+            p_session_id: holdSessionId ?? null,
+          })
+          .range(from, from + pageSize - 1);
+
+        if (error) {
+          throw error;
+        }
+
+        const chunk = (data ?? []) as Record<string, unknown>[];
+        rows.push(...chunk);
+
+        if (chunk.length < pageSize) {
+          break;
+        }
+
+        from += pageSize;
+      }
+
+      return rows;
     }
 
-    const pageSize = 1000;
-    const rows: Record<string, unknown>[] = [];
-    let from = 0;
+    const authenticatedClient = viewer.userId
+      ? await createSupabaseServerClient()
+      : null;
+    const publicClient = createSupabasePublicServerClient();
 
-    while (true) {
-      const { data, error } = await supabase
-        .rpc("get_match_seat_status", {
-          p_match_id: matchId,
-        })
-        .range(from, from + pageSize - 1);
+    let rows =
+      (await fetchSeatStatusRows(authenticatedClient).catch((error) => {
+        console.warn(
+          "Fallback pe clientul public pentru harta locurilor, dupa eroare pe clientul autentificat.",
+          error,
+        );
+        return null;
+      })) ?? [];
 
-      if (error) {
-        throw error;
-      }
+    if (!rows.length) {
+      rows =
+        (await fetchSeatStatusRows(publicClient).catch((error) => {
+          console.error(
+            "Nu am putut incarca harta locurilor nici cu clientul public.",
+            error,
+          );
+          return null;
+        })) ?? [];
+    }
 
-      const chunk = (data ?? []) as Record<string, unknown>[];
-      rows.push(...chunk);
-
-      if (chunk.length < pageSize) {
-        break;
-      }
-
-      from += pageSize;
+    if (!rows.length) {
+      return mockSeatMap;
     }
 
     rows.sort((left, right) => {
@@ -731,17 +786,21 @@ export async function getTicketsByReservationId(
   }
 }
 
-export async function getAdminMatchOverview(): Promise<AdminMatchOverview[]> {
+export async function getAdminMatchOverview(options?: {
+  archiveMode?: "exclude" | "only" | "include";
+}): Promise<AdminMatchOverview[]> {
   if (!isSupabaseConfigured()) {
     return mockAdminMatches;
   }
 
   try {
+    await syncMatchLifecycleStatuses();
+
     const viewer = await getViewerContext();
     const supabase = await createSupabaseServerClient();
 
     if (!supabase) {
-      return mockAdminMatches;
+      return [];
     }
 
     const { data, error } = await supabase
@@ -756,7 +815,7 @@ export async function getAdminMatchOverview(): Promise<AdminMatchOverview[]> {
     const rows = (data ?? []) as Record<string, unknown>[];
 
     if (!rows.length) {
-      return mockAdminMatches;
+      return [];
     }
 
     let matchMediaById = new Map<
@@ -773,7 +832,8 @@ export async function getAdminMatchOverview(): Promise<AdminMatchOverview[]> {
       .filter(Boolean);
 
     if (matchIds.length) {
-      const { data: directMatches, error: directMatchesError } = await supabase
+      const mediaSource = createSupabaseAdminClient() ?? supabase;
+      const { data: directMatches, error: directMatchesError } = await mediaSource
         .from("matches")
         .select("id, stadium_id, organizer_id, poster_url, banner_url")
         .in("id", matchIds);
@@ -818,10 +878,16 @@ export async function getAdminMatchOverview(): Promise<AdminMatchOverview[]> {
           null,
         startsAt: item.starts_at,
         status: item.status,
+        archivedAt: item.archived_at,
         scannerEnabled: item.scanner_enabled,
         maxTicketsPerUser: item.max_tickets_per_user,
         reservationOpensAt: item.reservation_opens_at,
         reservationClosesAt: item.reservation_closes_at,
+        initialHoldSeconds: item.initial_hold_seconds,
+        freeTicketConfirmedHoldSeconds: item.free_ticket_confirmed_hold_seconds,
+        paidTicketConfirmedHoldSeconds: item.paid_ticket_confirmed_hold_seconds,
+        allowGuestHold: item.allow_guest_hold,
+        requireLoginBeforeHold: item.require_login_before_hold,
         issuedCount: item.issued_count,
         scannedCount: item.scanned_count,
         noShowCount: item.no_show_count,
@@ -832,20 +898,28 @@ export async function getAdminMatchOverview(): Promise<AdminMatchOverview[]> {
       }),
     );
 
-    if (isGlobalAdmin(viewer) || !hasScopedOperationsAccess(viewer)) {
-      return parsedRows;
-    }
+    const scopedRows =
+      isGlobalAdmin(viewer) || !hasScopedOperationsAccess(viewer)
+        ? parsedRows
+        : parsedRows.filter((item) =>
+            canAccessLocation(
+              viewer,
+              item.stadiumId,
+              matchMediaById.get(item.id)?.organizerId ?? null,
+            ),
+          );
 
-    return parsedRows.filter((item) =>
-      canAccessLocation(
-        viewer,
-        item.stadiumId,
-        matchMediaById.get(item.id)?.organizerId ?? null,
-      ),
-    );
+    switch (options?.archiveMode ?? "exclude") {
+      case "only":
+        return scopedRows.filter((item) => item.status === "archived");
+      case "include":
+        return scopedRows;
+      default:
+        return scopedRows.filter((item) => item.status !== "archived");
+    }
   } catch (error) {
     console.error("Nu am putut încărca dashboard-ul admin.", error);
-    return mockAdminMatches;
+    return [];
   }
 }
 
@@ -1989,6 +2063,75 @@ export async function getCheckoutSummary(
     });
   } catch (error) {
     console.error("Nu am putut încărca sumarul pentru checkout.", error);
+    return null;
+  }
+}
+
+export async function getCheckoutSummaryWithSession(
+  matchId: string,
+  holdToken: string,
+  holdSessionId?: string | null,
+): Promise<CheckoutSummary | null> {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    if (!supabase) {
+      return null;
+    }
+
+    const { data, error } = await supabase.rpc("get_checkout_summary", {
+      p_match_id: matchId,
+      p_hold_token: holdToken,
+      p_session_id: holdSessionId ?? null,
+    });
+
+    if (error || !data) {
+      return null;
+    }
+
+    return checkoutSummarySchema.parse(data);
+  } catch (error) {
+    console.error("Nu am putut incarca sumarul pentru checkout prin session hold.", error);
+    return null;
+  }
+}
+
+export async function getActiveSeatHoldSummary(
+  matchId: string,
+  holdSessionId?: string | null,
+): Promise<SeatHoldSummary | null> {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    if (!supabase) {
+      return null;
+    }
+
+    const { data, error } = await supabase.rpc("get_active_hold_summary", {
+      p_match_id: matchId,
+      p_session_id: holdSessionId ?? null,
+    });
+
+    if (error || !data) {
+      return null;
+    }
+
+    return seatHoldSummarySchema.parse({
+      holdToken: data.hold_token,
+      expiresAt: data.expires_at,
+      holdType: data.hold_type,
+      seatIds: data.seat_ids,
+    });
+  } catch (error) {
+    console.error("Nu am putut incarca hold-ul activ.", error);
     return null;
   }
 }

@@ -5,15 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Clock3,
-  LockKeyhole,
+  LoaderCircle,
+  RefreshCw,
   ShoppingCart,
-  ShieldAlert,
   TicketPlus,
   UserRoundCog,
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { confirmSeatHoldAction, holdSeatsAction } from "@/lib/actions/reservations";
 import { formatDateTimeInTimeZone } from "@/lib/date-time";
 import type { SeatMapSector, ViewerContext } from "@/lib/domain/types";
 import type { StadiumMapConfig } from "@/lib/stadium/stadium-types";
@@ -25,7 +24,41 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 type HoldState = {
   holdToken: string;
   expiresAt: string;
+  holdType: "initial" | "confirmed_free" | "confirmed_paid";
 };
+
+type HoldConfig = {
+  initialHoldSeconds: number;
+  freeTicketConfirmedHoldSeconds: number;
+  paidTicketConfirmedHoldSeconds: number;
+  allowGuestHold: boolean;
+  requireLoginBeforeHold: boolean;
+};
+
+type HoldSummaryPayload = {
+  hold_token?: string | null;
+  expires_at?: string | null;
+  hold_type?: HoldState["holdType"] | null;
+  seat_ids?: string[] | null;
+} | null;
+
+function normalizeHoldPayload(summary: HoldSummaryPayload) {
+  if (!summary?.hold_token || !summary?.expires_at || !summary?.hold_type) {
+    return {
+      holdState: null,
+      seatIds: [] as string[],
+    };
+  }
+
+  return {
+    holdState: {
+      holdToken: summary.hold_token,
+      expiresAt: summary.expires_at,
+      holdType: summary.hold_type,
+    } satisfies HoldState,
+    seatIds: summary.seat_ids ?? [],
+  };
+}
 
 export function SeatMapBoard({
   matchId,
@@ -40,6 +73,9 @@ export function SeatMapBoard({
   ticketingMode,
   ticketPriceCents,
   currency,
+  initialSelectedSeatIds,
+  initialHoldState,
+  holdConfig,
 }: {
   matchId: string;
   matchSlug: string;
@@ -53,19 +89,44 @@ export function SeatMapBoard({
   ticketingMode: "free" | "paid";
   ticketPriceCents: number;
   currency: string;
+  initialSelectedSeatIds: string[];
+  initialHoldState: HoldState | null;
+  holdConfig: HoldConfig;
 }) {
   const router = useRouter();
-  const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
-  const [holdState, setHoldState] = useState<HoldState | null>(null);
-  const [now, setNow] = useState(0);
+  const selectedSeatIdsSignature = initialSelectedSeatIds.join(",");
+  const holdStateSignature = initialHoldState
+    ? `${initialHoldState.holdToken}:${initialHoldState.expiresAt}:${initialHoldState.holdType}`
+    : "none";
+  const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>(initialSelectedSeatIds);
+  const [selectedSeatIdsSyncSignature, setSelectedSeatIdsSyncSignature] = useState(
+    selectedSeatIdsSignature,
+  );
+  const [holdState, setHoldState] = useState<HoldState | null>(initialHoldState);
+  const [holdStateSyncSignature, setHoldStateSyncSignature] = useState(holdStateSignature);
+  const [pendingSeatIds, setPendingSeatIds] = useState<string[]>([]);
+  const [now, setNow] = useState(() => new Date().getTime());
   const [isPending, startTransition] = useTransition();
   const isPaidFlow = ticketingMode === "paid" && !viewer.isPrivileged;
   const isTicketingDisabled = Boolean(viewer.reservationBlockedUntil);
-  const hasSelection = selectedSeatIds.length > 0;
-  const canRequestHold =
-    viewer.isAuthenticated && hasSelection && !holdState && !isPending && !isTicketingDisabled;
-  const canConfirmHold =
-    viewer.isAuthenticated && Boolean(holdState) && !isPending && !isTicketingDisabled && !isPaidFlow;
+  const requiresLoginBeforeHold =
+    holdConfig.requireLoginBeforeHold || !holdConfig.allowGuestHold;
+  const holdDurationLabelSeconds =
+    holdState?.holdType === "confirmed_paid"
+      ? holdConfig.paidTicketConfirmedHoldSeconds
+      : holdState?.holdType === "confirmed_free"
+        ? holdConfig.freeTicketConfirmedHoldSeconds
+        : holdConfig.initialHoldSeconds;
+
+  if (selectedSeatIdsSyncSignature !== selectedSeatIdsSignature) {
+    setSelectedSeatIdsSyncSignature(selectedSeatIdsSignature);
+    setSelectedSeatIds(initialSelectedSeatIds);
+  }
+
+  if (holdStateSyncSignature !== holdStateSignature) {
+    setHoldStateSyncSignature(holdStateSignature);
+    setHoldState(initialHoldState);
+  }
 
   useEffect(() => {
     if (!holdState?.expiresAt) {
@@ -73,11 +134,21 @@ export function SeatMapBoard({
     }
 
     const interval = window.setInterval(() => {
-      setNow(Date.now());
+      setNow(new Date().getTime());
     }, 1000);
+    const expiryDelay = Math.max(new Date(holdState.expiresAt).getTime() - new Date().getTime(), 0);
+    const timeout = window.setTimeout(() => {
+      setHoldState(null);
+      setSelectedSeatIds([]);
+      toast.error("Timpul de rezervare temporara a expirat. Te rugam sa selectezi din nou locurile disponibile.");
+      router.refresh();
+    }, expiryDelay);
 
-    return () => window.clearInterval(interval);
-  }, [holdState]);
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(timeout);
+    };
+  }, [holdState, router]);
 
   const selectedSeats = useMemo(
     () =>
@@ -86,6 +157,7 @@ export function SeatMapBoard({
         .filter((seat) => selectedSeatIds.includes(seat.seatId)),
     [selectedSeatIds, sectors],
   );
+
   const estimatedTotal = useMemo(
     () => selectedSeats.reduce((sum, seat) => sum + seat.ticketPriceCents, 0),
     [selectedSeats],
@@ -103,88 +175,170 @@ export function SeatMapBoard({
     return `${minutes}:${seconds}`;
   }, [holdState, now]);
 
-  function toggleSeat(seatId: string, seatAvailability: string) {
-    if (seatAvailability !== "available" && !selectedSeatIds.includes(seatId)) {
-      return;
-    }
-
-    setSelectedSeatIds((current) => {
-      if (current.includes(seatId)) {
-        return current.filter((item) => item !== seatId);
-      }
-
-      if (remainingLimit !== null && current.length >= remainingLimit) {
-        toast.error(`Ai atins limita disponibila de ${remainingLimit} bilete.`);
-        return current;
-      }
-
-      return [...current, seatId];
+  async function callHoldEndpoint(
+    endpoint: "/api/holds/acquire" | "/api/holds/release" | "/api/holds/extend",
+    payload: Record<string, unknown>,
+  ) {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      credentials: "include",
     });
-  }
 
-  function requestHold() {
-    if (!viewer.isAuthenticated) {
-      toast.error("Autentifica-te pentru a continua ticketing-ul.");
-      return;
-    }
+    const data = (await response.json().catch(() => null)) as
+      | { ok?: boolean; message?: string; summary?: HoldSummaryPayload }
+      | null;
 
-    if (isTicketingDisabled) {
-      toast.error(
-        "Contul tau nu poate continua ticketing-ul pentru acest meci.",
+    if (!response.ok || !data?.ok) {
+      throw new Error(
+        data?.message ??
+          "Locul nu a putut fi actualizat acum. Reincarca pagina si incearca din nou.",
       );
+    }
+
+    return data;
+  }
+
+  async function toggleSeat(seatId: string, seatAvailability: string) {
+    if (pendingSeatIds.includes(seatId) || isTicketingDisabled) {
+      return;
+    }
+
+    if (!viewer.isAuthenticated && requiresLoginBeforeHold) {
+      toast.error("Autentifica-te pentru a putea bloca locurile temporar.");
+      return;
+    }
+
+    if (
+      seatAvailability !== "available" &&
+      seatAvailability !== "held_by_me" &&
+      !selectedSeatIds.includes(seatId)
+    ) {
+      return;
+    }
+
+    if (
+      seatAvailability === "available" &&
+      remainingLimit !== null &&
+      selectedSeatIds.length >= remainingLimit
+    ) {
+      toast.error(`Ai atins limita disponibila de ${remainingLimit} bilete.`);
+      return;
+    }
+
+    setPendingSeatIds((current) => [...current, seatId]);
+
+    try {
+      const isAlreadyMine = selectedSeatIds.includes(seatId) || seatAvailability === "held_by_me";
+      const result = isAlreadyMine
+        ? await callHoldEndpoint("/api/holds/release", {
+            matchId,
+            seatId,
+            holdToken: holdState?.holdToken ?? null,
+          })
+        : await callHoldEndpoint("/api/holds/acquire", {
+            matchId,
+            seatId,
+          });
+
+      const normalized = normalizeHoldPayload(result.summary ?? null);
+      setSelectedSeatIds(normalized.seatIds);
+      setHoldState(normalized.holdState);
+      setNow(Date.now());
+
+      if (isAlreadyMine) {
+        toast.success("Locul a fost eliberat imediat.");
+      } else {
+        toast.success("Locul a fost blocat temporar pentru tine.");
+      }
+
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Acest loc tocmai a fost selectat de alt utilizator. Te rugam sa alegi alt loc.",
+      );
+      router.refresh();
+    } finally {
+      setPendingSeatIds((current) => current.filter((item) => item !== seatId));
+    }
+  }
+
+  function continueWithSelection() {
+    if (!holdState?.holdToken) {
+      toast.error("Selecteaza si blocheaza mai intai cel putin un loc disponibil.");
+      return;
+    }
+
+    if (!viewer.isAuthenticated) {
+      toast.error("Autentifica-te pentru a continua catre confirmare.");
+      router.push(`/autentificare?next=/meciuri/${matchSlug}/checkout?hold=${holdState.holdToken}`);
       return;
     }
 
     startTransition(async () => {
-      const result = await holdSeatsAction({
-        matchId,
-        seatIds: selectedSeatIds,
-      });
-
-      if (!result.ok || !result.holdToken || !result.expiresAt) {
-        toast.error(result.message);
-        return;
-      }
-
-      if (result.ticketingMode === "paid" && !viewer.isPrivileged) {
-        toast.success("Locurile au fost blocate. Continua imediat spre plata.");
-        router.push(`/meciuri/${matchSlug}/checkout?hold=${result.holdToken}`);
+      try {
+        const result = await callHoldEndpoint("/api/holds/extend", {
+          matchId,
+          holdToken: holdState.holdToken,
+        });
+        const normalized = normalizeHoldPayload(result.summary ?? null);
+        setSelectedSeatIds(normalized.seatIds);
+        setHoldState(normalized.holdState);
+        setNow(Date.now());
+        toast.success(
+          ticketingMode === "paid"
+            ? "Hold-ul a fost extins. Continua imediat spre plata."
+            : "Hold-ul a fost extins. Continua imediat spre confirmarea biletelor.",
+        );
+        router.push(`/meciuri/${matchSlug}/checkout?hold=${normalized.holdState?.holdToken ?? holdState.holdToken}`);
         router.refresh();
-        return;
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Unele locuri nu mai sunt disponibile. Te rugam sa actualizezi selectia.",
+        );
+        router.refresh();
       }
-
-      setHoldState({
-        holdToken: result.holdToken,
-        expiresAt: result.expiresAt,
-      });
-      setNow(Date.now());
-      toast.success(result.message);
     });
   }
 
-  function confirmHold() {
-    if (!holdState?.holdToken) {
-      toast.error("Nu exista un hold activ pentru confirmare.");
+  function resetSelection() {
+    if (!selectedSeatIds.length) {
       return;
     }
 
     startTransition(async () => {
-      const result = await confirmSeatHoldAction({
-        matchId,
-        holdToken: holdState.holdToken,
-        source: viewer.isPrivileged ? "admin_reservation" : "public_reservation",
-      });
-
-      if (!result.ok || !result.reservationId) {
-        toast.error(result.message);
-        return;
+      for (const seatId of selectedSeatIds) {
+        try {
+          await callHoldEndpoint("/api/holds/release", {
+            matchId,
+            seatId,
+            holdToken: holdState?.holdToken ?? null,
+          });
+        } catch {
+          // incercam sa eliberam cat mai multe locuri; refresh-ul final va sincroniza realitatea
+        }
       }
 
-      toast.success(result.message);
-      router.push(`/confirmare/${result.reservationId}`);
+      setSelectedSeatIds([]);
+      setHoldState(null);
+      setNow(Date.now());
+      toast.success("Selectia a fost resetata si locurile au fost eliberate.");
       router.refresh();
     });
   }
+
+  const canContinue =
+    selectedSeatIds.length > 0 &&
+    Boolean(holdState?.holdToken) &&
+    !isPending &&
+    !isTicketingDisabled;
 
   return (
     <div className="grid gap-6 pb-24 xl:grid-cols-[1.2fr_0.8fr] xl:pb-0">
@@ -195,9 +349,9 @@ export function SeatMapBoard({
             Harta locatiei si a locurilor
           </CardTitle>
           <p className="max-w-3xl text-sm leading-6 text-neutral-600">
-            {ticketingMode === "paid"
-              ? `Acest meci foloseste procurare cu plata. Selectezi locurile, le blochezi temporar, apoi continui spre checkout pentru emiterea biletelor QR. Preturile pot diferi in functie de sector, iar totalul se actualizeaza pe baza locurilor selectate.`
-              : "Acest meci foloseste emitere gratuita. Selectezi locurile, le blochezi temporar pentru cateva minute, apoi confirmi emiterea biletelor QR."}
+            La fiecare click pe un loc disponibil, backend-ul incearca imediat sa il blocheze
+            temporar pentru tine. Dupa confirmarea selectiei, hold-ul se extinde pentru checkout
+            sau emitere, iar locul devine indisponibil pentru ceilalti utilizatori.
           </p>
         </CardHeader>
         <CardContent className="grid gap-6">
@@ -207,6 +361,7 @@ export function SeatMapBoard({
             overrideConfig={stadiumMapConfig}
             sectors={sectors}
             selectedSeatIds={selectedSeatIds}
+            pendingSeatIds={pendingSeatIds}
             disabled={isPending || isTicketingDisabled}
             onSeatToggle={toggleSeat}
           />
@@ -217,9 +372,7 @@ export function SeatMapBoard({
         <div className="h-1.5 bg-[linear-gradient(90deg,#ffffff_0%,#fca5a5_36%,#ef4444_100%)]" />
         <CardHeader className="gap-4">
           <CardTitle className="font-heading text-4xl uppercase tracking-[0.08em]">
-            {ticketingMode === "paid" && !viewer.isPrivileged
-              ? "Procura bilete"
-              : "Emitere bilete"}
+            {ticketingMode === "paid" && !viewer.isPrivileged ? "Procura bilete" : "Emitere bilete"}
           </CardTitle>
           <p className="text-sm leading-6 text-white/72">{matchTitle}</p>
         </CardHeader>
@@ -227,16 +380,23 @@ export function SeatMapBoard({
           <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm text-white/75">
             {remainingLimit === null
               ? "Rol privilegiat: poti emite fara limita standard."
-              : `Limita ta ramasa pentru acest meci: ${remainingLimit} bilete.`}
+              : `Limita ta ramasa pentru acest eveniment: ${remainingLimit} bilete.`}
           </div>
 
           <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm leading-6 text-white/80">
-            1. Alege sectorul si locurile.
+            1. Apasa pe locurile disponibile pentru hold instant.
             <br />
-            2. Blocheaza temporar selectia.
+            2. Deselecteaza orice loc pe care nu il mai doresti.
             <br />
-            3. Confirma emiterea sau continua spre plata.
+            3. Continua pentru extinderea hold-ului si finalizare.
           </div>
+
+          {!viewer.isAuthenticated && holdConfig.allowGuestHold && !holdConfig.requireLoginBeforeHold ? (
+            <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm leading-6 text-white/80">
+              Poti bloca temporar locurile si ca vizitator, pe baza sesiunii curente. Inainte de
+              emiterea finala sau checkout, vei fi rugat sa intri in cont.
+            </div>
+          ) : null}
 
           {ticketingMode === "paid" ? (
             <div className="rounded-[26px] border border-[#fecaca]/20 bg-[#dc2626]/12 p-4 text-sm leading-6 text-white/85">
@@ -246,12 +406,6 @@ export function SeatMapBoard({
               </span>
               . Unele sectoare pot avea override de pret, iar totalul final se calculeaza automat
               dupa locurile alese.
-            </div>
-          ) : null}
-
-          {!viewer.isAuthenticated ? (
-            <div className="rounded-[26px] border border-[#fecaca]/20 bg-[#dc2626]/12 p-4 text-sm leading-6 text-white/80">
-              Autentifica-te mai intai, apoi revii direct in aceasta pagina pentru a continua selectia.
             </div>
           ) : null}
 
@@ -266,9 +420,7 @@ export function SeatMapBoard({
           ) : null}
 
           <div className="grid gap-3 rounded-[26px] border border-white/10 bg-white/5 p-4">
-            <p className="text-xs uppercase tracking-[0.24em] text-[#fecaca]">
-              Locuri selectate
-            </p>
+            <p className="text-xs uppercase tracking-[0.24em] text-[#fecaca]">Locuri selectate</p>
             {selectedSeats.length ? (
               selectedSeats.map((seat) => (
                 <div
@@ -287,8 +439,8 @@ export function SeatMapBoard({
               ))
             ) : (
               <p className="text-sm leading-6 text-white/65">
-                Nu ai selectat inca niciun loc. Incepe din harta locatiei, apoi atinge locurile
-                disponibile din sectorul ales.
+                Nu ai selectat inca niciun loc. Incepe din harta locatiei, iar blocarea temporara
+                se face imediat dupa confirmarea backend-ului.
               </p>
             )}
           </div>
@@ -306,12 +458,18 @@ export function SeatMapBoard({
             <div className="rounded-[26px] border border-white/10 bg-white/8 p-4 text-sm text-white">
               <div className="flex items-center gap-2">
                 <Clock3 className="h-4 w-4 text-[#fca5a5]" />
-                Hold activ. Expira in aproximativ {countdown ?? "--:--"}.
+                {holdState.holdType === "initial"
+                  ? `Hold initial activ. Expira in aproximativ ${countdown ?? "--:--"}.`
+                  : `Hold extins activ. Expira in aproximativ ${countdown ?? "--:--"}.`}
               </div>
+              <p className="mt-2 text-xs leading-5 text-white/70">
+                Durata curenta configurata pentru acest pas este de aproximativ{" "}
+                {Math.round(holdDurationLabelSeconds / 60)} minute.
+              </p>
             </div>
           ) : null}
 
-          {!viewer.isAuthenticated ? (
+          {!viewer.isAuthenticated && requiresLoginBeforeHold ? (
             <Button
               asChild
               className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
@@ -326,47 +484,34 @@ export function SeatMapBoard({
             <div className="grid gap-3">
               <Button
                 type="button"
-                onClick={requestHold}
-                disabled={!canRequestHold}
+                onClick={continueWithSelection}
+                disabled={!canContinue}
                 className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
               >
-                <LockKeyhole className="mr-2 h-4 w-4" />
-                {ticketingMode === "paid" && !viewer.isPrivileged
-                  ? "Blocheaza locurile si continua la plata"
-                  : "Blocheaza temporar locurile"}
-              </Button>
-              <Button
-                type="button"
-                onClick={confirmHold}
-                disabled={!canConfirmHold}
-                className="rounded-full border border-white/10 bg-white text-[#111111] hover:bg-neutral-100"
-              >
-                {viewer.isPrivileged ? (
+                {isPending ? (
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                ) : viewer.isPrivileged ? (
                   <UserRoundCog className="mr-2 h-4 w-4" />
                 ) : isPaidFlow ? (
                   <ShoppingCart className="mr-2 h-4 w-4" />
                 ) : (
                   <TicketPlus className="mr-2 h-4 w-4" />
                 )}
-                {isPaidFlow ? "Continua la plata" : "Confirma emiterea biletelor"}
+                {isPaidFlow ? "Continua la plata" : "Confirma selectia"}
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  setSelectedSeatIds([]);
-                  setHoldState(null);
-                  setNow(0);
-                }}
-                disabled={isPending}
+                onClick={resetSelection}
+                disabled={isPending || selectedSeatIds.length === 0}
                 className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10"
               >
-                <ShieldAlert className="mr-2 h-4 w-4" />
-                Reseteaza selectia
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Elibereaza selectia
               </Button>
-              {!hasSelection && !holdState ? (
+              {!selectedSeatIds.length ? (
                 <p className="text-xs leading-5 text-white/60">
-                  Selecteaza mai intai unul sau mai multe locuri pentru a activa continuarea.
+                  Apasa pe locurile disponibile; blocarea se face imediat si sigur in backend.
                 </p>
               ) : null}
             </div>
@@ -385,7 +530,7 @@ export function SeatMapBoard({
                 {selectedSeats.length} {selectedSeats.length === 1 ? "loc selectat" : "locuri selectate"}
               </p>
             </div>
-            {!viewer.isAuthenticated ? (
+            {requiresLoginBeforeHold && !viewer.isAuthenticated ? (
               <Button
                 asChild
                 className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
@@ -394,23 +539,14 @@ export function SeatMapBoard({
                   Continua
                 </Link>
               </Button>
-            ) : holdState && !isPaidFlow ? (
-              <Button
-                type="button"
-                onClick={confirmHold}
-                disabled={!canConfirmHold}
-                className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
-              >
-                Confirma
-              </Button>
             ) : (
               <Button
                 type="button"
-                onClick={requestHold}
-                disabled={!canRequestHold}
+                onClick={continueWithSelection}
+                disabled={!canContinue}
                 className="rounded-full border border-[#dc2626] bg-[#dc2626] text-white hover:bg-[#b91c1c]"
               >
-                {ticketingMode === "paid" && !viewer.isPrivileged ? "Continua" : "Blocheaza"}
+                {isPaidFlow ? "Continua" : "Confirma"}
               </Button>
             )}
           </div>
