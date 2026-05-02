@@ -9,8 +9,10 @@ const seatStatusClassNames: Record<StadiumSeatStatus, string> = {
   selected:
     "border-[#dc2626] bg-[#dc2626] text-white shadow-[0_16px_30px_-18px_rgba(220,38,38,0.85)]",
   held: "border-neutral-300 bg-neutral-200 text-neutral-600",
-  reserved: "border-neutral-300 bg-neutral-200 text-neutral-600",
-  sold: "border-neutral-300 bg-neutral-200 text-neutral-600",
+  reserved:
+    "border-[#fca5a5] bg-[#fca5a5] text-[#7f1d1d] shadow-[0_16px_30px_-20px_rgba(252,165,165,0.65)]",
+  sold:
+    "border-[#fca5a5] bg-[#fca5a5] text-[#7f1d1d] shadow-[0_16px_30px_-20px_rgba(252,165,165,0.65)]",
   blocked: "border-[#fecaca] bg-[#fff1f2] text-[#b91c1c]",
   unavailable: "border-[#fecaca] bg-[#fff1f2] text-[#b91c1c]",
 };
