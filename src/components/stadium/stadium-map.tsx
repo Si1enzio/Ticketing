@@ -30,6 +30,9 @@ export function StadiumMap({
   pendingSeatIds,
   disabled,
   onSeatToggle,
+  canBulkSelect = false,
+  onSelectAvailableInRow,
+  onSelectAvailableInSector,
 }: {
   stadiumId?: string | null;
   stadiumName: string;
@@ -41,6 +44,9 @@ export function StadiumMap({
   pendingSeatIds?: string[];
   disabled?: boolean;
   onSeatToggle: (seatId: string, availability: string) => void;
+  canBulkSelect?: boolean;
+  onSelectAvailableInRow?: (seatIds: string[]) => void;
+  onSelectAvailableInSector?: (seatIds: string[]) => void;
 }) {
   const { locale } = useI18n();
   const copy = getStadiumMapMessages(locale);
@@ -284,6 +290,9 @@ export function StadiumMap({
           pendingSeatIds={pendingSeatIds}
           disabled={disabled}
           onSeatToggle={onSeatToggle}
+          canBulkSelect={canBulkSelect}
+          onSelectAvailableInRow={onSelectAvailableInRow}
+          onSelectAvailableInSector={onSelectAvailableInSector}
         />
       </div>
     </div>

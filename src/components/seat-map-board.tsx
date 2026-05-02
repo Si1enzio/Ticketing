@@ -42,6 +42,13 @@ type HoldSummaryPayload = {
   seat_ids?: string[] | null;
 } | null;
 
+type HoldEndpoint =
+  | "/api/holds/acquire"
+  | "/api/holds/release"
+  | "/api/holds/extend"
+  | "/api/holds/acquire-bulk"
+  | "/api/holds/release-bulk";
+
 function normalizeHoldPayload(summary: HoldSummaryPayload) {
   if (!summary?.hold_token || !summary?.expires_at || !summary?.hold_type) {
     return {
@@ -177,10 +184,7 @@ export function SeatMapBoard({
     return `${minutes}:${seconds}`;
   }, [holdState, now]);
 
-  async function callHoldEndpoint(
-    endpoint: "/api/holds/acquire" | "/api/holds/release" | "/api/holds/extend",
-    payload: Record<string, unknown>,
-  ) {
+  async function callHoldEndpoint(endpoint: HoldEndpoint, payload: Record<string, unknown>) {
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -268,6 +272,62 @@ export function SeatMapBoard({
     } finally {
       setPendingSeatIds((current) => current.filter((item) => item !== seatId));
     }
+  }
+
+  async function applyBulkSelection(seatIds: string[], scopeLabel: string) {
+    const normalizedSeatIds = Array.from(new Set(seatIds)).filter(Boolean);
+
+    if (!normalizedSeatIds.length || isTicketingDisabled) {
+      return;
+    }
+
+    if (!viewer.isAuthenticated && requiresLoginBeforeHold) {
+      toast.error("Autentifica-te pentru a putea bloca locurile temporar.");
+      return;
+    }
+
+    if (
+      remainingLimit !== null &&
+      selectedSeatIds.length + normalizedSeatIds.length > remainingLimit
+    ) {
+      toast.error(`Ai atins limita disponibila de ${remainingLimit} bilete.`);
+      return;
+    }
+
+    setPendingSeatIds((current) => Array.from(new Set([...current, ...normalizedSeatIds])));
+
+    try {
+      const result = await callHoldEndpoint("/api/holds/acquire-bulk", {
+        matchId,
+        seatIds: normalizedSeatIds,
+      });
+
+      const normalized = normalizeHoldPayload(result.summary ?? null);
+      setSelectedSeatIds(normalized.seatIds);
+      setHoldState(normalized.holdState);
+      setNow(Date.now());
+      toast.success(`${scopeLabel} a fost blocat temporar pentru tine.`);
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unele locuri din selectie nu mai sunt disponibile. Te rugam sa incerci din nou.",
+      );
+      router.refresh();
+    } finally {
+      setPendingSeatIds((current) =>
+        current.filter((item) => !normalizedSeatIds.includes(item)),
+      );
+    }
+  }
+
+  function selectAvailableSeatsInRow(seatIds: string[]) {
+    void applyBulkSelection(seatIds, "Randul selectat");
+  }
+
+  function selectAvailableSeatsInSector(seatIds: string[]) {
+    void applyBulkSelection(seatIds, "Sectorul selectat");
   }
 
   function continueWithSelection() {
@@ -366,6 +426,9 @@ export function SeatMapBoard({
             pendingSeatIds={pendingSeatIds}
             disabled={isPending || isTicketingDisabled}
             onSeatToggle={toggleSeat}
+            canBulkSelect={isSuperadmin}
+            onSelectAvailableInRow={selectAvailableSeatsInRow}
+            onSelectAvailableInSector={selectAvailableSeatsInSector}
           />
         </CardContent>
       </Card>
@@ -386,6 +449,14 @@ export function SeatMapBoard({
                 ? "Rol privilegiat: se aplica limitarile standard ale evenimentului."
                 : `Limita ta ramasa pentru acest eveniment: ${remainingLimit} bilete.`}
           </div>
+
+          {isSuperadmin ? (
+            <div className="rounded-[26px] border border-[#fecaca]/20 bg-[#dc2626]/12 p-4 text-sm leading-6 text-white/85">
+              Pentru selectie rapida, apasa pe eticheta unui rand ca sa blochezi instant toate
+              locurile disponibile din acel rand sau foloseste butonul din sector pentru a selecta
+              intregul sector disponibil.
+            </div>
+          ) : null}
 
           <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm leading-6 text-white/80">
             1. Apasa pe locurile disponibile pentru hold instant.

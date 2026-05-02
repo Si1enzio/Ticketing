@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import { useI18n } from "@/components/i18n-provider";
 import { SectorRow } from "@/components/stadium/sector-row";
+import { Button } from "@/components/ui/button";
 import type { SeatMapSector } from "@/lib/domain/types";
 import { getStadiumMapMessages } from "@/lib/stadium/stadium-localization";
 import type { SectorConfig } from "@/lib/stadium/stadium-types";
@@ -16,6 +17,9 @@ export function SectorSeatMap({
   pendingSeatIds = [],
   disabled,
   onSeatToggle,
+  canBulkSelect = false,
+  onSelectAvailableInRow,
+  onSelectAvailableInSector,
 }: {
   sector: SeatMapSector | null;
   sectorConfig?: SectorConfig | null;
@@ -23,6 +27,9 @@ export function SectorSeatMap({
   pendingSeatIds?: string[];
   disabled?: boolean;
   onSeatToggle: (seatId: string, availability: string) => void;
+  canBulkSelect?: boolean;
+  onSelectAvailableInRow?: (seatIds: string[]) => void;
+  onSelectAvailableInSector?: (seatIds: string[]) => void;
 }) {
   const { locale } = useI18n();
   const copy = getStadiumMapMessages(locale);
@@ -39,6 +46,13 @@ export function SectorSeatMap({
 
   const availableSeatsCount = useMemo(
     () => sector?.seats.filter((seat) => seat.availability === "available").length ?? 0,
+    [sector],
+  );
+  const availableSeatIds = useMemo(
+    () =>
+      sector?.seats
+        .filter((seat) => seat.availability === "available")
+        .map((seat) => seat.seatId) ?? [],
     [sector],
   );
 
@@ -107,6 +121,21 @@ export function SectorSeatMap({
         </div>
       </div>
 
+      {canBulkSelect ? (
+        <div className="flex flex-wrap justify-end gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-full border-[#111111]/10 bg-white px-4 text-xs uppercase tracking-[0.18em] text-[#111111] hover:border-[#b91c1c]/35 hover:text-[#b91c1c]"
+            disabled={disabled || availableSeatIds.length === 0}
+            onClick={() => onSelectAvailableInSector?.(availableSeatIds)}
+            title={copy.selectAvailableSector}
+          >
+            {copy.selectSectorAction}
+          </Button>
+        </div>
+      ) : null}
+
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-[22px] border border-black/6 bg-white px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
@@ -141,6 +170,8 @@ export function SectorSeatMap({
 
               onSeatToggle(seatId, seat.availability);
             }}
+            canBulkSelect={canBulkSelect}
+            onSelectAvailableSeats={onSelectAvailableInRow}
           />
         ))}
       </div>

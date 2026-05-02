@@ -12,6 +12,8 @@ export function SectorRow({
   pendingSeatIds = [],
   scrollContainerRef,
   onScroll,
+  canBulkSelect = false,
+  onSelectAvailableSeats,
 }: {
   row: StadiumSeatRow;
   disabled?: boolean;
@@ -19,15 +21,37 @@ export function SectorRow({
   pendingSeatIds?: string[];
   scrollContainerRef?: (node: HTMLDivElement | null) => void;
   onScroll?: (scrollLeft: number) => void;
+  canBulkSelect?: boolean;
+  onSelectAvailableSeats?: (seatIds: string[]) => void;
 }) {
   const { locale } = useI18n();
   const copy = getStadiumMapMessages(locale);
+  const availableSeatIds = row.cells.reduce<string[]>((acc, cell) => {
+    if (cell.kind === "seat" && cell.status === "available") {
+      acc.push(cell.seat.seatId);
+    }
+
+    return acc;
+  }, []);
+  const canBulkSelectRow =
+    canBulkSelect && !disabled && availableSeatIds.length > 0 && Boolean(onSelectAvailableSeats);
 
   return (
     <div className="grid grid-cols-[auto_1fr] items-start gap-3">
-      <div className="w-16 rounded-full bg-[#111111] px-3 py-2 text-center text-xs font-semibold text-white">
-        {copy.row} {row.label}
-      </div>
+      {canBulkSelectRow ? (
+        <button
+          type="button"
+          title={copy.selectAvailableRow}
+          onClick={() => onSelectAvailableSeats?.(availableSeatIds)}
+          className="w-16 rounded-full bg-[#111111] px-3 py-2 text-center text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#b91c1c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc2626]/35"
+        >
+          {copy.row} {row.label}
+        </button>
+      ) : (
+        <div className="w-16 rounded-full bg-[#111111] px-3 py-2 text-center text-xs font-semibold text-white">
+          {copy.row} {row.label}
+        </div>
+      )}
       <div
         ref={scrollContainerRef}
         className="overflow-x-auto pb-2"
