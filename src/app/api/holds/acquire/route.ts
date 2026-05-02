@@ -56,12 +56,19 @@ export async function POST(request: Request) {
   });
 
   if (error) {
+    const normalizedMessage = error.message?.replace(/\s+/g, " ").trim() ?? "";
+    const isSeatConflict = normalizedMessage.includes(
+      "Acest loc tocmai a fost selectat de alt utilizator.",
+    );
+
     return NextResponse.json(
       {
         ok: false,
         message: sanitizeUserFacingErrorMessage(
           error.message,
-          "Acest loc tocmai a fost selectat de alt utilizator. Te rugam sa alegi alt loc.",
+          isSeatConflict
+            ? "Acest loc tocmai a fost selectat de alt utilizator. Te rugam sa alegi alt loc."
+            : "Locul nu a putut fi blocat temporar acum. Reincarca pagina si incearca din nou.",
         ),
       },
       { status: 409, headers: withNoStoreHeaders() },
