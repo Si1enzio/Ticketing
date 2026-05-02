@@ -74,6 +74,7 @@ export function SeatMapBoard({
   ticketPriceCents,
   currency,
   initialSelectedSeatIds,
+  isSuperadmin,
   initialHoldState,
   holdConfig,
 }: {
@@ -90,6 +91,7 @@ export function SeatMapBoard({
   ticketPriceCents: number;
   currency: string;
   initialSelectedSeatIds: string[];
+  isSuperadmin: boolean;
   initialHoldState: HoldState | null;
   holdConfig: HoldConfig;
 }) {
@@ -378,9 +380,11 @@ export function SeatMapBoard({
         </CardHeader>
         <CardContent className="grid gap-5">
           <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm text-white/75">
-            {remainingLimit === null
-              ? "Rol privilegiat: poti emite fara limita standard."
-              : `Limita ta ramasa pentru acest eveniment: ${remainingLimit} bilete.`}
+            {isSuperadmin
+              ? "Superadmin: poti emite fara limita standard."
+              : remainingLimit === null
+                ? "Rol privilegiat: se aplica limitarile standard ale evenimentului."
+                : `Limita ta ramasa pentru acest eveniment: ${remainingLimit} bilete.`}
           </div>
 
           <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm leading-6 text-white/80">

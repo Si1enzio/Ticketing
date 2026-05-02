@@ -40,7 +40,9 @@ export default async function ReserveSeatPage({
     (ticket) => ticket.matchId === match.id && ticket.status !== "canceled",
   ).length;
 
-  const remainingLimit = viewer.isPrivileged
+  const isSuperadmin = viewer.roles.includes("superadmin");
+
+  const remainingLimit = isSuperadmin
     ? null
     : Math.max(match.maxTicketsPerUser - activeTicketsForMatch, 0);
 
@@ -87,6 +89,7 @@ export default async function ReserveSeatPage({
         ticketPriceCents={match.ticketPriceCents}
         currency={match.currency}
         initialSelectedSeatIds={activeHold?.seatIds ?? []}
+        isSuperadmin={isSuperadmin}
         initialHoldState={
           activeHold
             ? {
